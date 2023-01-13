@@ -143,6 +143,15 @@ mod maze {
                 .collect()
         }
 
+        pub fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {
+            Direction::iterator()
+                .filter(|direction| {
+                    let mask = direction.bitmask();
+                    self.fields[x][y] & mask == 0
+                })
+                .collect()
+        }
+
         pub fn get_possible_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
             Direction::iterator()
                 .filter(|direction| match self.translate((x, y), *direction) {
@@ -202,11 +211,33 @@ mod maze {
         }
 
         #[test]
-        fn get_open_paths_returns_where_there_are_walls() {
+        fn get_open_paths_returns_where_there_are_no_walls() {
             let mut m = Maze::new((12, 12));
             m.move_from((2, 2), Left);
             assert_eq!(m.get_open_paths((2, 2)), [Left]);
             assert_eq!(m.get_open_paths((1, 2)), [Right]);
+        }
+
+        #[test]
+        fn get_walls_returns_where_there_are_walls() {
+            let mut m = Maze::new((12, 12));
+            m.move_from((2, 2), Left);
+            assert_eq!(
+                UnorderedEq(&m.get_walls((2, 2))),
+                UnorderedEq(&[Right, Up, Down])
+            );
+            assert_eq!(
+                UnorderedEq(&m.get_walls((1, 2))),
+                UnorderedEq(&[Left, Up, Down])
+            );
+        }
+
+        #[test]
+        fn get_walls_returns_walls_at_the_edges() {
+            let mut m = Maze::new((10, 10));
+            m.move_from((0, 0), Down);
+            m.move_from((0, 0), Right);
+            assert_eq!(UnorderedEq(&m.get_walls((0, 0))), UnorderedEq(&[Left, Up]))
         }
 
         #[test]
@@ -269,6 +300,67 @@ mod maze {
 
         pub trait MazeFileWriter {
             fn write_maze(&self, maze: &Maze) -> Result<(), MazePaintError>;
+        }
+
+        #[derive(Debug)]
+        pub struct PlottersSvgFileWriter {
+            border_size: usize,
+            cell_size: usize,
+            file_name: String,
+        }
+
+        impl PlottersSvgFileWriter {
+            pub fn new(file_name: String, cell_size: usize, border_size: usize) -> Self {
+                Self {
+                    border_size,
+                    cell_size,
+                    file_name,
+                }
+            }
+        }
+
+        impl MazeFileWriter for PlottersSvgFileWriter {
+            fn write_maze(&self, maze: &Maze) -> Result<(), MazePaintError> {
+                use super::Direction::*;
+                use itertools::Itertools;
+                use plotters::prelude::*;
+                let border_width: i32 = self.border_size.try_into().unwrap();
+
+                let mut pic = SVGBackend::new(
+                    &self.file_name,
+                    (
+                        (maze.extents.0 * self.cell_size).try_into().unwrap(),
+                        (maze.extents.1 * self.cell_size).try_into().unwrap(),
+                    ),
+                );
+
+                let cells = (0..maze.extents.0).cartesian_product(0..maze.extents.1);
+                cells.for_each(|(x, y)| {
+                    let x0: i32 = (x * self.cell_size).try_into().unwrap();
+                    let y0: i32 = (y * self.cell_size).try_into().unwrap();
+                    let x1: i32 = ((1 + x) * self.cell_size).try_into().unwrap();
+                    let y1: i32 = ((1 + y) * self.cell_size).try_into().unwrap();
+
+                    let w = maze.get_walls((x, y));
+                    w.iter().for_each(|d| match d {
+                        Up => pic
+                            .draw_rect((x0, y0), (x1, y0 + border_width), &BLACK, true)
+                            .unwrap(),
+                        Left => pic
+                            .draw_rect((x0, y0), (x0 + border_width, y1), &BLACK, true)
+                            .unwrap(),
+                        Down => pic
+                            .draw_rect((x0, y1 - border_width), (x1, y1), &BLACK, true)
+                            .unwrap(),
+                        Right => pic
+                            .draw_rect((x1 - border_width, y0), (x1, y1), &BLACK, true)
+                            .unwrap(),
+                    })
+                });
+                pic.present().unwrap();
+
+                Ok(())
+            }
         }
 
         #[derive(Debug)]
@@ -381,22 +473,22 @@ mod maze {
         pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
             let mut maze = Maze::new((x_size, y_size));
             let mut rng = ChaCha8Rng::seed_from_u64(seed);
-            let mut walls: Vec<Wall> = vec![];
+            let mut vertices: Vec<Wall> = vec![];
 
             let start = (rng.gen_range(0..x_size), 0);
             maze.visit(start);
-            walls.extend(maze.get_possible_paths(start).iter().map(|d| Wall {
+            vertices.extend(maze.get_possible_paths(start).iter().map(|d| Wall {
                 x: start.0,
                 y: start.1,
                 d: *d,
             }));
 
-            while !walls.is_empty() {
-                let w = walls.remove(rng.gen_range(0..walls.len()));
+            while !vertices.is_empty() {
+                let w = vertices.remove(rng.gen_range(0..vertices.len()));
                 match maze.translate((w.x, w.y), w.d) {
                     Some(t) if !maze.is_visited(t) => {
                         maze.move_from((w.x, w.y), w.d);
-                        walls.extend(maze.get_possible_paths(t).iter().map(|d| Wall {
+                        vertices.extend(maze.get_possible_paths(t).iter().map(|d| Wall {
                             x: t.0,
                             y: t.1,
                             d: *d,
@@ -414,12 +506,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use maze::generator::*;
     use maze::paint::*;
     use maze::*;
-    let x_size = 20;
-    let y_size = 20;
+    let x_size = 15;
+    let y_size = 15;
 
     let maze: Maze = jarník(x_size, y_size, 10);
 
     PlottersBitmapWriter::new("./test.png".into(), 40, 4).write_maze(&maze)?;
+    PlottersSvgFileWriter::new("./test.svg".into(), 40, 4).write_maze(&maze)?;
 
     Ok(())
 }
