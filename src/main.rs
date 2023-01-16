@@ -82,7 +82,7 @@ mod maze {
         pub fn new(extents: (usize, usize)) -> Self {
             Maze {
                 extents,
-                fields: vec![vec![0u8; extents.0]; extents.1],
+                fields: vec![vec![0u8; extents.1]; extents.0],
             }
         }
 
