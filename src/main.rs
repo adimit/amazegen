@@ -143,6 +143,10 @@ mod maze {
                 .collect()
         }
 
+        pub fn remove_wall(&mut self, (x, y): (usize, usize), direction: Direction) {
+            self.fields[x][y] |= direction.bitmask()
+        }
+
         pub fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {
             Direction::iterator()
                 .filter(|direction| {
@@ -150,6 +154,10 @@ mod maze {
                     self.fields[x][y] & mask == 0
                 })
                 .collect()
+        }
+
+        pub fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
+            self.fields[x][y] & direction.bitmask() == 0
         }
 
         pub fn get_possible_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
@@ -497,6 +505,11 @@ mod maze {
                     _ => {}
                 }
             }
+            maze.remove_wall((rng.gen_range(0..maze.extents.0), 0), Direction::Up);
+            maze.remove_wall(
+                (rng.gen_range(0..maze.extents.0), maze.extents.1 - 1),
+                Direction::Down,
+            );
             maze
         }
     }
