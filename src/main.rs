@@ -12,5 +12,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     PlottersBitmapWriter::new("./test.png".into(), 40, 4).write_maze(&maze)?;
     PlottersSvgFileWriter::new("./test.svg".into(), 40, 4).write_maze(&maze)?;
 
+    let mut str = String::new();
+    PlottersSvgStringWriter::new(&mut str, 40, 4).write_maze(&maze)?;
+    println!("{str}");
+
     Ok(())
 }
