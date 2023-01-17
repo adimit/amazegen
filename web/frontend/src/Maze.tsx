@@ -8,7 +8,6 @@ const getPreseedFromHash = (): bigint => {
   try {
     return BigInt(document?.location.hash.substring(1));
   } catch (e) {
-    console.log("defaulting to random");
     return generate_seed();
   }
 };
@@ -19,7 +18,7 @@ const seedSignal = (): {
 } => {
   const [seed, setSeed] = createSignal(getPreseedFromHash());
   createEffect(() => {
-    if (document?.location) {
+    if (document?.location !== undefined) {
       document.location.hash = seed().toString();
     }
   });
