@@ -1,6 +1,6 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
-import { lazy } from "solid-js";
+import { lazy, Suspense } from "solid-js";
 import init from "./pkg/maze";
 
 const App = lazy(async () => {
@@ -10,5 +10,12 @@ const App = lazy(async () => {
 
 const root = document.getElementById("root");
 if (root !== null) {
-  render(() => <App />, root);
+  render(
+    () => (
+      <Suspense fallback={<span>Waiting for WASM</span>}>
+        <App />{" "}
+      </Suspense>
+    ),
+    root
+  );
 }
