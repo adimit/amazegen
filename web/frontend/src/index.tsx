@@ -1,6 +1,11 @@
 /* @refresh reload */
-import { render } from 'solid-js/web';
+import { render } from "solid-js/web";
+import { lazy } from "solid-js";
+import init from "./pkg/maze";
 
-import App from './App';
+const App = lazy(async () => {
+  await init();
+  return import("./App");
+});
 
-render(() => <App />, document.getElementById('root')!!);
+render(() => <App />, document.getElementById("root")!!);

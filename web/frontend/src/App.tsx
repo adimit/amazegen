@@ -1,17 +1,5 @@
-import init from './pkg/maze';
-import {lazy} from 'solid-js';
+import Maze from "./Maze";
 
-const LazyMaze = lazy(async () => {
-  await init();
-  return import("./Maze");
-})
-
-function App() {
-   return (
-    <div>
-      <LazyMaze />
-    </div>
-  );
+export default function App() {
+  return <Maze />;
 }
-
-export default App;
