@@ -4,15 +4,13 @@ use maze::generator::*;
 use maze::paint::*;
 use maze::*;
 
-fn make_svg_maze(
-    x_size: usize,
-    y_size: usize,
-    seed: u64,
-) -> Result<String, Box<dyn std::error::Error>> {
+pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     let maze: Maze = jarník(x_size, y_size, seed);
     let mut str = String::new();
-    PlottersSvgStringWriter::new(&mut str, 40, 4).write_maze(&maze)?;
-    Ok(str)
+    PlottersSvgStringWriter::new(&mut str, 40, 4)
+        .write_maze(&maze)
+        .unwrap();
+    str
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,11 +22,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let maze: Maze = jarník(x_size, y_size, 10);
 
-    PlottersBitmapWriter::new("./test.png".into(), 40, 4).write_maze(&maze)?;
     PlottersSvgFileWriter::new("./test.svg".into(), 40, 4).write_maze(&maze)?;
 
     let seed: u64 = rand::prelude::random();
-    let s = make_svg_maze(x_size, y_size, seed)?;
+    let s = crate::make_svg_maze(x_size, y_size, seed);
     println!("{seed}\n{s}");
 
     Ok(())

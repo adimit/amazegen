@@ -120,9 +120,9 @@ impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
     fn write_maze(&mut self, maze: &Maze) -> Result<(), MazePaintError> {
         use plotters::backend::SVGBackend;
         let border = self.border_size as u32;
-        let x = maze.extents.0 as u32 + border * 2;
-        let y = maze.extents.1 as u32 + border * 2;
         let cell_size = self.cell_size as i32;
+        let x = cell_size as u32 * maze.extents.0 as u32 + border * 2;
+        let y = cell_size as u32 * maze.extents.1 as u32 + border * 2;
         let mut pic = SVGBackend::with_string(self.into_string, (x, y));
         render_maze(&mut pic, maze, border as i32, cell_size)
     }
@@ -187,99 +187,5 @@ impl MazeFileWriter for PlottersSvgFileWriter {
         let cell_size: i32 = self.cell_size.try_into().unwrap();
 
         render_maze(&mut pic, maze, border, cell_size)
-    }
-}
-
-#[derive(Debug)]
-pub struct PlottersBitmapWriter {
-    border_size: usize,
-    cell_size: usize,
-    file_name: String,
-}
-
-impl PlottersBitmapWriter {
-    pub fn new(file_name: String, cell_size: usize, border_size: usize) -> Self {
-        Self {
-            border_size,
-            cell_size,
-            file_name,
-        }
-    }
-}
-
-impl MazeFileWriter for PlottersBitmapWriter {
-    fn write_maze(&mut self, maze: &Maze) -> Result<(), MazePaintError> {
-        use plotters::prelude::*;
-
-        use super::Direction::*;
-        let mut pic = BitMapBackend::new(
-            &self.file_name,
-            (
-                (maze.extents.0 * self.cell_size).try_into().unwrap(),
-                (maze.extents.1 * self.cell_size).try_into().unwrap(),
-            ),
-        );
-
-        use itertools::Itertools;
-        let border_width: i32 = self.border_size.try_into().unwrap();
-
-        let cells = (0..maze.extents.0).cartesian_product(0..maze.extents.1);
-        cells.for_each(|(x, y)| {
-            if maze.is_visited((x, y)) {
-                let x0: i32 = (x * self.cell_size).try_into().unwrap();
-                let y0: i32 = (y * self.cell_size).try_into().unwrap();
-                let x1: i32 = ((1 + x) * self.cell_size).try_into().unwrap();
-                let y1: i32 = ((1 + y) * self.cell_size).try_into().unwrap();
-
-                pic.draw_rect(
-                    (x0 + border_width, y0 + border_width),
-                    (x1 - border_width, y1 - border_width),
-                    &WHITE,
-                    true,
-                )
-                .unwrap();
-
-                maze.get_open_paths((x, y))
-                    .iter()
-                    .for_each(|direction| match direction {
-                        Up => pic
-                            .draw_rect(
-                                (x0 + border_width, y0),
-                                (x1 - border_width, y0 + border_width),
-                                &WHITE,
-                                true,
-                            )
-                            .unwrap(),
-                        Right => pic
-                            .draw_rect(
-                                (x1 - border_width, y0 + border_width),
-                                (x1, y1 - border_width),
-                                &WHITE,
-                                true,
-                            )
-                            .unwrap(),
-                        Down => pic
-                            .draw_rect(
-                                (x0 + border_width, y1 - border_width),
-                                (x1 - border_width, y1),
-                                &WHITE,
-                                true,
-                            )
-                            .unwrap(),
-                        Left => pic
-                            .draw_rect(
-                                (x0, y0 + border_width),
-                                (x0 + border_width, y1 - border_width),
-                                &WHITE,
-                                true,
-                            )
-                            .unwrap(),
-                    })
-            }
-        });
-
-        pic.present().unwrap();
-
-        Ok(())
     }
 }
