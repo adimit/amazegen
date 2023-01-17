@@ -5,7 +5,10 @@ import init from "./pkg/maze";
 
 const App = lazy(async () => {
   await init();
-  return import("./App");
+  return await import("./App");
 });
 
-render(() => <App />, document.getElementById("root")!!);
+const root = document.getElementById("root");
+if (root !== null) {
+  render(() => <App />, root);
+}

@@ -1,12 +1,12 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
-import { createSignal, createEffect } from "solid-js";
+import { JSX, createSignal, createEffect } from "solid-js";
 
-export default function Maze() {
+export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
   const [size, setSize] = createSignal(10);
   const seed = generate_seed();
   createEffect(() => {
-    if (svgRef) {
+    if (svgRef !== undefined) {
       svgRef.innerHTML = make_svg_maze(size(), size(), seed);
     }
   });
@@ -18,7 +18,7 @@ export default function Maze() {
         value={size()}
         onChange={(_) => {
           const n = Number(input?.value);
-          if (n !== NaN && n > 1) {
+          if (!isNaN(n) && n > 1) {
             setSize(n);
           }
         }}
