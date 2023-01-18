@@ -1,37 +1,73 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
 
-const getPreseedFromHash = (): bigint => {
-  if (document?.location.hash === "") {
-    return generate_seed();
-  }
-  try {
-    return BigInt(document?.location.hash.substring(1));
-  } catch (e) {
-    return generate_seed();
+const DEFAULT_MAZE_SIZE = 10;
+
+interface MazeParameters {
+  size: number;
+  seed: bigint;
+}
+
+const getDefaultMazeParameters = (): MazeParameters => ({
+  seed: generate_seed(),
+  size: DEFAULT_MAZE_SIZE,
+});
+
+const readFromHash = (): MazeParameters => {
+  if (document?.location.hash === "" || document?.location.hash === undefined) {
+    return getDefaultMazeParameters();
+  } else {
+    const [sizeStr, seedStr] = document.location.hash.substring(1).split("|");
+    const size = Number(sizeStr);
+    if (isNaN(size)) {
+      return getDefaultMazeParameters();
+    }
+    try {
+      return {
+        size,
+        seed: BigInt(seedStr),
+      };
+    } catch (e) {
+      return getDefaultMazeParameters();
+    }
   }
 };
 
-const seedSignal = (): {
+const writeToHash = ({ seed, size }: MazeParameters) => {
+  if (document.location) {
+    document.location.hash = `${size}|${seed}`;
+  }
+};
+
+const parameterSignal = (): {
   seed: Accessor<bigint>;
+  size: Accessor<number>;
   regenerateSeed: () => void;
+  setSize: (newSize: number) => void;
 } => {
-  const [seed, setSeed] = createSignal(getPreseedFromHash());
+  const params = readFromHash();
+  const [seed, setSeed] = createSignal(params.seed);
+  const [size, setSize] = createSignal(params.size);
   createEffect(() => {
-    if (document?.location !== undefined) {
-      document.location.hash = seed().toString();
-    }
+    writeToHash({
+      seed: seed(),
+      size: size(),
+    });
   });
 
-  return { seed, regenerateSeed: () => setSeed(generate_seed()) };
+  return {
+    size,
+    setSize,
+    seed,
+    regenerateSeed: () => setSeed(generate_seed()),
+  };
 };
 
 export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
   let input: HTMLInputElement | undefined;
 
-  const [size, setSize] = createSignal(10);
-  const { seed, regenerateSeed } = seedSignal();
+  const { seed, size, setSize, regenerateSeed } = parameterSignal();
 
   createEffect(() => {
     if (svgRef !== undefined) {
