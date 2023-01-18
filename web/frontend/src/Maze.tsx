@@ -41,6 +41,7 @@ export default function Maze(): JSX.Element {
 
   return (
     <>
+      <button onClick={() => setSize(Math.max(size() - 1, 2))}>-</button>
       <input
         ref={input}
         value={size()}
@@ -51,6 +52,7 @@ export default function Maze(): JSX.Element {
           }
         }}
       />
+      <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
       <button onClick={regenerateSeed}>Refresh</button>
       <div ref={svgRef} />
     </>
