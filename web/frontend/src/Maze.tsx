@@ -71,7 +71,7 @@ export default function Maze(): JSX.Element {
 
   createEffect(() => {
     if (svgRef !== undefined) {
-      svgRef.innerHTML = make_svg_maze(size(), size(), seed());
+      svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "aaaaaaff");
     }
   });
 

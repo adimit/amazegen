@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 getrandom = { version = "0.2.8", features = ["js"] }
+hex = "0.4.3"
 itertools = "0.10.5"
 plotters = "0.3.4"
 rand = "0.8.5"
