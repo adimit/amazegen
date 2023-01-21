@@ -1,3 +1,14 @@
 body {
   background: black;
+  display: grid;
+  grid-template-columns: 1fr 600px 1fr;
+}
+
+svg {
+  width: 100%;
+  height: auto;
+}
+
+main {
+  
 }
