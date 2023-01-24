@@ -1,9 +1,7 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
-
-// @ts-ignore
-const pdf = new PDFDocument();
-console.log(pdf);
+import blobStream from "blob-stream";
+import { saveAs } from "file-saver";
 
 const DEFAULT_MAZE_SIZE = 10;
 
@@ -79,7 +77,15 @@ export default function Maze(): JSX.Element {
     }
   });
   const pdf = () => {
-    // const doc = new PdfDocument();
+    const pdf = new PDFDocument();
+    const stream = pdf.pipe(blobStream());
+    pdf.addPage();
+    pdf.end();
+    stream.on("finish", () => {
+      const blob = stream.toBlob("application/pdf");
+      saveAs(blob, "maze.pdf");
+    });
+    console.log(pdf);
   };
 
   return (

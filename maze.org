@@ -1,0 +1,44 @@
+* Maze
+
+** Mission Statement
+A collection of maze generation algorithms, visualisations and a web interface UI.
+
+** Status
+
+A simple maze generation algorithm (based on Jarník's, aka Prim's spanning tree algorithm) and SVG visualisation. Compiled to WASM and a rudimentary UI with controls.
+
+The web interface allows tweaking maze generation parameters and provides a unique link to a certain generated maze made up of the maze's generation parameters and its random seed.
+
+There's a command line application that similarly accepts the maze's parameters and random seed and outputs an SVG file with the maze's parameters as its name. A shell script uses some command line programs to piece together a printable PDF of four mazes (two per page, so you can print double sided).
+
+** Desiderata
+
+*** PDF export via the web interface
+
+Using =pdfkit=. Unfortunately, =vite= does not play well with =pdfkit= on account of the latter's usage of node libraries and the former's refusal to automatically monkey-patch the JS runtime to allow their use. (=webpack= and =browserify= do that.)
+
+I wasn't able to convince =vite= to pick up the fonts =pdfkit= requires, so instead I compiled it statically and added it to the global namespace. That seems to work well.
+
+*** Deployment on a public server
+
+=https://aleks.bg/maze=?
+
+*** A better maze generation algorithm
+
+Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends.
+
+*** Improve the placement of the exits
+
+The maze's exits are currently placed randomly. Using a heuristic, or just flat out choosing the longest possible path could improve the mazes and avoid producing mazes the solution for which is just a straight path.
+
+*** Solution and distance visualisation
+
+A functionality to draw the solution as well as the option to colour the maze by distance as seen in /Mazes for Programmers/ would be a nice addition to the Web interface.
+
+*** Offer different maze topologies
+
+Braid mazes as well as quasi-3D mazes with "bridges" and "tunnels".
+
+*** Offer different maze geometries
+
+Circular, elliptic, triangular and hexagonal mazes look neat and might be fun to implement.

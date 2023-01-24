@@ -11,6 +11,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/blob-stream": "^0.1.30",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "brfs": "^2.0.2",
     "browserify": "^17.0.0",
