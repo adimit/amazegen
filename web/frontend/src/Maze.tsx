@@ -1,6 +1,10 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
 
+// @ts-ignore
+const pdf = new PDFDocument();
+console.log(pdf);
+
 const DEFAULT_MAZE_SIZE = 10;
 
 interface MazeParameters {
@@ -74,6 +78,9 @@ export default function Maze(): JSX.Element {
       svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "aaaaaaff");
     }
   });
+  const pdf = () => {
+    // const doc = new PdfDocument();
+  };
 
   return (
     <>
@@ -90,6 +97,7 @@ export default function Maze(): JSX.Element {
       />
       <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
       <button onClick={regenerateSeed}>Refresh</button>
+      <button onClick={pdf}>PDF</button>
       <div ref={svgRef} />
     </>
   );

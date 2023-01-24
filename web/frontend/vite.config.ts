@@ -11,7 +11,4 @@ export default defineConfig({
       allow: [".", "../../pkg"],
     },
   },
-  build: {
-    target: "esnext",
-  },
 });
