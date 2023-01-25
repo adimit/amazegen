@@ -15,7 +15,6 @@ pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64, colour: &str) -> S
     let maze: Maze = jarník(x_size, y_size, seed);
     let mut str = String::new();
     let c = WebColour::from_string(colour);
-    log(&format!("Here's {:?}  {:?}", colour, c));
     PlottersSvgStringWriter::new(&mut str, 40, 4, c.unwrap())
         .write_maze(&maze)
         .unwrap();
