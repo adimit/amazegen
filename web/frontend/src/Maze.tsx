@@ -1,5 +1,6 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
+import { withPdf } from "./pdfkit";
 const DEFAULT_MAZE_SIZE = 10;
 
 interface MazeParameters {
@@ -72,34 +73,27 @@ export default function Maze(): JSX.Element {
 
   createEffect(() => {
     if (svgRef !== undefined) {
-      svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "aaaaaaff");
+      svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "eeeeee");
     }
   });
-  const pdf = async () => {
-    const { default: blobStream } = await import("blob-stream");
-    const { saveAs } = await import("file-saver");
-    const { default: SVGtoPDF } = await import("svg-to-pdfkit");
 
-    const pdf = new PDFDocument();
-    const addMaze = (mazeSeed: bigint) => {
-      const template = document.createElement("template");
-      const svg = make_svg_maze(size(), size(), mazeSeed, "000000");
-      template.innerHTML = svg;
-      const svgNode = template.content.firstChild as SVGElement;
-      svgNode.attributes.getNamedItem("width")!!.value = "680px";
-      svgNode.attributes.getNamedItem("height")!!.value = "680px";
-      SVGtoPDF(pdf, template.innerHTML, 50, 50);
-    };
-    const stream = pdf.pipe(blobStream());
-    addMaze(seed());
-    for (var i = 1; i < numberOfMazes(); i++) {
-      pdf.addPage();
-      addMaze(generate_seed());
-    }
-    pdf.end();
-    stream.on("finish", () => {
-      const blob = stream.toBlob("application/pdf");
-      saveAs(blob, "maze.pdf");
+  const pdf = async () => {
+    const { default: SVGtoPDF } = await import("svg-to-pdfkit");
+    withPdf(`maze-${size()}`, (pdf) => {
+      const addMaze = (mazeSeed: bigint) => {
+        const template = document.createElement("template");
+        const svg = make_svg_maze(size(), size(), mazeSeed, "000000");
+        template.innerHTML = svg;
+        const svgNode = template.content.firstChild as SVGElement;
+        svgNode.attributes.getNamedItem("width")!!.value = "680px";
+        svgNode.attributes.getNamedItem("height")!!.value = "680px";
+        SVGtoPDF(pdf, template.innerHTML, 50, 50);
+      };
+      addMaze(seed());
+      for (var i = 1; i < numberOfMazes(); i++) {
+        pdf.addPage();
+        addMaze(generate_seed());
+      }
     });
   };
 
