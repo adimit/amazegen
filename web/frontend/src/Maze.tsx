@@ -2,6 +2,7 @@ import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
 import blobStream from "blob-stream";
 import { saveAs } from "file-saver";
+import SVGtoPDF from "svg-to-pdfkit";
 
 const DEFAULT_MAZE_SIZE = 10;
 
@@ -68,8 +69,10 @@ const parameterSignal = (): {
 export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
   let input: HTMLInputElement | undefined;
+  let pdfInput: HTMLInputElement | undefined;
 
   const { seed, size, setSize, regenerateSeed } = parameterSignal();
+  const [numberOfMazes, setNumberOfMazes] = createSignal(4);
 
   createEffect(() => {
     if (svgRef !== undefined) {
@@ -78,14 +81,26 @@ export default function Maze(): JSX.Element {
   });
   const pdf = () => {
     const pdf = new PDFDocument();
+    const addMaze = (mazeSeed: bigint) => {
+      const template = document.createElement("template");
+      const svg = make_svg_maze(size(), size(), mazeSeed, "000000");
+      template.innerHTML = svg;
+      const svgNode = template.content.firstChild as SVGElement;
+      svgNode.attributes.getNamedItem("width")!!.value = "680px";
+      svgNode.attributes.getNamedItem("height")!!.value = "680px";
+      SVGtoPDF(pdf, template.innerHTML, 50, 50);
+    };
     const stream = pdf.pipe(blobStream());
-    pdf.addPage();
+    addMaze(seed());
+    for (var i = 1; i < numberOfMazes(); i++) {
+      pdf.addPage();
+      addMaze(generate_seed());
+    }
     pdf.end();
     stream.on("finish", () => {
       const blob = stream.toBlob("application/pdf");
       saveAs(blob, "maze.pdf");
     });
-    console.log(pdf);
   };
 
   return (
@@ -103,6 +118,16 @@ export default function Maze(): JSX.Element {
       />
       <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
       <button onClick={regenerateSeed}>Refresh</button>
+      <input
+        ref={pdfInput}
+        value={numberOfMazes()}
+        onChange={(_) => {
+          const n = Number(pdfInput?.value);
+          if (!isNaN(n) && n > 0) {
+            setNumberOfMazes(n);
+          }
+        }}
+      />
       <button onClick={pdf}>PDF</button>
       <div ref={svgRef} />
     </>

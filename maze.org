@@ -7,13 +7,13 @@ A collection of maze generation algorithms, visualisations and a web interface U
 
 A simple maze generation algorithm (based on Jarník's, aka Prim's spanning tree algorithm) and SVG visualisation. Compiled to WASM and a rudimentary UI with controls.
 
-The web interface allows tweaking maze generation parameters and provides a unique link to a certain generated maze made up of the maze's generation parameters and its random seed.
+The web interface allows tweaking maze generation parameters and provides a unique link to a certain generated maze made up of the maze's generation parameters and its random seed. A PDF file can be populated with an arbitrary amount of mazes (one maze per page) and downloaded.
 
 There's a command line application that similarly accepts the maze's parameters and random seed and outputs an SVG file with the maze's parameters as its name. A shell script uses some command line programs to piece together a printable PDF of four mazes (two per page, so you can print double sided).
 
 ** Desiderata
 
-*** PDF export via the web interface
+*** DONE PDF export via the web interface
 
 Using =pdfkit=. Unfortunately, =vite= does not play well with =pdfkit= on account of the latter's usage of node libraries and the former's refusal to automatically monkey-patch the JS runtime to allow their use. (=webpack= and =browserify= do that.)
 
