@@ -1,9 +1,5 @@
 import { make_svg_maze, generate_seed } from "./pkg/maze";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
-import blobStream from "blob-stream";
-import { saveAs } from "file-saver";
-import SVGtoPDF from "svg-to-pdfkit";
-
 const DEFAULT_MAZE_SIZE = 10;
 
 interface MazeParameters {
@@ -79,7 +75,11 @@ export default function Maze(): JSX.Element {
       svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "aaaaaaff");
     }
   });
-  const pdf = () => {
+  const pdf = async () => {
+    const { default: blobStream } = await import("blob-stream");
+    const { saveAs } = await import("file-saver");
+    const { default: SVGtoPDF } = await import("svg-to-pdfkit");
+
     const pdf = new PDFDocument();
     const addMaze = (mazeSeed: bigint) => {
       const template = document.createElement("template");
