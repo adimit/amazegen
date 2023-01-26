@@ -1,6 +1,4 @@
 use super::*;
-use rand::prelude::*;
-use rand_chacha::ChaCha8Rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Wall {
@@ -11,10 +9,10 @@ struct Wall {
 
 pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
     let mut maze = Maze::new((x_size, y_size));
-    let mut rng = ChaCha8Rng::seed_from_u64(seed);
     let mut vertices: Vec<Wall> = vec![];
+    fastrand::seed(seed);
 
-    let start = (rng.gen_range(0..x_size), 0);
+    let start = (fastrand::usize(0..x_size), 0);
     maze.visit(start);
     vertices.extend(maze.get_possible_paths(start).iter().map(|d| Wall {
         x: start.0,
@@ -23,7 +21,7 @@ pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
     }));
 
     while !vertices.is_empty() {
-        let w = vertices.remove(rng.gen_range(
+        let w = vertices.remove(fastrand::usize(
             (if vertices.len() > 4 {
                 vertices.len() - 4
             } else {
@@ -42,9 +40,9 @@ pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
             _ => {}
         }
     }
-    maze.remove_wall((rng.gen_range(0..maze.extents.0), 0), Direction::Up);
+    maze.remove_wall((fastrand::usize(0..maze.extents.0), 0), Direction::Up);
     maze.remove_wall(
-        (rng.gen_range(0..maze.extents.0), maze.extents.1 - 1),
+        (fastrand::usize(0..maze.extents.0), maze.extents.1 - 1),
         Direction::Down,
     );
     maze

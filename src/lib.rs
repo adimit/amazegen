@@ -1,7 +1,7 @@
 mod maze;
-use maze::generator::*;
-use maze::paint::*;
-use maze::*;
+use crate::maze::generator::*;
+use crate::maze::paint::*;
+use crate::maze::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -28,15 +28,13 @@ mod test {
     #[test]
     fn mkae_svg_maze_should_return_svg_when_params_are_valid() {
         let maze = make_svg_maze(10, 10, 1, "ffffff".into());
-        assert_eq!(maze.contains("svg"), true)
+        assert_eq!(maze.contains("<svg"), true)
     }
 }
 
 // This will end up being a bigint in js-land.
 // Generating random bigints in js-land is a pain, so that's why we do it here.
-// Technically, even a u64 doesn't generate a really great amount of entropy
-// for our RNG, but it's enough to generate cute mazes.
 #[wasm_bindgen]
 pub fn generate_seed() -> u64 {
-    rand::prelude::random()
+    fastrand::u64(..)
 }

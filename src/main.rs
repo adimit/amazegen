@@ -55,14 +55,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use crate::maze::generator::*;
     use crate::maze::paint::*;
     use crate::maze::*;
-    use rand::prelude::*;
     let x_size = args.get(1).map(os_string_to_number).unwrap_or(Ok(15))?;
     let y_size = args.get(2).map(os_string_to_number).unwrap_or(Ok(x_size))?;
 
     let seed = args
         .get(3)
         .map(os_string_to_number)
-        .unwrap_or(Ok(random()))?;
+        .unwrap_or(Ok(fastrand::u64(..)))?;
 
     let maze: Maze = jarník(x_size, y_size, seed);
 
