@@ -17,6 +17,9 @@ bench = false
 
 [dependencies]
 fastrand = "1.8.0"
+# fastrand won't work with wasm unless we also add this line. 
+# See here: https://github.com/smol-rs/fastrand/issues/27
+instant = {version="*", features=["wasm-bindgen"]}
 hex = "0.4.3"
 itertools = "0.10.5"
 plotters = "0.3.4"
