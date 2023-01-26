@@ -1,4 +1,4 @@
-import { make_svg_maze, generate_seed } from "./pkg/maze";
+import { make_svg_maze, generate_seed } from "../../../pkg";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
 import { withPdf } from "./pdfkit";
 const DEFAULT_MAZE_SIZE = 10;

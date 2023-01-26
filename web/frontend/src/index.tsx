@@ -1,10 +1,8 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
 import { lazy, Suspense } from "solid-js";
-import init from "./pkg/maze";
 
 const App = lazy(async () => {
-  await init();
   return await import("./App");
 });
 
