@@ -27,6 +27,10 @@ I wasn't able to convince =vite= to pick up the fonts =pdfkit= requires, so inst
 
 Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends.
 
+*** A nicer UI
+
+The current UI is bare-bones. A UI that doesn't look quite as basic might go a long way to making the project feel more pleasant to use.
+
 *** Improve the placement of the exits
 
 The maze's exits are currently placed randomly. Using a heuristic, or just flat out choosing the longest possible path could improve the mazes and avoid producing mazes the solution for which is just a straight path.
