@@ -7,7 +7,7 @@ A collection of maze generation algorithms, visualisations and a web interface U
 
 A simple maze generation algorithm (based on Jarník's, aka Prim's spanning tree algorithm) and SVG visualisation. Compiled to WASM and a rudimentary UI with controls.
 
-The web interface allows tweaking maze generation parameters and provides a unique link to a certain generated maze made up of the maze's generation parameters and its random seed. A PDF file can be populated with an arbitrary amount of mazes (one maze per page) and downloaded.
+The web interface allows tweaking maze generation parameters and provides a unique link to a certain generated maze made up of the maze's generation parameters and its random seed. A PDF file can be populated with an arbitrary amount of mazes (one maze per page) and downloaded. It currently lives on https://aleks.bg/maze.
 
 There's a command line application that similarly accepts the maze's parameters and random seed and outputs an SVG file with the maze's parameters as its name. A shell script uses some command line programs to piece together a printable PDF of four mazes (two per page, so you can print double sided).
 
@@ -19,13 +19,15 @@ Using =pdfkit=. Unfortunately, =vite= does not play well with =pdfkit= on accoun
 
 I wasn't able to convince =vite= to pick up the fonts =pdfkit= requires, so instead I compiled it statically and added it to the global namespace. That seems to work well.
 
-*** Deployment on a public server
+*** DONE Deployment on a public server
 
 =https://aleks.bg/maze=?
 
 *** A better maze generation algorithm
 
-Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends.
+Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends. It's probably enough to just use a different distribution on our current RNG.
+
+We could also use =fastrand= instead of =rand=. It's probably faster, smaller, and sufficient, though it doesn't support sampling distributions. But that can be implemented ad-hoc.
 
 *** A nicer UI
 

@@ -5,9 +5,9 @@ use std::ffi::OsString;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use maze::generator::*;
-use maze::paint::*;
-use maze::*;
+use crate::maze::generator::*;
+use crate::maze::paint::*;
+use crate::maze::*;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     let maze: Maze = jarník(x_size, y_size, seed);
@@ -52,9 +52,9 @@ where
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = env::args_os().collect::<Vec<_>>();
-    use maze::generator::*;
-    use maze::paint::*;
-    use maze::*;
+    use crate::maze::generator::*;
+    use crate::maze::paint::*;
+    use crate::maze::*;
     use rand::prelude::*;
     let x_size = args.get(1).map(os_string_to_number).unwrap_or(Ok(15))?;
     let y_size = args.get(2).map(os_string_to_number).unwrap_or(Ok(x_size))?;

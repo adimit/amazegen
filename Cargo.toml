@@ -4,7 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib","cdylib"]
+name = "maze"
+path = "src/lib.rs"
+
+[[bin]]
+name = "maze-mk"
+path = "src/main.rs"
+bench = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,3 +27,10 @@ wasm-bindgen = "0.2.83"
 
 [profile.release]
 lto = true
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"]}
+
+[[bench]]
+name = "maze_synthesis"
+harness = false
