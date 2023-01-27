@@ -1,7 +1,36 @@
+@font-face {
+  font-family: Bitter;
+  font-style: normal;
+  font-weight: normal;
+  src: url("./assets/fonts/Bitter-Regular.otf") format("opentype");
+}
+
+@font-face {
+  font-family: Bitter;
+  font-style: normal;
+  font-weight: bold;
+  src: url("./assets/fonts/Bitter-Bold.otf") format("opentype");
+}
+
+@font-face {
+  font-family: Bitter;
+  font-style: italic;
+  font-weight: normal;
+  src: url("./assets/fonts/Bitter-Italic.otf") format("opentype");
+}
+
+@font-face {
+  font-family: Bitter;
+  font-style: italic;
+  font-weight: bold;
+  src: url("./assets/fonts/Bitter-BoldItalic.otf") format("opentype");
+}
+
 body {
   background: black;
   color: white;
   display: grid;
+  font-family: "Bitter";
   @media only screen and (min-width: 610px) {
     grid-template-columns: 1fr 600px 1fr;
   }
@@ -11,10 +40,15 @@ body {
 }
 
 button {
+  font-family: "Bitter";
+  text-transform: uppercase;
+  font-weight: bold;
   margin: 5px;
 }
+
 input {
   margin: 5px;
+  font-family: "Bitter";
 }
 
 details {
@@ -29,3 +63,4 @@ svg {
 main {
   
 }
+

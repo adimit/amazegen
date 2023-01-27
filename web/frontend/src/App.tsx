@@ -6,7 +6,7 @@ export default function App(): JSX.Element {
   return (
     <>
       <header>
-        <h1>A maze generator</h1>
+        <h1>Generate Mazes</h1>
       </header>
       <main>
         <Maze />
