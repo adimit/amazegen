@@ -1,0 +1,10 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="40" y1="4" x2="128" y2="4"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="0" y1="44" x2="48" y2="44"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="0" y1="84" x2="48" y2="84"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="0" y1="124" x2="88" y2="124"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="4" y1="0" x2="4" y2="128"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="84" y1="0" x2="84" y2="48"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="84" y1="80" x2="84" y2="128"/>
+<line opacity="1" stroke="#ED2368" stroke-width="8" x1="124" y1="0" x2="124" y2="128"/>
+</svg>
