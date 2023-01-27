@@ -99,31 +99,41 @@ export default function Maze(): JSX.Element {
 
   return (
     <>
-      <button onClick={() => setSize(Math.max(size() - 1, 2))}>-</button>
-      <input
-        ref={input}
-        value={size()}
-        onChange={(_) => {
-          const n = Number(input?.value);
-          if (!isNaN(n) && n > 1) {
-            setSize(n);
-          }
-        }}
-      />
-      <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
-      <button onClick={regenerateSeed}>Refresh</button>
-      <input
-        ref={pdfInput}
-        value={numberOfMazes()}
-        onChange={(_) => {
-          const n = Number(pdfInput?.value);
-          if (!isNaN(n) && n > 0) {
-            setNumberOfMazes(n);
-          }
-        }}
-      />
-      <button onClick={pdf}>PDF</button>
+      <h2>Size</h2>
+      <section>
+        <button onClick={() => setSize(Math.max(size() - 1, 2))}>-</button>
+        <input
+          ref={input}
+          value={size()}
+          type="number"
+          onChange={(_) => {
+            const n = Number(input?.value);
+            if (!isNaN(n)) {
+              setSize(Math.max(Math.min(n, 100), 2));
+            }
+          }}
+        />
+        <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
+      </section>
+      <section>
+        <details>
+          <summary>Print</summary>
+          <input
+            ref={pdfInput}
+            value={numberOfMazes()}
+            onChange={(_) => {
+              const n = Number(pdfInput?.value);
+              if (!isNaN(n) && n > 0) {
+                setNumberOfMazes(n);
+              }
+            }}
+          />
+          pages
+          <button onClick={pdf}>PDF</button>
+        </details>
+      </section>
       <div ref={svgRef} />
+      <button onClick={regenerateSeed}>Refresh</button>
     </>
   );
 }
