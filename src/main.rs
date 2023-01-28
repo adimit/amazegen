@@ -18,7 +18,7 @@ pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     str
 }
 
-fn usage() -> () {
+fn usage() {
     println!(
         "\
 Usage:
@@ -46,8 +46,8 @@ fn os_string_to_number<T>(s: &OsString) -> Result<T, MazeError>
 where
     T: FromStr<Err = ParseIntError>,
 {
-    let str = s.to_str().ok_or_else(|| MazeError::ErrorParsingUtf8)?;
-    str::parse::<T>(str).map_err(|e| MazeError::NotANumber(e))
+    let str = s.to_str().ok_or(MazeError::ErrorParsingUtf8)?;
+    str::parse::<T>(str).map_err(MazeError::NotANumber)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let maze: Maze = jarník(x_size, y_size, seed);
 
     PlottersSvgFileWriter::new(
-        format!("maze-{}-{}-{}.svg", x_size, y_size, seed),
+        format!("maze-{x_size}-{y_size}-{seed}.svg"),
         40,
         4,
         WebColour::from_string("000000").unwrap(),

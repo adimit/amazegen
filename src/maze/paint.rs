@@ -58,7 +58,7 @@ pub fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Ve
             .filter(|(key, _)| *key)
             .map(|(_, group)| {
                 let run = group.collect::<Vec<_>>();
-                (run.first().unwrap().clone(), run.last().unwrap().clone())
+                (*run.first().unwrap(), *run.last().unwrap())
             })
             .collect::<Vec<_>>(),
         Left | Right => (0..maze.extents.1)
@@ -67,7 +67,7 @@ pub fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Ve
             .filter(|(key, _)| *key)
             .map(|(_, group)| {
                 let run = group.collect::<Vec<_>>();
-                (run.first().unwrap().clone(), run.last().unwrap().clone())
+                (*run.first().unwrap(), *run.last().unwrap())
             })
             .collect::<Vec<_>>(),
     }
@@ -202,9 +202,9 @@ impl WebColour {
     }
 }
 
-impl Into<plotters::style::RGBAColor> for WebColour {
-    fn into(self) -> plotters::style::RGBAColor {
-        plotters::style::RGBAColor(self.r, self.g, self.b, self.a as f64 / 255.0)
+impl From<WebColour> for plotters::style::RGBAColor {
+    fn from(val: WebColour) -> Self {
+        plotters::style::RGBAColor(val.r, val.g, val.b, val.a as f64 / 255.0)
     }
 }
 
@@ -218,18 +218,18 @@ fn render_maze<'a>(
     use super::Direction::*;
     use plotters::prelude::*;
 
-    let mut h = get_wall_runs(&maze, Up);
-    h.push(get_wall_run(&maze, maze.extents.0 - 1, Down));
-    let mut v = get_wall_runs(&maze, Left);
-    v.push(get_wall_run(&maze, maze.extents.1 - 1, Right));
+    let mut h = get_wall_runs(maze, Up);
+    h.push(get_wall_run(maze, maze.extents.0 - 1, Down));
+    let mut v = get_wall_runs(maze, Left);
+    v.push(get_wall_run(maze, maze.extents.1 - 1, Right));
     let svg_colour: RGBAColor = (*colour).into();
     let style = svg_colour.stroke_width((border * 2).try_into().unwrap());
 
     for (y, xs) in h.iter().enumerate() {
         let y_offset: i32 = y as i32 * cell_size;
         for (start, end) in xs {
-            let x0: i32 = (*start as i32 * cell_size).try_into().unwrap();
-            let xe: i32 = ((*end as i32 + 1) * cell_size).try_into().unwrap();
+            let x0: i32 = *start as i32 * cell_size;
+            let xe: i32 = (*end as i32 + 1) * cell_size;
             pic.draw_line(
                 ((x0), y_offset + border),
                 ((xe + 2 * border), y_offset + border),
@@ -241,8 +241,8 @@ fn render_maze<'a>(
     for (x, ys) in v.iter().enumerate() {
         let x_offset: i32 = x as i32 * cell_size;
         for (start, end) in ys {
-            let y0: i32 = (*start as i32 * cell_size).try_into().unwrap();
-            let ye: i32 = ((*end as i32 + 1) * cell_size).try_into().unwrap();
+            let y0: i32 = *start as i32 * cell_size;
+            let ye: i32 = (*end as i32 + 1) * cell_size;
             pic.draw_line(
                 (x_offset + border, (y0)),
                 (x_offset + border, (ye + 2 * border)),
