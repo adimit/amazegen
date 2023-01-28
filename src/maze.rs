@@ -33,6 +33,8 @@ where
 #[derive(Debug, Clone)]
 pub struct Maze {
     fields: std::vec::Vec<Vec<u8>>,
+    entrance: usize,
+    exit: usize,
     pub extents: (usize, usize),
 }
 
@@ -84,6 +86,8 @@ impl Maze {
     pub fn new(extents: (usize, usize)) -> Self {
         Maze {
             extents,
+            entrance: 0,
+            exit: 0,
             fields: vec![vec![0u8; extents.1]; extents.0],
         }
     }
@@ -171,6 +175,16 @@ impl Maze {
                 None => false,
             })
             .collect()
+    }
+
+    pub fn set_entrance(&mut self, entrance: usize) {
+        self.entrance = entrance;
+        self.remove_wall((entrance, 0), Direction::Up);
+    }
+
+    pub fn set_exit(&mut self, exit: usize) {
+        self.exit = exit;
+        self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
     }
 }
 
