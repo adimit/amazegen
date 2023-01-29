@@ -209,11 +209,13 @@ impl From<WebColour> for plotters::style::RGBAColor {
 fn render_maze<'a>(
     pic: &DrawingArea<SVGBackend, Shift>,
     maze: &'a Maze,
-    border: i32,
-    cell_size: i32,
+    border_width: BorderWidth,
+    cell: CellSize,
     colour: &WebColour,
 ) -> Result<(), MazePaintError> {
     use super::Direction::*;
+    let cell_size = cell.0 as i32;
+    let border = border_width.0 as i32;
 
     let mut h = get_wall_runs(maze, Up);
     h.push(get_wall_run(maze, maze.extents.0 - 1, Down));
@@ -259,7 +261,15 @@ fn render_maze<'a>(
     Ok(())
 }
 
-fn stain_maze(pic: &DrawingArea<SVGBackend, Shift>, maze: &Maze, border: i32, cell_size: i32) {
+fn stain_maze(
+    pic: &DrawingArea<SVGBackend, Shift>,
+    maze: &Maze,
+    border: BorderWidth,
+    cell_size: CellSize,
+    colours: (WebColour, WebColour),
+) -> Result<(), MazePaintError> {
+    let cell_size = cell_size.0 as i32;
+    let border = border.0 as i32;
     let distances = dijkstra(maze);
     let max_distance: usize = *distances
         .iter()
@@ -281,18 +291,27 @@ fn stain_maze(pic: &DrawingArea<SVGBackend, Shift>, maze: &Maze, border: i32, ce
         let c1: (u8, u8, u8) = (185, 50, 125);
         let c2: (u8, u8, u8) = (255, 220, 128);
         let style = RGBColor(
-            get_colour(c1.0, intensity) + get_colour(c2.0, inverse),
-            get_colour(c1.1, intensity) + get_colour(c2.1, inverse),
-            get_colour(c1.2, intensity) + get_colour(c2.2, inverse),
+            get_colour(colours.0.r, intensity) + get_colour(colours.1.r, inverse),
+            get_colour(colours.0.g, intensity) + get_colour(colours.1.g, inverse),
+            get_colour(colours.0.b, intensity) + get_colour(colours.1.b, inverse),
         )
         .filled();
         pic.draw(&Rectangle::new([(x0, y0), (x1, y1)], style))
             .unwrap();
     }
+    Ok(())
 }
 
-fn solve_maze(pic: &DrawingArea<SVGBackend, Shift>, maze: &Maze, border: i32, cell_size: i32) {
+fn solve_maze(
+    pic: &DrawingArea<SVGBackend, Shift>,
+    maze: &Maze,
+    border: BorderWidth,
+    cell_size: CellSize,
+    colour: WebColour,
+) -> Result<(), MazePaintError> {
     {
+        let border = border.0 as i32;
+        let cell_size = cell_size.0 as i32;
         let path_offset = border + (cell_size / 2);
         let to_coord = |a| cell_size * a as i32 + path_offset;
         let entrance = maze.get_entrance();
@@ -307,21 +326,32 @@ fn solve_maze(pic: &DrawingArea<SVGBackend, Shift>, maze: &Maze, border: i32, ce
         solution.push((to_coord(entrance.0), 0));
         pic.draw(&PathElement::new(
             solution,
-            RED.stroke_width(border as u32 * 4),
+            Into::<RGBAColor>::into(colour).stroke_width(border as u32 * 4),
         ))
         .unwrap();
+        Ok(())
     }
 }
 
-fn write_to_backend<'a, F>(
+pub struct CellSize(usize);
+pub struct BorderWidth(usize);
+
+enum DrawingInstructions {
+    DrawMaze(WebColour),
+    ShowSolution(WebColour),
+    StainMaze((WebColour, WebColour)),
+}
+
+fn write_to_backend<'a, F, I>(
     make_drawing_area: F,
     maze: &Maze,
     cell_size: usize,
     border_size: usize,
-    border_colour: WebColour,
+    instructions: I,
 ) -> Result<(), MazePaintError>
 where
     F: FnOnce((u32, u32)) -> DrawingArea<SVGBackend<'a>, Shift>,
+    I: IntoIterator<Item = DrawingInstructions>,
 {
     let border = border_size as u32;
     let x = cell_size as u32 * maze.extents.0 as u32 + border * 2;
@@ -329,12 +359,36 @@ where
 
     let pic = make_drawing_area((x, y));
 
-    stain_maze(&pic, maze, border as i32, cell_size as i32);
-    render_maze(&pic, maze, border as i32, cell_size as i32, &border_colour).unwrap();
-    solve_maze(&pic, maze, border as i32, cell_size as i32);
+    for instruction in instructions {
+        instruction
+            .execute(
+                &pic,
+                maze,
+                BorderWidth(border as usize),
+                CellSize(cell_size),
+            )
+            .unwrap();
+    }
 
     pic.present().unwrap();
     Ok(())
+}
+
+impl DrawingInstructions {
+    fn execute(
+        &self,
+        pic: &DrawingArea<SVGBackend, Shift>,
+        maze: &Maze,
+        border_width: BorderWidth,
+        cell_size: CellSize,
+    ) -> Result<(), MazePaintError> {
+        use DrawingInstructions::*;
+        match self {
+            DrawMaze(colour) => render_maze(pic, maze, border_width, cell_size, colour),
+            ShowSolution(colour) => solve_maze(pic, maze, border_width, cell_size, *colour),
+            StainMaze(colours) => stain_maze(pic, maze, border_width, cell_size, *colours),
+        }
+    }
 }
 
 impl MazeFileWriter for PlottersSvgFileWriter {
@@ -344,7 +398,7 @@ impl MazeFileWriter for PlottersSvgFileWriter {
             maze,
             self.cell_size,
             self.border_size,
-            self.colour,
+            [DrawingInstructions::DrawMaze(self.colour)],
         )
     }
 }
@@ -356,7 +410,7 @@ impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
             maze,
             self.cell_size,
             self.border_size,
-            self.colour,
+            [DrawingInstructions::DrawMaze(self.colour)],
         )
     }
 }
