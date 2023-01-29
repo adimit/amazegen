@@ -16,9 +16,10 @@ pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
         let e = vertices[i];
         let directions = maze.get_possible_paths(e);
         if !directions.is_empty() {
-            let d = directions[fastrand::usize(..directions.len())];
-            maze.move_from((e.0, e.1), d);
-            vertices.push(maze.translate((e.0, e.1), d).unwrap());
+            vertices.push(
+                maze.move_from((e.0, e.1), directions[fastrand::usize(..directions.len())])
+                    .unwrap(),
+            );
         } else {
             vertices.remove(i);
         }
