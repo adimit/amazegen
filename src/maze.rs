@@ -1,5 +1,6 @@
 pub mod generator;
 pub mod paint;
+pub mod solver;
 
 use std::{collections::HashMap, hash::Hash};
 
@@ -92,6 +93,14 @@ impl Maze {
         }
     }
 
+    pub fn get_entrance(&self) -> (usize, usize) {
+        (self.entrance, 0)
+    }
+
+    pub fn get_exit(&self) -> (usize, usize) {
+        (self.exit, self.extents.1 - 1)
+    }
+
     pub fn visit(&mut self, (x, y): (usize, usize)) {
         if self.coordinates_in_extents((x, y)) {
             self.fields[x][y] |= VISIT
@@ -142,10 +151,7 @@ impl Maze {
 
     pub fn get_open_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
         Direction::iterator()
-            .filter(|direction| {
-                let mask = direction.bitmask();
-                self.fields[x][y] & mask != 0
-            })
+            .filter(|direction| self.fields[x][y] & direction.bitmask() != 0)
             .collect()
     }
 

@@ -1,4 +1,8 @@
+use crate::maze::solver::dijkstra;
+
 use super::Maze;
+use itertools::Itertools;
+use plotters::style::full_palette::PINK;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -46,7 +50,6 @@ fn get_wall_runs(maze: &Maze, direction: super::Direction) -> Vec<Vec<(usize, us
 
 fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
     use super::Direction::*;
-    use itertools::Itertools;
 
     // The match arms would have an incompatible closure type, which is
     // why we duplicate the code here. There might be a better option,
@@ -151,6 +154,10 @@ impl<'a> PlottersSvgStringWriter<'a> {
             colour,
         }
     }
+
+    pub fn write_flooded_maze(&mut self, maze: &Maze) -> Result<(), MazePaintError> {
+        todo!()
+    }
 }
 
 impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
@@ -160,8 +167,8 @@ impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
         let cell_size = self.cell_size as i32;
         let x = cell_size as u32 * maze.extents.0 as u32 + border * 2;
         let y = cell_size as u32 * maze.extents.1 as u32 + border * 2;
-        let mut pic = SVGBackend::with_string(self.into_string, (x, y));
-        render_maze(&mut pic, maze, border as i32, cell_size, &self.colour)
+        let pic = SVGBackend::with_string(self.into_string, (x, y));
+        render_maze(pic, maze, border as i32, cell_size, &self.colour)
     }
 }
 
@@ -209,7 +216,7 @@ impl From<WebColour> for plotters::style::RGBAColor {
 }
 
 fn render_maze<'a>(
-    pic: &'a mut plotters::backend::SVGBackend,
+    pic: plotters::backend::SVGBackend,
     maze: &'a Maze,
     border: i32,
     cell_size: i32,
@@ -218,41 +225,85 @@ fn render_maze<'a>(
     use super::Direction::*;
     use plotters::prelude::*;
 
+    let da = pic.into_drawing_area();
+
     let mut h = get_wall_runs(maze, Up);
     h.push(get_wall_run(maze, maze.extents.0 - 1, Down));
     let mut v = get_wall_runs(maze, Left);
     v.push(get_wall_run(maze, maze.extents.1 - 1, Right));
     let svg_colour: RGBAColor = (*colour).into();
     let style = svg_colour.stroke_width((border * 2).try_into().unwrap());
+    let text_style = ("sans-serif", 20, &PINK).into_text_style(&da);
+
+    let distances = dijkstra(&maze);
+    let max_distance: usize = *distances
+        .iter()
+        .map(move |dim| dim.iter().max().unwrap_or(&0))
+        .max()
+        .unwrap_or(&0);
+
+    fn get_colour(absolute: u8, fraction: f64) -> u8 {
+        (absolute as f64 * fraction) as u8
+    }
+
+    for (x, y) in (0..maze.extents.0).cartesian_product(0..maze.extents.1) {
+        let x0: i32 = cell_size * x as i32 + border;
+        let y0: i32 = cell_size * y as i32 + border;
+        let x1: i32 = x0 + cell_size + 1;
+        let y1: i32 = y0 + cell_size + 1;
+        let intensity = (max_distance - distances[x][y]) as f64 / max_distance as f64;
+        let inverse = 1.0 - intensity;
+        let c1: (u8, u8, u8) = (185, 50, 125);
+        let c2: (u8, u8, u8) = (255, 220, 128);
+        let style = RGBColor(
+            get_colour(c1.0, intensity) + get_colour(c2.0, inverse),
+            get_colour(c1.1, intensity) + get_colour(c2.1, inverse),
+            get_colour(c1.2, intensity) + get_colour(c2.2, inverse),
+        )
+        .filled();
+        da.draw_text(
+            &distances[x][y].to_string(),
+            &text_style,
+            (x0, y0 + cell_size / 2),
+        )
+        .unwrap();
+        da.draw(&Rectangle::new([(x0, y0), (x1, y1)], style))
+            .unwrap();
+    }
 
     for (y, xs) in h.iter().enumerate() {
         let y_offset: i32 = y as i32 * cell_size;
         for (start, end) in xs {
             let x0: i32 = *start as i32 * cell_size;
             let xe: i32 = (*end as i32 + 1) * cell_size;
-            pic.draw_line(
-                ((x0), y_offset + border),
-                ((xe + 2 * border), y_offset + border),
-                &style,
-            )
+            da.draw(&PathElement::new(
+                [
+                    (x0, y_offset + border),
+                    (xe + 2 * border, y_offset + border),
+                ],
+                style,
+            ))
             .unwrap();
         }
     }
+
     for (x, ys) in v.iter().enumerate() {
         let x_offset: i32 = x as i32 * cell_size;
         for (start, end) in ys {
             let y0: i32 = *start as i32 * cell_size;
             let ye: i32 = (*end as i32 + 1) * cell_size;
-            pic.draw_line(
-                (x_offset + border, (y0)),
-                (x_offset + border, (ye + 2 * border)),
-                &style,
-            )
+            da.draw(&PathElement::new(
+                [
+                    (x_offset + border, (y0)),
+                    (x_offset + border, (ye + 2 * border)),
+                ],
+                style,
+            ))
             .unwrap();
         }
     }
 
-    pic.present().unwrap();
+    da.present().unwrap();
 
     Ok(())
 }
@@ -264,12 +315,12 @@ impl MazeFileWriter for PlottersSvgFileWriter {
         let ymax: u32 = (maze.extents.1 * self.cell_size).try_into().unwrap();
         let border: i32 = self.border_size.try_into().unwrap();
         let double_border: u32 = (border * 2).try_into().unwrap();
-        let mut pic = SVGBackend::new(
+        let pic = SVGBackend::new(
             &self.file_name,
             (xmax + double_border, ymax + double_border),
         );
         let cell_size: i32 = self.cell_size.try_into().unwrap();
 
-        render_maze(&mut pic, maze, border, cell_size, &self.colour)
+        render_maze(pic, maze, border, cell_size, &self.colour)
     }
 }
