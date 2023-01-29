@@ -32,7 +32,7 @@ impl PlottersSvgFileWriter {
     }
 }
 
-pub fn get_wall_runs(maze: &Maze, direction: super::Direction) -> Vec<Vec<(usize, usize)>> {
+fn get_wall_runs(maze: &Maze, direction: super::Direction) -> Vec<Vec<(usize, usize)>> {
     use super::Direction::*;
     match direction {
         Up | Down => (0..maze.extents.1)
@@ -44,7 +44,7 @@ pub fn get_wall_runs(maze: &Maze, direction: super::Direction) -> Vec<Vec<(usize
     }
 }
 
-pub fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
+fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
     use super::Direction::*;
     use itertools::Itertools;
 
@@ -251,6 +251,7 @@ fn render_maze<'a>(
             .unwrap();
         }
     }
+
     pic.present().unwrap();
 
     Ok(())
