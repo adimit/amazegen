@@ -1,4 +1,4 @@
-use crate::maze::solver::dijkstra;
+use crate::maze::solver::{dijkstra, solve};
 
 use super::Maze;
 use itertools::Itertools;
@@ -233,42 +233,62 @@ fn render_maze<'a>(
     v.push(get_wall_run(maze, maze.extents.1 - 1, Right));
     let svg_colour: RGBAColor = (*colour).into();
     let style = svg_colour.stroke_width((border * 2).try_into().unwrap());
-    let text_style = ("sans-serif", 20, &PINK).into_text_style(&da);
 
-    let distances = dijkstra(&maze);
-    let max_distance: usize = *distances
-        .iter()
-        .map(move |dim| dim.iter().max().unwrap_or(&0))
-        .max()
-        .unwrap_or(&0);
+    //let text_style = ("sans-serif", 20, &PINK).into_text_style(&da);
+    //let distances = dijkstra(&maze);
+    //let max_distance: usize = *distances
+    //    .iter()
+    //    .map(move |dim| dim.iter().max().unwrap_or(&0))
+    //    .max()
+    //    .unwrap_or(&0);
 
-    fn get_colour(absolute: u8, fraction: f64) -> u8 {
-        (absolute as f64 * fraction) as u8
-    }
+    //fn get_colour(absolute: u8, fraction: f64) -> u8 {
+    //    (absolute as f64 * fraction) as u8
+    //}
 
-    for (x, y) in (0..maze.extents.0).cartesian_product(0..maze.extents.1) {
-        let x0: i32 = cell_size * x as i32 + border;
-        let y0: i32 = cell_size * y as i32 + border;
-        let x1: i32 = x0 + cell_size + 1;
-        let y1: i32 = y0 + cell_size + 1;
-        let intensity = (max_distance - distances[x][y]) as f64 / max_distance as f64;
-        let inverse = 1.0 - intensity;
-        let c1: (u8, u8, u8) = (185, 50, 125);
-        let c2: (u8, u8, u8) = (255, 220, 128);
-        let style = RGBColor(
-            get_colour(c1.0, intensity) + get_colour(c2.0, inverse),
-            get_colour(c1.1, intensity) + get_colour(c2.1, inverse),
-            get_colour(c1.2, intensity) + get_colour(c2.2, inverse),
-        )
-        .filled();
-        da.draw_text(
-            &distances[x][y].to_string(),
-            &text_style,
-            (x0, y0 + cell_size / 2),
-        )
+    //for (x, y) in (0..maze.extents.0).cartesian_product(0..maze.extents.1) {
+    //    let x0: i32 = cell_size * x as i32 + border;
+    //    let y0: i32 = cell_size * y as i32 + border;
+    //    let x1: i32 = x0 + cell_size + 1;
+    //    let y1: i32 = y0 + cell_size + 1;
+    //    let intensity = (max_distance - distances[x][y]) as f64 / max_distance as f64;
+    //    let inverse = 1.0 - intensity;
+    //    let c1: (u8, u8, u8) = (185, 50, 125);
+    //    let c2: (u8, u8, u8) = (255, 220, 128);
+    //    let style = RGBColor(
+    //        get_colour(c1.0, intensity) + get_colour(c2.0, inverse),
+    //        get_colour(c1.1, intensity) + get_colour(c2.1, inverse),
+    //        get_colour(c1.2, intensity) + get_colour(c2.2, inverse),
+    //    )
+    //    .filled();
+    //    da.draw_text(
+    //        &distances[x][y].to_string(),
+    //        &text_style,
+    //        (x0, y0 + cell_size / 2),
+    //    )
+    //    .unwrap();
+    //    da.draw(&Rectangle::new([(x0, y0), (x1, y1)], style))
+    //        .unwrap();
+    //}
+
+    {
+        let path_offset = border + (cell_size / 2);
+        let to_coord = |a| cell_size * a as i32 + path_offset;
+        let entrance = maze.get_entrance();
+        let exit = maze.get_exit();
+        let mut solution: Vec<(i32, i32)> =
+            vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)];
+        solution.extend(solve(maze).iter().map(|(x, y)| {
+            let x0: i32 = to_coord(*x);
+            let y0: i32 = to_coord(*y);
+            (x0, y0)
+        }));
+        solution.push((to_coord(entrance.0), 0));
+        da.draw(&PathElement::new(
+            solution,
+            RED.stroke_width(border as u32 * 4),
+        ))
         .unwrap();
-        da.draw(&Rectangle::new([(x0, y0), (x1, y1)], style))
-            .unwrap();
     }
 
     for (y, xs) in h.iter().enumerate() {

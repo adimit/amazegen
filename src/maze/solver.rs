@@ -1,15 +1,29 @@
 use crate::maze::*;
 
-pub fn solve(maze: &Maze) -> Vec<Direction> {
-    let paths = dijkstra(maze);
-    find_shortest_path(paths)
+pub fn solve(maze: &Maze) -> Vec<(usize, usize)> {
+    find_shortest_path(maze)
 }
 
-fn find_shortest_path(paths: Vec<Vec<usize>>) -> Vec<Direction> {
-    todo!()
+fn find_shortest_path(maze: &Maze) -> Vec<(usize, usize)> {
+    let distances = dijkstra(maze);
+    let mut cursor = maze.get_exit();
+    let mut path: Vec<(usize, usize)> = vec![cursor];
+    loop {
+        cursor = maze
+            .get_open_paths(cursor)
+            .iter()
+            .filter_map(|d| maze.translate(cursor, *d))
+            .min_by_key(|(x, y)| distances[*x][*y])
+            .unwrap();
+        path.push(cursor);
+        if distances[cursor.0][cursor.1] == 1 {
+            break;
+        }
+    }
+
+    path
 }
 
-use itertools::Itertools;
 pub fn dijkstra(maze: &Maze) -> Vec<Vec<usize>> {
     let mut distances = vec![vec![0usize; maze.extents.1]; maze.extents.0];
     let mut frontier: Vec<(usize, usize)> = vec![maze.get_entrance()];
