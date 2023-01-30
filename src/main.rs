@@ -13,7 +13,12 @@ pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     let maze: Maze = jarník(x_size, y_size, seed);
     let mut str = String::new();
     PlottersSvgStringWriter::new(&mut str, 40, 4, WebColour::from_string("ffffff").unwrap())
-        .write_maze(&maze)
+        .write_maze(
+            &maze,
+            [DrawingInstructions::DrawMaze(
+                WebColour::from_string("ffffff").unwrap(),
+            )],
+        )
         .unwrap();
     str
 }
@@ -71,7 +76,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         4,
         WebColour::from_string("000000").unwrap(),
     )
-    .write_maze(&maze)?;
+    .write_maze(
+        &maze,
+        [DrawingInstructions::DrawMaze(
+            WebColour::from_string("000000").unwrap(),
+        )],
+    )?;
+    println!("{}", make_svg_maze(x_size, y_size, seed));
 
     Ok(())
 }

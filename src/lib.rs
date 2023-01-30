@@ -10,13 +10,39 @@ extern "C" {
     fn log(s: &str);
 }
 
+const STAIN_A: &str = "FFDC80";
+const STAIN_B: &str = "B9327D";
+const SOLUTION: &str = "8FE080";
+
 #[wasm_bindgen]
-pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64, colour: &str) -> String {
+pub fn make_svg_maze(
+    x_size: usize,
+    y_size: usize,
+    seed: u64,
+    colour: &str,
+    stain: bool,
+    solve: bool,
+) -> String {
     let maze: Maze = jarník(x_size, y_size, seed);
     let mut str = String::new();
     let c = WebColour::from_string(colour);
+    let mut instructions: Vec<DrawingInstructions> = vec![];
+    if stain {
+        instructions.push(DrawingInstructions::StainMaze((
+            WebColour::from_string(STAIN_A).unwrap(),
+            WebColour::from_string(STAIN_B).unwrap(),
+        )))
+    }
+    instructions.push(DrawingInstructions::DrawMaze(
+        WebColour::from_string(colour).unwrap(),
+    ));
+    if solve {
+        instructions.push(DrawingInstructions::ShowSolution(
+            WebColour::from_string(SOLUTION).unwrap(),
+        ))
+    }
     PlottersSvgStringWriter::new(&mut str, 40, 4, c.unwrap())
-        .write_maze(&maze)
+        .write_maze(&maze, instructions)
         .unwrap();
     str
 }
@@ -27,7 +53,7 @@ mod test {
 
     #[test]
     fn mkae_svg_maze_should_return_svg_when_params_are_valid() {
-        let maze = make_svg_maze(10, 10, 1, "ffffff".into());
+        let maze = make_svg_maze(10, 10, 1, "ffffff".into(), false, false);
         assert_eq!(maze.contains("<svg"), true)
     }
 }

@@ -70,10 +70,19 @@ export default function Maze(): JSX.Element {
 
   const { seed, size, setSize, regenerateSeed } = parameterSignal();
   const [numberOfMazes, setNumberOfMazes] = createSignal(4);
+  const [showSolution, setShowSolution] = createSignal(false);
+  const [stainMaze, setStainMaze] = createSignal(false);
 
   createEffect(() => {
     if (svgRef !== undefined) {
-      svgRef.innerHTML = make_svg_maze(size(), size(), seed(), "eeeeee");
+      svgRef.innerHTML = make_svg_maze(
+        size(),
+        size(),
+        seed(),
+        "eeeeee",
+        stainMaze(),
+        showSolution()
+      );
     }
   });
 
@@ -82,7 +91,14 @@ export default function Maze(): JSX.Element {
     withPdf(`maze-${size()}`, (pdf) => {
       const addMaze = (mazeSeed: bigint) => {
         const template = document.createElement("template");
-        const svg = make_svg_maze(size(), size(), mazeSeed, "000000");
+        const svg = make_svg_maze(
+          size(),
+          size(),
+          mazeSeed,
+          "000000",
+          false,
+          false
+        );
         template.innerHTML = svg;
         const svgNode = template.content.firstChild as SVGElement;
         svgNode.attributes.getNamedItem("width")!!.value = "680px";
@@ -134,6 +150,22 @@ export default function Maze(): JSX.Element {
       </section>
       <div ref={svgRef} />
       <button onClick={regenerateSeed}>Refresh</button>
+      <label>
+        <input
+          type="checkbox"
+          onInput={() => setStainMaze(!stainMaze())}
+          checked={stainMaze()}
+        />
+        Stain Maze
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          onInput={() => setShowSolution(!showSolution())}
+          checked={showSolution()}
+        />
+        Show Solution
+      </label>
     </>
   );
 }
