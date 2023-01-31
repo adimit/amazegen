@@ -2,6 +2,7 @@ import { make_svg_maze, generate_seed } from "./pkg";
 import { JSX, createSignal, createEffect, Accessor } from "solid-js";
 import { withPdf } from "./pdfkit";
 const DEFAULT_MAZE_SIZE = 10;
+const FRONTEND_URL = new URL("https://aleks.bg/maze");
 
 interface MazeParameters {
   size: number;
@@ -33,9 +34,11 @@ const readFromHash = (): MazeParameters => {
   }
 };
 
-const writeToHash = ({ seed, size }: MazeParameters) => {
+const computeHash = ({ seed, size }: MazeParameters) => `${size}|${seed}`;
+
+const writeToHash = (params: MazeParameters) => {
   if (document.location) {
-    document.location.hash = `${size}|${seed}`;
+    document.location.hash = computeHash(params);
   }
 };
 
@@ -88,8 +91,20 @@ export default function Maze(): JSX.Element {
 
   const pdf = async () => {
     const { default: SVGtoPDF } = await import("svg-to-pdfkit");
-    withPdf(`maze-${size()}`, (pdf) => {
-      const addMaze = (mazeSeed: bigint) => {
+    const QR = await import("qrcode");
+    withPdf(`maze-${size()}`, async (pdf) => {
+      const addMaze = async (mazeSeed: bigint) => {
+        const qr = await QR.toString(
+          new URL(
+            `#${computeHash({ seed: mazeSeed, size: size() })}`,
+            FRONTEND_URL
+          ).toString(),
+          {
+            type: "svg",
+            errorCorrectionLevel: "high",
+          }
+        );
+
         const template = document.createElement("template");
         const svg = make_svg_maze(
           size(),
@@ -104,11 +119,14 @@ export default function Maze(): JSX.Element {
         svgNode.attributes.getNamedItem("width")!!.value = "680px";
         svgNode.attributes.getNamedItem("height")!!.value = "680px";
         SVGtoPDF(pdf, template.innerHTML, 50, 50);
+        SVGtoPDF(pdf, qr, 487, 220, {
+          width: 80,
+        });
       };
-      addMaze(seed());
+      await addMaze(seed());
       for (var i = 1; i < numberOfMazes(); i++) {
         pdf.addPage();
-        addMaze(generate_seed());
+        await addMaze(generate_seed());
       }
     });
   };

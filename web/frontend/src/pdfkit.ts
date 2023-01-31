@@ -6,7 +6,7 @@ declare global {
 
 export const withPdf = async (
   fileName: string,
-  action: (pdf: PDFDocument) => void
+  action: (pdf: PDFDocument) => Promise<void>
 ) => {
   /*
     Using pdfkit with Vite is a pain in the ass. pdfkit uses
@@ -47,7 +47,7 @@ export const withPdf = async (
 
   const pdf = new PDF();
   const stream = pdf.pipe(blobStream());
-  action(pdf);
+  await action(pdf);
   pdf.end();
   stream.on("finish", () => {
     const blob = stream.toBlob("application/pdf");

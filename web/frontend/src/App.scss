@@ -31,10 +31,10 @@ body {
   color: white;
   display: grid;
   font-family: "Bitter";
-  @media only screen and (min-width: 610px) {
-    grid-template-columns: 1fr 600px 1fr;
+  @media only screen and (min-width: 810px) {
+    grid-template-columns: 1fr 800px 1fr;
   }
-  @media only screen and (max-width: 610px) {
+  @media only screen and (max-width: 810px) {
     grid-template-columns: 1fr;
   }
 }
