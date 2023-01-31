@@ -1,5 +1,13 @@
 import { make_svg_maze, generate_seed } from "./pkg";
-import { JSX, createSignal, createEffect, Accessor } from "solid-js";
+import {
+  JSX,
+  createSignal,
+  createEffect,
+  Accessor,
+  onCleanup,
+  onMount,
+  batch,
+} from "solid-js";
 import { withPdf } from "./pdfkit";
 const DEFAULT_MAZE_SIZE = 10;
 const FRONTEND_URL = new URL("https://aleks.bg/maze");
@@ -57,6 +65,17 @@ const parameterSignal = (): {
       size: size(),
     });
   });
+
+  const onHashChange = (_e: HashChangeEvent) => {
+    const { seed: newSeed, size: newSize } = readFromHash();
+    batch(() => {
+      setSeed(newSeed);
+      setSize(newSize);
+    });
+  };
+
+  onMount(() => window.addEventListener("hashchange", onHashChange));
+  onCleanup(() => window.removeEventListener("hashchange", onHashChange));
 
   return {
     size,
