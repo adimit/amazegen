@@ -1,6 +1,6 @@
-use crate::maze::solver::{dijkstra, solve};
+use std::cell::RefCell;
 
-use super::Maze;
+use super::{solver::Solver, Maze};
 use itertools::Itertools;
 use plotters::{
     coord::Shift,
@@ -229,15 +229,16 @@ where
     let x = cell_size as u32 * maze.extents.0 as u32 + border * 2;
     let y = cell_size as u32 * maze.extents.1 as u32 + border * 2;
 
-    let visual = Visuals {
+    let mut visual = Visuals {
         border_width: BorderWidth(border as usize),
         cell_size: CellSize(cell_size),
         pic: make_drawing_area((x, y)),
         maze,
+        solver: RefCell::new(None),
     };
 
     for instruction in instructions {
-        instruction.execute(&visual).unwrap();
+        instruction.execute(&mut visual).unwrap();
     }
 
     visual.pic.present().unwrap();
@@ -250,6 +251,7 @@ struct Visuals<'a> {
     maze: &'a Maze,
     border_width: BorderWidth,
     cell_size: CellSize,
+    solver: RefCell<Option<Solver<'a>>>,
 }
 
 impl<'a> Visuals<'a> {
@@ -307,7 +309,8 @@ impl<'a> Visuals<'a> {
     fn stain_maze(&self, colours: (WebColour, WebColour)) -> Result<(), MazePaintError> {
         let cell_size = self.cell_size.0 as i32;
         let border = self.border_width.0 as i32;
-        let distances = dijkstra(self.maze);
+        let solver = self.get_solver();
+        let distances = solver.get_distances_from_origin();
         let max_distance: usize = *distances
             .iter()
             .map(move |dim| dim.iter().max().unwrap_or(&0))
@@ -338,22 +341,30 @@ impl<'a> Visuals<'a> {
         Ok(())
     }
 
+    fn get_solver(&self) -> Solver<'a> {
+        self.solver
+            .borrow_mut()
+            .get_or_insert_with(|| Solver::new(self.maze, self.maze.get_entrance()))
+            .clone()
+    }
+
     fn solve_maze(&self, colour: WebColour) -> Result<(), MazePaintError> {
         {
             let border = self.border_width.0 as i32;
             let cell_size = self.cell_size.0 as i32;
             let path_offset = border + (cell_size / 2);
             let to_coord = |a| cell_size * a as i32 + path_offset;
-            let entrance = self.maze.get_entrance();
-            let exit = self.maze.get_exit();
-            let mut solution: Vec<(i32, i32)> =
-                vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)];
-            solution.extend(solve(self.maze).iter().map(|(x, y)| {
+            let mut solution: Vec<(i32, i32)> = {
+                let exit = self.maze.get_exit();
+                vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)]
+            };
+            let solver = self.get_solver();
+            solution.extend(solver.solve_maze().iter().map(|(x, y)| {
                 let x0: i32 = to_coord(*x);
                 let y0: i32 = to_coord(*y);
                 (x0, y0)
             }));
-            solution.push((to_coord(entrance.0), 0));
+            solution.push((to_coord(self.maze.get_entrance().0), 0));
             self.pic
                 .draw(&PathElement::new(
                     solution,

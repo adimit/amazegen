@@ -1,4 +1,4 @@
-use super::*;
+use super::{solver::dijkstra, *};
 
 pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
     let mut maze = Maze::new((x_size, y_size));
@@ -28,4 +28,12 @@ pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
     maze.set_entrance(fastrand::usize(0..maze.extents.0));
     maze.set_exit(fastrand::usize(0..maze.extents.0));
     maze
+}
+
+fn find_exit(maze: &Maze) -> usize {
+    let distances = dijkstra(maze, maze.get_entrance());
+
+    let possible_exits = 0;
+
+    0
 }
