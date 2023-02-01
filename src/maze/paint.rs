@@ -28,16 +28,14 @@ pub struct PlottersSvgFileWriter {
     border_size: usize,
     cell_size: usize,
     file_name: String,
-    colour: WebColour,
 }
 
 impl PlottersSvgFileWriter {
-    pub fn new(file_name: String, cell_size: usize, border_size: usize, colour: WebColour) -> Self {
+    pub fn new(file_name: String, cell_size: usize, border_size: usize) -> Self {
         Self {
             border_size,
             cell_size,
             file_name,
-            colour,
         }
     }
 }
@@ -143,21 +141,14 @@ pub struct PlottersSvgStringWriter<'a> {
     border_size: usize,
     cell_size: usize,
     into_string: &'a mut String,
-    colour: WebColour,
 }
 
 impl<'a> PlottersSvgStringWriter<'a> {
-    pub fn new(
-        buffer: &'a mut String,
-        cell_size: usize,
-        border_size: usize,
-        colour: WebColour,
-    ) -> Self {
+    pub fn new(buffer: &'a mut String, cell_size: usize, border_size: usize) -> Self {
         Self {
             cell_size,
             border_size,
             into_string: buffer,
-            colour,
         }
     }
 }

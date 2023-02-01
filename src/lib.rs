@@ -25,7 +25,6 @@ pub fn make_svg_maze(
 ) -> String {
     let maze: Maze = jarník(x_size, y_size, seed);
     let mut str = String::new();
-    let c = WebColour::from_string(colour);
     let mut instructions: Vec<DrawingInstructions> = vec![];
     if stain {
         instructions.push(DrawingInstructions::StainMaze((
@@ -41,7 +40,7 @@ pub fn make_svg_maze(
             WebColour::from_string(SOLUTION).unwrap(),
         ))
     }
-    PlottersSvgStringWriter::new(&mut str, 40, 4, c.unwrap())
+    PlottersSvgStringWriter::new(&mut str, 40, 4)
         .write_maze(&maze, instructions)
         .unwrap();
     str
