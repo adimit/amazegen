@@ -5,12 +5,13 @@ use std::ffi::OsString;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use crate::maze::generator::*;
+use crate::maze::generator::growingTree::GrowingTreeGenerator;
+use crate::maze::generator::MazeGenerator;
 use crate::maze::paint::*;
 use crate::maze::*;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
-    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
+    let maze: RectilinearMaze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
     let mut str = String::new();
     PlottersSvgStringWriter::new(&mut str, 40, 4)
         .write_maze(
@@ -59,7 +60,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = env::args_os().collect::<Vec<_>>();
     use crate::maze::generator::*;
     use crate::maze::paint::*;
-    use crate::maze::*;
     let x_size = args.get(1).map(os_string_to_number).unwrap_or(Ok(15))?;
     let y_size = args.get(2).map(os_string_to_number).unwrap_or(Ok(x_size))?;
 
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(os_string_to_number)
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
-    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
+    let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,

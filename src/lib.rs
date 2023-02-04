@@ -1,5 +1,6 @@
 mod maze;
-use crate::maze::generator::*;
+use crate::maze::generator::growingTree::GrowingTreeGenerator;
+use crate::maze::generator::MazeGenerator;
 use crate::maze::paint::*;
 use crate::maze::*;
 use wasm_bindgen::prelude::*;
@@ -23,7 +24,7 @@ pub fn make_svg_maze(
     stain: bool,
     solve: bool,
 ) -> String {
-    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
+    let maze: RectilinearMaze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
     let mut str = String::new();
     let mut instructions: Vec<DrawingInstructions> = vec![];
     if stain {
