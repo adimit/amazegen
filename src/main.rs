@@ -10,7 +10,7 @@ use crate::maze::paint::*;
 use crate::maze::*;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
-    let maze: Maze = jarník(x_size, y_size, seed);
+    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
     let mut str = String::new();
     PlottersSvgStringWriter::new(&mut str, 40, 4)
         .write_maze(
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(os_string_to_number)
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
-    let maze: Maze = jarník(x_size, y_size, seed);
+    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,

@@ -32,11 +32,31 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Maze {
+pub struct RectilinearMaze {
     fields: std::vec::Vec<Vec<u8>>,
     entrance: usize,
     exit: usize,
     pub extents: (usize, usize),
+}
+
+pub trait Maze: Clone {
+    fn get_extents(&self) -> (usize, usize);
+
+    fn get_entrance(&self) -> (usize, usize);
+    fn get_exit(&self) -> (usize, usize);
+    fn set_entrance(&mut self, entrance: usize);
+    fn set_exit(&mut self, exit: usize);
+
+    fn visit(&mut self, coords: (usize, usize));
+    fn is_visited(&self, coords: (usize, usize)) -> bool;
+
+    fn translate(&self, coord: (usize, usize), direction: Direction) -> Option<(usize, usize)>;
+    fn move_from(&mut self, coors: (usize, usize), direction: Direction) -> Option<(usize, usize)>;
+
+    fn get_open_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
+    fn get_walls(&self, coords: (usize, usize)) -> Vec<Direction>;
+    fn has_wall(&self, coords: (usize, usize), direction: Direction) -> bool;
+    fn get_possible_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -83,9 +103,9 @@ const UP: u8 = 4u8;
 const RIGHT: u8 = 8u8;
 const DOWN: u8 = 16u8;
 
-impl Maze {
+impl RectilinearMaze {
     pub fn new(extents: (usize, usize)) -> Self {
-        Maze {
+        RectilinearMaze {
             extents,
             entrance: 0,
             exit: 0,
@@ -93,15 +113,29 @@ impl Maze {
         }
     }
 
-    pub fn get_entrance(&self) -> (usize, usize) {
+    fn remove_wall(&mut self, (x, y): (usize, usize), direction: Direction) {
+        self.fields[x][y] |= direction.bitmask()
+    }
+
+    fn coordinates_in_extents(&self, (x, y): (usize, usize)) -> bool {
+        x < self.extents.0 && y < self.extents.1
+    }
+}
+
+impl Maze for RectilinearMaze {
+    fn get_extents(&self) -> (usize, usize) {
+        self.extents
+    }
+
+    fn get_entrance(&self) -> (usize, usize) {
         (self.entrance, 0)
     }
 
-    pub fn get_exit(&self) -> (usize, usize) {
+    fn get_exit(&self) -> (usize, usize) {
         (self.exit, self.extents.1 - 1)
     }
 
-    pub fn visit(&mut self, (x, y): (usize, usize)) {
+    fn visit(&mut self, (x, y): (usize, usize)) {
         if self.coordinates_in_extents((x, y)) {
             self.fields[x][y] |= VISIT
         } else {
@@ -109,19 +143,11 @@ impl Maze {
         }
     }
 
-    fn coordinates_in_extents(&self, (x, y): (usize, usize)) -> bool {
-        x < self.extents.0 && y < self.extents.1
-    }
-
-    pub fn is_visited(&self, (x, y): (usize, usize)) -> bool {
+    fn is_visited(&self, (x, y): (usize, usize)) -> bool {
         self.coordinates_in_extents((x, y)) && self.fields[x][y] & VISIT > 0
     }
 
-    pub fn translate(
-        &self,
-        (x, y): (usize, usize),
-        direction: Direction,
-    ) -> Option<(usize, usize)> {
+    fn translate(&self, (x, y): (usize, usize), direction: Direction) -> Option<(usize, usize)> {
         match direction {
             Direction::Left if x > 0 => Some((x - 1, y)),
             Direction::Right if x < self.extents.0 - 1 => Some((x + 1, y)),
@@ -131,7 +157,7 @@ impl Maze {
         }
     }
 
-    pub fn move_from(
+    fn move_from(
         &mut self,
         (x, y): (usize, usize),
         direction: Direction,
@@ -149,17 +175,13 @@ impl Maze {
         Some((tx, ty))
     }
 
-    pub fn get_open_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
+    fn get_open_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
         Direction::iterator()
             .filter(|direction| self.fields[x][y] & direction.bitmask() != 0)
             .collect()
     }
 
-    pub fn remove_wall(&mut self, (x, y): (usize, usize), direction: Direction) {
-        self.fields[x][y] |= direction.bitmask()
-    }
-
-    pub fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {
+    fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {
         Direction::iterator()
             .filter(|direction| {
                 let mask = direction.bitmask();
@@ -168,11 +190,11 @@ impl Maze {
             .collect()
     }
 
-    pub fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
+    fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
         self.fields[x][y] & direction.bitmask() == 0
     }
 
-    pub fn get_possible_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
+    fn get_possible_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
         Direction::iterator()
             .filter(|direction| match self.translate((x, y), *direction) {
                 Some((tx, ty)) => {
@@ -183,12 +205,12 @@ impl Maze {
             .collect()
     }
 
-    pub fn set_entrance(&mut self, entrance: usize) {
+    fn set_entrance(&mut self, entrance: usize) {
         self.entrance = entrance;
         self.remove_wall((entrance, 0), Direction::Up);
     }
 
-    pub fn set_exit(&mut self, exit: usize) {
+    fn set_exit(&mut self, exit: usize) {
         self.exit = exit;
         self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
     }
@@ -201,7 +223,7 @@ mod test {
 
     #[test]
     fn is_visited_should_return_true_when_field_has_been_visited() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.visit((3, 2));
         assert!(m.is_visited((3, 2)));
         assert!(!m.is_visited((0, 0)));
@@ -209,7 +231,7 @@ mod test {
 
     #[test]
     fn visit_is_idempotent() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.visit((5, 5));
         assert_eq!(m.fields[5][5], 1);
         m.visit((5, 5));
@@ -218,7 +240,7 @@ mod test {
 
     #[test]
     fn move_marks_both_as_visited() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.move_from((1, 1), Down);
         assert!(m.is_visited((1, 1)));
         assert!(m.is_visited((1, 2)));
@@ -226,7 +248,7 @@ mod test {
 
     #[test]
     fn move_tears_down_the_walls_on_both_sides() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.move_from((1, 1), Down);
         assert_eq!(m.fields[1][1] & DOWN, DOWN);
         assert_eq!(m.fields[1][1] & LEFT, 0);
@@ -241,7 +263,7 @@ mod test {
 
     #[test]
     fn get_open_paths_returns_where_there_are_no_walls() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.move_from((2, 2), Left);
         assert_eq!(m.get_open_paths((2, 2)), [Left]);
         assert_eq!(m.get_open_paths((1, 2)), [Right]);
@@ -249,7 +271,7 @@ mod test {
 
     #[test]
     fn get_walls_returns_where_there_are_walls() {
-        let mut m = Maze::new((12, 12));
+        let mut m = RectilinearMaze::new((12, 12));
         m.move_from((2, 2), Left);
         assert_eq!(
             UnorderedEq(&m.get_walls((2, 2))),
@@ -263,7 +285,7 @@ mod test {
 
     #[test]
     fn get_walls_returns_walls_at_the_edges() {
-        let mut m = Maze::new((10, 10));
+        let mut m = RectilinearMaze::new((10, 10));
         m.move_from((0, 0), Down);
         m.move_from((0, 0), Right);
         assert_eq!(UnorderedEq(&m.get_walls((0, 0))), UnorderedEq(&[Left, Up]))
@@ -271,7 +293,7 @@ mod test {
 
     #[test]
     fn get_possible_paths_filters_edges_of_maze() {
-        let m = Maze::new((10, 10));
+        let m = RectilinearMaze::new((10, 10));
         assert_eq!(
             UnorderedEq(&m.get_possible_paths((0, 0))),
             UnorderedEq(&[Down, Right])
@@ -292,7 +314,7 @@ mod test {
 
     #[test]
     fn translate_does_not_allow_going_off_grid() {
-        let m = Maze::new((10, 10));
+        let m = RectilinearMaze::new((10, 10));
         assert_eq!(m.translate((0, 0), Left), None);
         assert_eq!(m.translate((0, 0), Up), None);
         assert_eq!(m.translate((9, 9), Down), None);
@@ -301,7 +323,7 @@ mod test {
 
     #[test]
     fn get_possible_paths_filters_visited_cells() {
-        let mut m = Maze::new((10, 10));
+        let mut m = RectilinearMaze::new((10, 10));
         m.move_from((1, 1), Left);
 
         assert_eq!(

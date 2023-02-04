@@ -18,7 +18,7 @@ pub enum MazePaintError {
 }
 
 pub trait MazeFileWriter {
-    fn write_maze<I>(&mut self, maze: &Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>;
 }
@@ -40,26 +40,26 @@ impl PlottersSvgFileWriter {
     }
 }
 
-fn get_wall_runs(maze: &Maze, direction: super::Direction) -> Vec<Vec<(usize, usize)>> {
+fn get_wall_runs(maze: &impl Maze, direction: super::Direction) -> Vec<Vec<(usize, usize)>> {
     use super::Direction::*;
     match direction {
-        Up | Down => (0..maze.extents.1)
+        Up | Down => (0..maze.get_extents().1)
             .map(move |y| get_wall_run(maze, y, direction))
             .collect::<Vec<_>>(),
-        Left | Right => (0..maze.extents.0)
+        Left | Right => (0..maze.get_extents().0)
             .map(move |x| get_wall_run(maze, x, direction))
             .collect::<Vec<_>>(),
     }
 }
 
-fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
+fn get_wall_run(maze: &impl Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
     use super::Direction::*;
 
     // The match arms would have an incompatible closure type, which is
     // why we duplicate the code here. There might be a better option,
     // but I'm not aware of it.
     match direction {
-        Up | Down => (0..maze.extents.0)
+        Up | Down => (0..maze.get_extents().0)
             .group_by(move |x| maze.has_wall((*x, line), direction))
             .into_iter()
             .filter(|(key, _)| *key)
@@ -68,7 +68,7 @@ fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(u
                 (*run.first().unwrap(), *run.last().unwrap())
             })
             .collect::<Vec<_>>(),
-        Left | Right => (0..maze.extents.1)
+        Left | Right => (0..maze.get_extents().1)
             .group_by(move |y| maze.has_wall((line, *y), direction))
             .into_iter()
             .filter(|(key, _)| *key)
@@ -83,7 +83,7 @@ fn get_wall_run(maze: &Maze, line: usize, direction: super::Direction) -> Vec<(u
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::maze::Direction::*;
+    use crate::maze::{Direction::*, RectilinearMaze};
 
     #[test]
     fn deserialise_web_colour_from_triplet() {
@@ -113,7 +113,7 @@ mod test {
 
     #[test]
     fn get_wall_runs_should_recognize_runs() {
-        let mut maze = Maze::new((10, 2));
+        let mut maze = RectilinearMaze::new((10, 2));
         maze.move_from((1, 0), Down);
         maze.move_from((5, 0), Down);
 
@@ -125,7 +125,7 @@ mod test {
 
     #[test]
     fn get_wall_runs_works_vertically() {
-        let mut maze = Maze::new((2, 10));
+        let mut maze = RectilinearMaze::new((2, 10));
         maze.move_from((0, 2), Right);
         maze.move_from((0, 5), Right);
 
@@ -207,7 +207,7 @@ pub enum DrawingInstructions {
 
 fn write_to_backend<'a, F, I>(
     make_drawing_area: F,
-    maze: &'a Maze,
+    maze: &'a impl Maze,
     cell_size: usize,
     border_size: usize,
     instructions: I,
@@ -217,8 +217,8 @@ where
     I: IntoIterator<Item = DrawingInstructions>,
 {
     let border = border_size as u32;
-    let x = cell_size as u32 * maze.extents.0 as u32 + border * 2;
-    let y = cell_size as u32 * maze.extents.1 as u32 + border * 2;
+    let x = cell_size as u32 * maze.get_extents().0 as u32 + border * 2;
+    let y = cell_size as u32 * maze.get_extents().1 as u32 + border * 2;
 
     let mut visual = Visuals {
         border_width: BorderWidth(border as usize),
@@ -237,24 +237,28 @@ where
     Ok(())
 }
 
-struct Visuals<'a> {
+struct Visuals<'a, M: Maze> {
     pic: DrawingArea<SVGBackend<'a>, Shift>,
-    maze: &'a Maze,
+    maze: &'a M,
     border_width: BorderWidth,
     cell_size: CellSize,
-    solver: RefCell<Option<Solver<'a>>>,
+    solver: RefCell<Option<Solver<'a, M>>>,
 }
 
-impl<'a> Visuals<'a> {
+impl<'a, M: Maze> Visuals<'a, M> {
     fn render_maze(&self, colour: &WebColour) -> Result<(), MazePaintError> {
         use super::Direction::*;
         let cell_size = self.cell_size.0 as i32;
         let border = self.border_width.0 as i32;
 
         let mut h = get_wall_runs(self.maze, Up);
-        h.push(get_wall_run(self.maze, self.maze.extents.0 - 1, Down));
+        h.push(get_wall_run(self.maze, self.maze.get_extents().0 - 1, Down));
         let mut v = get_wall_runs(self.maze, Left);
-        v.push(get_wall_run(self.maze, self.maze.extents.1 - 1, Right));
+        v.push(get_wall_run(
+            self.maze,
+            self.maze.get_extents().1 - 1,
+            Right,
+        ));
         let style = {
             let svg_colour: RGBAColor = (*colour).into();
             svg_colour.stroke_width((border * 2).try_into().unwrap())
@@ -312,7 +316,8 @@ impl<'a> Visuals<'a> {
             (absolute as f64 * fraction) as u8
         }
 
-        for (x, y) in (0..self.maze.extents.0).cartesian_product(0..self.maze.extents.1) {
+        for (x, y) in (0..self.maze.get_extents().0).cartesian_product(0..self.maze.get_extents().1)
+        {
             let x0: i32 = cell_size * x as i32 + border;
             let y0: i32 = cell_size * y as i32 + border;
             let x1: i32 = x0 + cell_size + 1;
@@ -332,7 +337,7 @@ impl<'a> Visuals<'a> {
         Ok(())
     }
 
-    fn get_solver(&self) -> Solver<'a> {
+    fn get_solver(&self) -> Solver<'a, M> {
         self.solver
             .borrow_mut()
             .get_or_insert_with(|| Solver::new(self.maze, self.maze.get_entrance()))
@@ -368,7 +373,7 @@ impl<'a> Visuals<'a> {
 }
 
 impl DrawingInstructions {
-    fn execute(&self, p: &Visuals) -> Result<(), MazePaintError> {
+    fn execute<M: Maze>(&self, p: &Visuals<M>) -> Result<(), MazePaintError> {
         use DrawingInstructions::*;
         match self {
             DrawMaze(colour) => p.render_maze(colour),
@@ -379,7 +384,7 @@ impl DrawingInstructions {
 }
 
 impl MazeFileWriter for PlottersSvgFileWriter {
-    fn write_maze<I>(&mut self, maze: &Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>,
     {
@@ -394,7 +399,7 @@ impl MazeFileWriter for PlottersSvgFileWriter {
 }
 
 impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
-    fn write_maze<I>(&mut self, maze: &Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>,
     {

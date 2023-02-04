@@ -1,13 +1,13 @@
 use crate::maze::*;
 
 #[derive(Debug, Clone)]
-pub struct Solver<'a> {
+pub struct Solver<'a, M: Maze> {
     distances: Vec<Vec<usize>>,
-    maze: &'a Maze,
+    maze: &'a M,
 }
 
-impl<'a> Solver<'a> {
-    pub fn new(maze: &'a Maze, origin: (usize, usize)) -> Self {
+impl<'a, M: Maze> Solver<'a, M> {
+    pub fn new(maze: &'a M, origin: (usize, usize)) -> Self {
         let distances = dijkstra(maze, origin);
         Self { maze, distances }
     }
@@ -41,8 +41,8 @@ impl<'a> Solver<'a> {
     }
 }
 
-fn dijkstra(maze: &Maze, origin: (usize, usize)) -> Vec<Vec<usize>> {
-    let mut distances = vec![vec![0usize; maze.extents.1]; maze.extents.0];
+fn dijkstra(maze: &impl Maze, origin: (usize, usize)) -> Vec<Vec<usize>> {
+    let mut distances = vec![vec![0usize; maze.get_extents().1]; maze.get_extents().0];
     let mut frontier: Vec<(usize, usize)> = vec![origin];
     distances[frontier[0].0][frontier[0].1] = 1;
     while !frontier.is_empty() {

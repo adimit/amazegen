@@ -23,7 +23,7 @@ pub fn make_svg_maze(
     stain: bool,
     solve: bool,
 ) -> String {
-    let maze: Maze = jarník(x_size, y_size, seed);
+    let maze: RectilinearMaze = jarník(x_size, y_size, seed);
     let mut str = String::new();
     let mut instructions: Vec<DrawingInstructions> = vec![];
     if stain {

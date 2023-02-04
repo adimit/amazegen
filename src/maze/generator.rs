@@ -1,7 +1,7 @@
 use super::{solver::Solver, *};
 
-pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
-    let mut maze = Maze::new((x_size, y_size));
+pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> RectilinearMaze {
+    let mut maze = RectilinearMaze::new((x_size, y_size));
     let mut vertices: Vec<(usize, usize)> = vec![];
     fastrand::seed(seed);
 
@@ -30,7 +30,7 @@ pub fn jarník(x_size: usize, y_size: usize, seed: u64) -> Maze {
     maze
 }
 
-fn find_exit(maze: &Maze) -> (usize, usize) {
+fn find_exit(maze: &RectilinearMaze) -> (usize, usize) {
     let solver = Solver::new(maze, maze.get_entrance());
     let y = maze.extents.1 - 1;
     let best_exit = (0..maze.extents.0)
