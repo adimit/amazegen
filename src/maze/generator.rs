@@ -4,7 +4,7 @@ pub trait MazeGenerator<M: Maze> {
     fn generate(&self) -> M;
 }
 
-pub mod growingTree {
+pub mod growing_tree {
     use crate::maze::{Maze, RectilinearMaze};
 
     use super::{make_random_longest_exit, MazeGenerator};
@@ -51,6 +51,88 @@ pub mod growingTree {
     impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator {
         fn generate(&self) -> RectilinearMaze {
             let mut maze = self.jarník();
+            make_random_longest_exit(&mut maze);
+            maze
+        }
+    }
+}
+
+pub mod kruskal {
+    use crate::maze::{Direction, Maze, RectilinearMaze};
+
+    use super::{make_random_longest_exit, MazeGenerator};
+
+    pub struct KruskalsAlgorithm {
+        extents: (usize, usize),
+    }
+
+    struct State {
+        classes: Vec<Vec<usize>>,
+        cells: Vec<Vec<(usize, usize)>>,
+    }
+
+    impl State {
+        fn new((ex, ey): (usize, usize)) -> Self {
+            State {
+                cells: (0..ey)
+                    .flat_map(|y| (0..ex).map(move |x| vec![(x, y)]))
+                    .collect(),
+                classes: (0..(ey))
+                    .map(|y| (0..ex).map(|x| x + (ex * y)).collect())
+                    .collect(),
+            }
+        }
+
+        fn get_class(&self, (x, y): (usize, usize)) -> usize {
+            self.classes[y][x]
+        }
+
+        fn classes_are_distinct(&self, a: (usize, usize), b: (usize, usize)) -> bool {
+            self.get_class(a) != self.get_class(b)
+        }
+
+        fn link(&mut self, a: (usize, usize), b: (usize, usize)) {
+            let a_class = self.get_class(a);
+            let b_class = self.get_class(b);
+            // to avoid the copy here we'd likely need unsafe
+            let drained: Vec<_> = self.cells[a_class].drain(..).collect();
+            for (x, y) in &drained {
+                self.classes[*y][*x] = b_class;
+            }
+            self.cells[b_class].extend(drained.iter());
+        }
+    }
+
+    impl KruskalsAlgorithm {
+        pub fn new(extents: (usize, usize), seed: u64) -> Self {
+            fastrand::seed(seed);
+            KruskalsAlgorithm { extents }
+        }
+        fn get_walls(&self) -> Vec<(usize, usize, Direction)> {
+            let mut walls: Vec<_> = (0..(self.extents.1))
+                .flat_map(|y| {
+                    (0..(self.extents.0))
+                        .flat_map(move |x| [(x, y, Direction::Down), (x, y, Direction::Right)])
+                })
+                .collect();
+            fastrand::shuffle(&mut walls);
+            walls
+        }
+    }
+
+    impl MazeGenerator<RectilinearMaze> for KruskalsAlgorithm {
+        fn generate(&self) -> RectilinearMaze {
+            let mut maze = RectilinearMaze::new(self.extents);
+            let mut state = State::new(self.extents);
+            for (x, y, direction) in self.get_walls() {
+                match maze.translate((x, y), direction) {
+                    Some(target) if state.classes_are_distinct((x, y), target) => {
+                        state.link((x, y), target);
+                        maze.move_from((x, y), direction);
+                    }
+                    _ => {}
+                }
+            }
             make_random_longest_exit(&mut maze);
             maze
         }
