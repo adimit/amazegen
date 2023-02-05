@@ -9,6 +9,7 @@ import {
   batch,
 } from "solid-js";
 import { withPdf } from "./pdfkit";
+import bitterRegular from "./assets/fonts/Bitter-Regular.otf";
 const DEFAULT_MAZE_SIZE = 10;
 const FRONTEND_URL = new URL("https://aleks.bg/maze");
 
@@ -107,6 +108,14 @@ const parameterSignal = (): {
 
 const algorithms = ["kruskal", "growingTree"] as const;
 type Algorithm = (typeof algorithms)[number];
+const prettyPrintAlgorithm = (algorithm: Algorithm): string => {
+  switch (algorithm) {
+    case "kruskal":
+      return "Kruskal's";
+    case "growingTree":
+      return "Growing Tree (backtracking)";
+  }
+};
 
 export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
@@ -136,6 +145,7 @@ export default function Maze(): JSX.Element {
   const pdf = async () => {
     const { default: SVGtoPDF } = await import("svg-to-pdfkit");
     const QR = await import("qrcode");
+    const font = await (await fetch(bitterRegular)).arrayBuffer();
     withPdf(`maze-${size()}`, async (pdf) => {
       const addMaze = async (mazeSeed: bigint) => {
         const qr = await QR.toString(
@@ -167,8 +177,17 @@ export default function Maze(): JSX.Element {
         const svgNode = template.content.firstChild as SVGElement;
         svgNode.attributes.getNamedItem("width")!!.value = "680px";
         svgNode.attributes.getNamedItem("height")!!.value = "680px";
+        pdf
+          .font(font)
+          .text(
+            `Size: ${size()}×${size()}\nSeed: ${mazeSeed}\nAlgorithm: ${prettyPrintAlgorithm(
+              algorithm()
+            )}`,
+            50,
+            600
+          );
         SVGtoPDF(pdf, template.innerHTML, 50, 50);
-        SVGtoPDF(pdf, qr, 487, 220, {
+        SVGtoPDF(pdf, qr, 487, 240, {
           width: 80,
         });
       };
@@ -182,8 +201,8 @@ export default function Maze(): JSX.Element {
 
   return (
     <>
-      <h2>Size</h2>
       <section>
+        <h2>Size</h2>
         <button onClick={() => setSize(Math.max(size() - 1, 2))}>-</button>
         <input
           ref={input}
@@ -197,6 +216,8 @@ export default function Maze(): JSX.Element {
           }}
         />
         <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
+      </section>
+      <section>
         <h2>Algorithm</h2>
         <label>
           <input
