@@ -2,7 +2,7 @@ pub mod generator;
 pub mod paint;
 pub mod solver;
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, fmt::Display, hash::Hash};
 
 // UnorderedEq is a way to compare vectors without paying heed to the order of the elements.
 // It's lifted from this SO answer: https://stackoverflow.com/a/42748484
@@ -65,6 +65,21 @@ pub enum Direction {
     Right,
     Down,
     Left,
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Direction::Up => "Up",
+                Direction::Right => "Right",
+                Direction::Down => "Down",
+                Direction::Left => "Left",
+            }
+        )
+    }
 }
 
 impl Direction {
