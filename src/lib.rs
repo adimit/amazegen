@@ -1,6 +1,6 @@
 mod maze;
-use crate::maze::generator::growingTree::GrowingTreeGenerator;
 use crate::maze::generator::MazeGenerator;
+use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::KruskalsAlgorithm};
 use crate::maze::paint::*;
 use crate::maze::*;
 use wasm_bindgen::prelude::*;
@@ -23,9 +23,15 @@ pub fn make_svg_maze(
     colour: &str,
     stain: bool,
     solve: bool,
+    kruskal: bool,
 ) -> String {
-    let maze: RectilinearMaze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
-    let mut str = String::new();
+    let maze = {
+        if kruskal {
+            KruskalsAlgorithm::new((x_size, y_size), seed).generate()
+        } else {
+            GrowingTreeGenerator::new((x_size, y_size), seed).generate()
+        }
+    };
     let mut instructions: Vec<DrawingInstructions> = vec![];
     if stain {
         instructions.push(DrawingInstructions::StainMaze((
@@ -41,6 +47,8 @@ pub fn make_svg_maze(
             WebColour::from_string(SOLUTION).unwrap(),
         ))
     }
+
+    let mut str = String::new();
     PlottersSvgStringWriter::new(&mut str, 40, 4)
         .write_maze(&maze, instructions)
         .unwrap();

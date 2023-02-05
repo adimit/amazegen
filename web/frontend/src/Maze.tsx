@@ -15,18 +15,29 @@ const FRONTEND_URL = new URL("https://aleks.bg/maze");
 interface MazeParameters {
   size: number;
   seed: bigint;
+  algorithm: Algorithm;
 }
 
 const getDefaultMazeParameters = (): MazeParameters => ({
   seed: generate_seed(),
   size: DEFAULT_MAZE_SIZE,
+  algorithm: "growingTree",
 });
+
+const getAlgorithm = (str: string): Algorithm => {
+  if (algorithms.includes(str as Algorithm)) {
+    return str as Algorithm;
+  }
+  throw `Not a known algorithm: ${str}`;
+};
 
 const readFromHash = (): MazeParameters => {
   if (document?.location.hash === "" || document?.location.hash === undefined) {
     return getDefaultMazeParameters();
   } else {
-    const [sizeStr, seedStr] = document.location.hash.substring(1).split("|");
+    const [sizeStr, seedStr, algorithm] = document.location.hash
+      .substring(1)
+      .split("|");
     const size = Number(sizeStr);
     if (isNaN(size)) {
       return getDefaultMazeParameters();
@@ -35,14 +46,17 @@ const readFromHash = (): MazeParameters => {
       return {
         size,
         seed: BigInt(seedStr),
+        algorithm: getAlgorithm(algorithm),
       };
     } catch (e) {
+      console.error(e);
       return getDefaultMazeParameters();
     }
   }
 };
 
-const computeHash = ({ seed, size }: MazeParameters) => `${size}|${seed}`;
+const computeHash = ({ seed, size, algorithm }: MazeParameters) =>
+  `${size}|${seed}|${algorithm}`;
 
 const writeToHash = (params: MazeParameters) => {
   if (document.location) {
@@ -53,16 +67,20 @@ const writeToHash = (params: MazeParameters) => {
 const parameterSignal = (): {
   seed: Accessor<bigint>;
   size: Accessor<number>;
+  algorithm: Accessor<Algorithm>;
   regenerateSeed: () => void;
   setSize: (newSize: number) => void;
+  setAlgorithm: (algo: Algorithm) => void;
 } => {
   const params = readFromHash();
   const [seed, setSeed] = createSignal(params.seed);
   const [size, setSize] = createSignal(params.size);
+  const [algorithm, setAlgorithm] = createSignal<Algorithm>(params.algorithm);
   createEffect(() => {
     writeToHash({
       seed: seed(),
       size: size(),
+      algorithm: algorithm(),
     });
   });
 
@@ -81,16 +99,22 @@ const parameterSignal = (): {
     size,
     setSize,
     seed,
+    algorithm,
+    setAlgorithm,
     regenerateSeed: () => setSeed(generate_seed()),
   };
 };
+
+const algorithms = ["kruskal", "growingTree"] as const;
+type Algorithm = (typeof algorithms)[number];
 
 export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
   let input: HTMLInputElement | undefined;
   let pdfInput: HTMLInputElement | undefined;
 
-  const { seed, size, setSize, regenerateSeed } = parameterSignal();
+  const { seed, size, setSize, regenerateSeed, algorithm, setAlgorithm } =
+    parameterSignal();
   const [numberOfMazes, setNumberOfMazes] = createSignal(4);
   const [showSolution, setShowSolution] = createSignal(false);
   const [stainMaze, setStainMaze] = createSignal(false);
@@ -103,7 +127,8 @@ export default function Maze(): JSX.Element {
         seed(),
         "eeeeee",
         stainMaze(),
-        showSolution()
+        showSolution(),
+        algorithm() === "kruskal"
       );
     }
   });
@@ -115,7 +140,11 @@ export default function Maze(): JSX.Element {
       const addMaze = async (mazeSeed: bigint) => {
         const qr = await QR.toString(
           new URL(
-            `#${computeHash({ seed: mazeSeed, size: size() })}`,
+            `#${computeHash({
+              seed: mazeSeed,
+              size: size(),
+              algorithm: algorithm(),
+            })}`,
             FRONTEND_URL
           ).toString(),
           {
@@ -131,7 +160,8 @@ export default function Maze(): JSX.Element {
           mazeSeed,
           "000000",
           false,
-          false
+          false,
+          algorithm() === "kruskal"
         );
         template.innerHTML = svg;
         const svgNode = template.content.firstChild as SVGElement;
@@ -167,6 +197,23 @@ export default function Maze(): JSX.Element {
           }}
         />
         <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
+        <h2>Algorithm</h2>
+        <label>
+          <input
+            type="radio"
+            onInput={() => setAlgorithm("growingTree")}
+            checked={algorithm() === "growingTree"}
+          />{" "}
+          Growing Tree
+        </label>
+        <label>
+          <input
+            onInput={() => setAlgorithm("kruskal")}
+            type="radio"
+            checked={algorithm() === "kruskal"}
+          />{" "}
+          Kruskal's
+        </label>
       </section>
       <section>
         <details>
