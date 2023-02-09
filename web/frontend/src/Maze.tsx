@@ -1,4 +1,4 @@
-import { make_svg_maze, generate_seed } from "./pkg";
+import { generate_seed, test_config } from "./pkg";
 import {
   JSX,
   createSignal,
@@ -10,6 +10,13 @@ import {
 } from "solid-js";
 import { withPdf } from "./pdfkit";
 import bitterRegular from "./assets/fonts/Bitter-Regular.otf";
+import {
+  Algorithm,
+  algorithms,
+  Configuration,
+  Feature,
+  generate_maze,
+} from "./Configuration";
 const DEFAULT_MAZE_SIZE = 10;
 const FRONTEND_URL = new URL("https://aleks.bg/maze");
 
@@ -22,7 +29,7 @@ interface MazeParameters {
 const getDefaultMazeParameters = (): MazeParameters => ({
   seed: generate_seed(),
   size: DEFAULT_MAZE_SIZE,
-  algorithm: "growingTree",
+  algorithm: "GrowingTree",
 });
 
 const getAlgorithm = (str: string): Algorithm => {
@@ -106,13 +113,11 @@ const parameterSignal = (): {
   };
 };
 
-const algorithms = ["kruskal", "growingTree"] as const;
-type Algorithm = (typeof algorithms)[number];
 const prettyPrintAlgorithm = (algorithm: Algorithm): string => {
   switch (algorithm) {
-    case "kruskal":
+    case "Kruskal":
       return "Kruskal's";
-    case "growingTree":
+    case "GrowingTree":
       return "Growing Tree (backtracking)";
   }
 };
@@ -129,16 +134,19 @@ export default function Maze(): JSX.Element {
   const [stainMaze, setStainMaze] = createSignal(false);
 
   createEffect(() => {
+    console.log(test_config());
     if (svgRef !== undefined) {
-      svgRef.innerHTML = make_svg_maze(
-        size(),
-        size(),
-        seed(),
-        "eeeeee",
-        stainMaze(),
-        showSolution(),
-        algorithm() === "kruskal"
-      );
+      const configuraiton: Configuration = {
+        algorithm: algorithm(),
+        colour: "eeeeee",
+        seed: seed(),
+        shape: { Rectilinear: [size(), size()] },
+        features: [
+          ...(stainMaze() ? ["Stain" as Feature] : []),
+          ...(showSolution() ? ["Solve" as Feature] : []),
+        ],
+      };
+      svgRef.innerHTML = generate_maze(configuraiton);
     }
   });
 
@@ -164,15 +172,14 @@ export default function Maze(): JSX.Element {
         );
 
         const template = document.createElement("template");
-        const svg = make_svg_maze(
-          size(),
-          size(),
-          mazeSeed,
-          "000000",
-          false,
-          false,
-          algorithm() === "kruskal"
-        );
+
+        const svg = generate_maze({
+          algorithm: algorithm(),
+          colour: "000000",
+          seed: mazeSeed,
+          shape: { Rectilinear: [size(), size()] },
+          features: [],
+        });
         template.innerHTML = svg;
         const svgNode = template.content.firstChild as SVGElement;
         svgNode.attributes.getNamedItem("width")!!.value = "680px";
@@ -218,20 +225,20 @@ export default function Maze(): JSX.Element {
         <button onClick={() => setSize(Math.min(size() + 1, 100))}>+</button>
       </section>
       <section>
-        <h2>Algorithm</h2>
+        <h2>Type</h2>
         <label>
           <input
             type="radio"
-            onInput={() => setAlgorithm("growingTree")}
-            checked={algorithm() === "growingTree"}
+            onInput={() => setAlgorithm("GrowingTree")}
+            checked={algorithm() === "GrowingTree"}
           />{" "}
           Growing Tree
         </label>
         <label>
           <input
-            onInput={() => setAlgorithm("kruskal")}
+            onInput={() => setAlgorithm("Kruskal")}
             type="radio"
-            checked={algorithm() === "kruskal"}
+            checked={algorithm() === "Kruskal"}
           />{" "}
           Kruskal's
         </label>

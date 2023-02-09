@@ -199,10 +199,25 @@ impl From<WebColour> for plotters::style::RGBAColor {
 pub struct CellSize(usize);
 pub struct BorderWidth(usize);
 
+#[derive(Debug, PartialEq)]
 pub enum DrawingInstructions {
     DrawMaze(WebColour),
     ShowSolution(WebColour),
     StainMaze((WebColour, WebColour)),
+}
+
+impl PartialOrd for DrawingInstructions {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        use std::cmp::Ordering::*;
+        use DrawingInstructions::*;
+        match (self, other) {
+            (DrawMaze(_), StainMaze(_)) => Some(Greater),
+            (ShowSolution(_), StainMaze(_)) => Some(Greater),
+            (StainMaze(_), DrawMaze(_)) => Some(Less),
+            (StainMaze(_), ShowSolution(_)) => Some(Less),
+            _ => None,
+        }
+    }
 }
 
 fn write_to_backend<'a, F, I>(
