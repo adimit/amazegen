@@ -199,7 +199,7 @@ impl From<WebColour> for plotters::style::RGBAColor {
 pub struct CellSize(usize);
 pub struct BorderWidth(usize);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DrawingInstructions {
     DrawMaze(WebColour),
     ShowSolution(WebColour),
@@ -211,12 +211,20 @@ impl PartialOrd for DrawingInstructions {
         use std::cmp::Ordering::*;
         use DrawingInstructions::*;
         match (self, other) {
-            (DrawMaze(_), StainMaze(_)) => Some(Greater),
+            (StainMaze(_), ShowSolution(_)) => Some(Less),
             (ShowSolution(_), StainMaze(_)) => Some(Greater),
             (StainMaze(_), DrawMaze(_)) => Some(Less),
-            (StainMaze(_), ShowSolution(_)) => Some(Less),
+            (DrawMaze(_), StainMaze(_)) => Some(Greater),
+            (DrawMaze(_), ShowSolution(_)) => Some(Less),
+            (ShowSolution(_), DrawMaze(_)) => Some(Greater),
             _ => None,
         }
+    }
+}
+
+impl Ord for DrawingInstructions {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
     }
 }
 

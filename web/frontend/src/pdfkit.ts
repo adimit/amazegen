@@ -1,13 +1,22 @@
 import PDF from "pdfkit";
+import bitterRegular from "./assets/fonts/Bitter-Regular.otf";
+import {
+  Algorithm,
+  computeHash,
+  Configuration,
+  generateMaze,
+} from "./Configuration";
+import { generate_seed } from "./pkg";
 
 declare global {
   class PDFDocument extends PDF {}
 }
 
-export const withPdf = async (
+const withPdf = async (
   fileName: string,
+  // eslint-disable-next-line no-undef
   action: (pdf: PDFDocument) => Promise<void>
-) => {
+): Promise<void> => {
   /*
     Using pdfkit with Vite is a pain in the ass. pdfkit uses
     lots of Node libraries, which wouldn't be a problem on its own,
@@ -38,9 +47,10 @@ export const withPdf = async (
     will hopefully never become a problem.
   */
 
-  // @ts-ignore dynamically load pdfkit and maybe get a default export…
+  // @ts-expect-error dynamically load pdfkit and maybe get a default export…
   const { default: PDFKitExport } = await import("../pdfkit.js");
   // PDFKitExport is available with rollup, global PDFDocument with esbuild
+  // eslint-disable-next-line no-undef
   const PDF = PDFKitExport ?? PDFDocument;
   const { default: blobStream } = await import("blob-stream");
   const { saveAs } = await import("file-saver");
@@ -52,5 +62,67 @@ export const withPdf = async (
   stream.on("finish", () => {
     const blob = stream.toBlob("application/pdf");
     saveAs(blob, `${fileName}.pdf`);
+  });
+};
+
+const FRONTEND_URL = new URL("https://aleks.bg/maze");
+
+const prettyPrintAlgorithm = (algorithm: Algorithm): string => {
+  switch (algorithm) {
+    case "Kruskal":
+      return "Kruskal's";
+    case "GrowingTree":
+      return "Growing Tree (backtracking)";
+  }
+};
+
+export const generatePdf = async (
+  configuration: Configuration,
+  numberOfMazes: number
+): Promise<void> => {
+  const { default: SVGtoPDF } = await import("svg-to-pdfkit");
+  const QR = await import("qrcode");
+  const font = await (await fetch(bitterRegular)).arrayBuffer();
+  await withPdf(`maze-${configuration.shape.Rectilinear[0]}`, async (pdf) => {
+    const addMaze = async (mazeSeed: bigint): Promise<void> => {
+      const myConf = { ...configuration, seed: mazeSeed, colour: "000000" };
+      const qr = await QR.toString(
+        new URL(`#${computeHash(myConf)}`, FRONTEND_URL).toString(),
+        {
+          type: "svg",
+          errorCorrectionLevel: "high",
+        }
+      );
+
+      const template = document.createElement("template");
+
+      const svg = generateMaze(myConf);
+      template.innerHTML = svg;
+      const svgNode = template.content.firstChild as SVGElement;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      svgNode.attributes.getNamedItem("width")!.value = "680px";
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      svgNode.attributes.getNamedItem("height")!.value = "680px";
+      pdf
+        .font(font)
+        .text(
+          `Size: ${myConf.shape.Rectilinear[0]}×${
+            myConf.shape.Rectilinear[0]
+          }\nSeed: ${mazeSeed}\nAlgorithm: ${prettyPrintAlgorithm(
+            myConf.algorithm
+          )}`,
+          50,
+          600
+        );
+      SVGtoPDF(pdf, template.innerHTML, 50, 50);
+      SVGtoPDF(pdf, qr, 487, 240, {
+        width: 80,
+      });
+    };
+    await addMaze(configuration.seed);
+    for (let i = 1; i < numberOfMazes; i++) {
+      pdf.addPage();
+      await addMaze(generate_seed());
+    }
   });
 };

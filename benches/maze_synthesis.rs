@@ -1,5 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use maze::{generate_seed, Algorithm::GrowingTree, Configuration, Shape::Rectilinear};
+use maze::{
+    config::{Algorithm::GrowingTree, Configuration, Shape::Rectilinear},
+    generate_seed,
+};
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("maze_synthesis", |b| {

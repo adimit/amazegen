@@ -5,8 +5,8 @@ use std::ffi::OsString;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use crate::maze::generator::growingTree::GrowingTreeGenerator;
 use crate::maze::generator::MazeGenerator;
+use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::KruskalsAlgorithm};
 use crate::maze::paint::*;
 use crate::maze::*;
 
@@ -31,8 +31,8 @@ Usage:
 
     maze [ x [ y [ seed ] ] ]
 
-  Where x defaults to 15, y defaults to x, and seed defaults to 
-  a random unsigned 64bit integer. The output file will be called 
+  Where x defaults to 15, y defaults to x, and seed defaults to
+  a random unsigned 64bit integer. The output file will be called
   maze-{{x}}-{{y}}-{{seed}}.svg."
     );
     std::process::exit(128);
@@ -52,14 +52,14 @@ fn os_string_to_number<T>(s: &OsString) -> Result<T, MazeError>
 where
     T: FromStr<Err = ParseIntError>,
 {
-    let str = s.to_str().ok_or(MazeError::ErrorParsingUtf8)?;
-    str::parse::<T>(str).map_err(MazeError::NotANumber)
+    str::parse::<T>(s.to_str().ok_or(MazeError::ErrorParsingUtf8)?).map_err(MazeError::NotANumber)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = env::args_os().collect::<Vec<_>>();
     use crate::maze::generator::*;
     use crate::maze::paint::*;
+
     let x_size = args.get(1).map(os_string_to_number).unwrap_or(Ok(15))?;
     let y_size = args.get(2).map(os_string_to_number).unwrap_or(Ok(x_size))?;
 
@@ -68,7 +68,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(os_string_to_number)
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
-    let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
+    // let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
+    let maze = KruskalsAlgorithm::new((x_size, y_size), seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,
@@ -76,7 +77,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             WebColour::from_string("000000").unwrap(),
         )],
     )?;
-    println!("{}", make_svg_maze(x_size, y_size, seed));
 
     Ok(())
 }
