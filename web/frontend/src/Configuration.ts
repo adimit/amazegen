@@ -1,6 +1,7 @@
 import {
   Accessor,
   createEffect,
+  createMemo,
   createSignal,
   onCleanup,
   onMount,
@@ -106,12 +107,21 @@ export const configurationHashSignal = (): {
 
   createEffect(() => {
     if (document.location !== undefined) {
-      document.location.hash = computeHash(untrack(configuration));
+      document.location.hash = computeHash(configuration());
     }
   });
 
-  const onHashChange = (_e: HashChangeEvent): Configuration =>
-    setConfiguration(readFromHash());
+  const onHashChange = (_e: HashChangeEvent): void => {
+    const current = configuration();
+    const hash = readFromHash();
+    if (
+      current.seed !== hash.seed ||
+      current.algorithm !== hash.algorithm ||
+      current.shape.Rectilinear[0] !== hash.shape.Rectilinear[0]
+    ) {
+      setConfiguration(readFromHash());
+    }
+  };
 
   onMount(() => {
     window.addEventListener("hashchange", onHashChange);
