@@ -1,0 +1,18 @@
+* A Maze Generator
+
+A library, executable and website to generate mazes such as this one and render them to SVG.
+
+[[./docs/maze-15-15-720910203442283167.svg]]
+
+The website lives [[https://aleks.bg/maze][here]] and it allows generating, and solving mazes, as well as inspecting their topology by colouring path lengths inside the maze. You can also create a PDF file to print the resulting mazes. The printed mazes have QR code backlinks to the site so you can check for a solution later.
+
+Note that the backlinks are not stable yet, and the maze you see when you follow a link may not be the one you printed as internals may change at any time.
+
+
+** Status
+
+The project is currently an MVP. Rectilinear mazes can be generated with what is essentially a randomised depth-first search or a randomised version of [[https://en.wikipedia.org/wiki/Kruskal%27s_algorithm][Kruskal's algorithm]].
+
+* License
+
+This project is licensed under the [[https://www.gnu.org/licenses/gpl-3.0.html][GPLv3]]. Find [[https://www.gnu.org/licenses/quick-guide-gplv3.html][more information here]].
