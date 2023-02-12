@@ -61,7 +61,7 @@ pub trait Maze: Clone {
     fn is_visited(&self, coords: (usize, usize)) -> bool;
 
     fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
-    fn move_from(&mut self, coors: (usize, usize), direction: Direction) -> Option<(usize, usize)>;
+    fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
 
     fn get_open_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
     fn get_walls(&self, coords: (usize, usize)) -> Vec<Direction>;

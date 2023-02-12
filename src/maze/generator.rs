@@ -19,7 +19,7 @@ pub mod growing_tree {
             GrowingTreeGenerator { extents, seed }
         }
 
-        fn jarník<M: Maze>(&self, mut maze: M) -> M {
+        fn jarník<M: Maze<Coords = (usize, usize)>>(&self, mut maze: M) -> M {
             let mut vertices: Vec<(usize, usize)> = vec![];
             fastrand::seed(self.seed);
 
