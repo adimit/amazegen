@@ -52,7 +52,7 @@ pub mod config {
     }
 
     impl Algorithm {
-        fn generate(&self, shape: &Shape, seed: &u64) -> impl Maze {
+        fn generate(&self, shape: &Shape, seed: &u64) -> impl Maze<Coords = (usize, usize)> {
             let extents = match shape {
                 Shape::Rectilinear(x, y) => (*x, *y),
             };

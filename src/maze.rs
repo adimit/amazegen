@@ -50,10 +50,12 @@ impl Coordinates for (usize, usize) {
 }
 
 pub trait Maze: Clone {
+    type Coords: Coordinates;
+
     fn get_extents(&self) -> (usize, usize);
 
-    fn get_entrance(&self) -> (usize, usize);
-    fn get_exit(&self) -> (usize, usize);
+    fn get_entrance(&self) -> Self::Coords;
+    fn get_exit(&self) -> Self::Coords;
 
     fn visit(&mut self, coords: (usize, usize));
     fn is_visited(&self, coords: (usize, usize)) -> bool;
@@ -156,6 +158,8 @@ impl RectilinearMaze {
 }
 
 impl Maze for RectilinearMaze {
+    type Coords = (usize, usize);
+
     fn get_extents(&self) -> (usize, usize) {
         self.extents
     }

@@ -6,7 +6,7 @@ pub struct Solver<'a, M: Maze> {
     maze: &'a M,
 }
 
-impl<'a, M: Maze> Solver<'a, M> {
+impl<'a, M: Maze<Coords = (usize, usize)>> Solver<'a, M> {
     pub fn new(maze: &'a M, origin: (usize, usize)) -> Self {
         let distances = dijkstra(maze, origin);
         Self { maze, distances }

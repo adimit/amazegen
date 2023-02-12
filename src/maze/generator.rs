@@ -147,7 +147,7 @@ fn make_random_longest_exit(maze: &mut RectilinearMaze) {
     maze.set_exit(find_exit_with_longest_path(maze).0);
 }
 
-fn find_exit_with_longest_path(maze: &impl Maze) -> (usize, usize) {
+fn find_exit_with_longest_path<M: Maze<Coords = (usize, usize)>>(maze: &M) -> (usize, usize) {
     let solver = Solver::new(maze, maze.get_entrance());
     let y = maze.get_extents().1 - 1;
     let best_exit = (0..maze.get_extents().0)

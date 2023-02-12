@@ -18,7 +18,11 @@ pub enum MazePaintError {
 }
 
 pub trait MazeFileWriter {
-    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I, M: Maze<Coords = (usize, usize)>>(
+        &mut self,
+        maze: &M,
+        instructions: I,
+    ) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>;
 }
@@ -230,7 +234,7 @@ impl Ord for DrawingInstructions {
 
 fn write_to_backend<'a, F, I>(
     make_drawing_area: F,
-    maze: &'a impl Maze,
+    maze: &'a impl Maze<Coords = (usize, usize)>,
     cell_size: usize,
     border_size: usize,
     instructions: I,
@@ -268,7 +272,7 @@ struct Visuals<'a, M: Maze> {
     solver: RefCell<Option<Solver<'a, M>>>,
 }
 
-impl<'a, M: Maze> Visuals<'a, M> {
+impl<'a, M: Maze<Coords = (usize, usize)>> Visuals<'a, M> {
     fn render_maze(&self, colour: &WebColour) -> Result<(), MazePaintError> {
         use super::Direction::*;
         let cell_size = self.cell_size.0 as i32;
@@ -396,7 +400,10 @@ impl<'a, M: Maze> Visuals<'a, M> {
 }
 
 impl DrawingInstructions {
-    fn execute<M: Maze>(&self, p: &Visuals<M>) -> Result<(), MazePaintError> {
+    fn execute<M: Maze<Coords = (usize, usize)>>(
+        &self,
+        p: &Visuals<M>,
+    ) -> Result<(), MazePaintError> {
         use DrawingInstructions::*;
         match self {
             DrawMaze(colour) => p.render_maze(colour),
@@ -407,7 +414,11 @@ impl DrawingInstructions {
 }
 
 impl MazeFileWriter for PlottersSvgFileWriter {
-    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I, M: Maze<Coords = (usize, usize)>>(
+        &mut self,
+        maze: &M,
+        instructions: I,
+    ) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>,
     {
@@ -422,7 +433,11 @@ impl MazeFileWriter for PlottersSvgFileWriter {
 }
 
 impl<'a> MazeFileWriter for PlottersSvgStringWriter<'a> {
-    fn write_maze<I>(&mut self, maze: &impl Maze, instructions: I) -> Result<(), MazePaintError>
+    fn write_maze<I, M: Maze<Coords = (usize, usize)>>(
+        &mut self,
+        maze: &M,
+        instructions: I,
+    ) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>,
     {
