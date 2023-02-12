@@ -118,7 +118,7 @@ pub mod kruskal {
             walls
         }
 
-        fn run_kruskal<M: Maze>(&self, mut maze: M) -> M {
+        fn run_kruskal<M: Maze<Coords = (usize, usize)>>(&self, mut maze: M) -> M {
             let mut state = State::new(self.extents);
             for (x, y, direction) in self.get_walls() {
                 match maze.translate((x, y), direction) {

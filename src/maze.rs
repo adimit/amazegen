@@ -60,7 +60,7 @@ pub trait Maze: Clone {
     fn visit(&mut self, coords: (usize, usize));
     fn is_visited(&self, coords: (usize, usize)) -> bool;
 
-    fn translate(&self, coord: (usize, usize), direction: Direction) -> Option<(usize, usize)>;
+    fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from(&mut self, coors: (usize, usize), direction: Direction) -> Option<(usize, usize)>;
 
     fn get_open_paths(&self, coords: (usize, usize)) -> Vec<Direction>;

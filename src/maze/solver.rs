@@ -41,7 +41,7 @@ impl<'a, M: Maze<Coords = (usize, usize)>> Solver<'a, M> {
     }
 }
 
-fn dijkstra(maze: &impl Maze, origin: (usize, usize)) -> Vec<Vec<usize>> {
+fn dijkstra<M: Maze<Coords = (usize, usize)>>(maze: &M, origin: (usize, usize)) -> Vec<Vec<usize>> {
     let mut distances = vec![vec![0usize; maze.get_extents().1]; maze.get_extents().0];
     let mut frontier: Vec<(usize, usize)> = vec![origin];
     distances[frontier[0].0][frontier[0].1] = 1;
