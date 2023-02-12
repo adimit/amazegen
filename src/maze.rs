@@ -63,9 +63,9 @@ pub trait Maze: Clone {
     fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
 
-    fn get_open_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
-    fn get_walls(&self, coords: (usize, usize)) -> Vec<Direction>;
-    fn has_wall(&self, coords: (usize, usize), direction: Direction) -> bool;
+    fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
+    fn get_walls(&self, coords: Self::Coords) -> Vec<Direction>;
+    fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
     fn get_possible_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
 }
 

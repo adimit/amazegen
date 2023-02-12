@@ -44,7 +44,10 @@ impl PlottersSvgFileWriter {
     }
 }
 
-fn get_wall_runs(maze: &impl Maze, direction: super::Direction) -> Vec<Vec<(usize, usize)>> {
+fn get_wall_runs<M: Maze<Coords = (usize, usize)>>(
+    maze: &M,
+    direction: super::Direction,
+) -> Vec<Vec<(usize, usize)>> {
     use super::Direction::*;
     match direction {
         Up | Down => (0..maze.get_extents().1)
@@ -56,7 +59,11 @@ fn get_wall_runs(maze: &impl Maze, direction: super::Direction) -> Vec<Vec<(usiz
     }
 }
 
-fn get_wall_run(maze: &impl Maze, line: usize, direction: super::Direction) -> Vec<(usize, usize)> {
+fn get_wall_run<M: Maze<Coords = (usize, usize)>>(
+    maze: &M,
+    line: usize,
+    direction: super::Direction,
+) -> Vec<(usize, usize)> {
     use super::Direction::*;
 
     // The match arms would have an incompatible closure type, which is
