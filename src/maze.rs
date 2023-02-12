@@ -39,6 +39,16 @@ pub struct RectilinearMaze {
     pub extents: (usize, usize),
 }
 
+pub trait Coordinates {
+    fn get_random(extents: Self) -> Self;
+}
+
+impl Coordinates for (usize, usize) {
+    fn get_random(extents: Self) -> Self {
+        (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
+    }
+}
+
 pub trait Maze: Clone {
     fn get_extents(&self) -> (usize, usize);
 
