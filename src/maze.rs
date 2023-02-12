@@ -52,13 +52,13 @@ impl Coordinates for (usize, usize) {
 pub trait Maze: Clone {
     type Coords: Coordinates;
 
-    fn get_extents(&self) -> (usize, usize);
+    fn get_extents(&self) -> Self::Coords;
 
     fn get_entrance(&self) -> Self::Coords;
     fn get_exit(&self) -> Self::Coords;
 
-    fn visit(&mut self, coords: (usize, usize));
-    fn is_visited(&self, coords: (usize, usize)) -> bool;
+    fn visit(&mut self, coords: Self::Coords);
+    fn is_visited(&self, coords: Self::Coords) -> bool;
 
     fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
@@ -66,7 +66,7 @@ pub trait Maze: Clone {
     fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
     fn get_walls(&self, coords: Self::Coords) -> Vec<Direction>;
     fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
-    fn get_possible_paths(&self, coords: (usize, usize)) -> Vec<Direction>;
+    fn get_possible_paths(&self, coords: Self::Coords) -> Vec<Direction>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
