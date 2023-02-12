@@ -19,8 +19,7 @@ pub mod growing_tree {
             GrowingTreeGenerator { extents, seed }
         }
 
-        fn jarník(&self) -> RectilinearMaze {
-            let mut maze = RectilinearMaze::new(self.extents);
+        fn jarník<M: Maze>(&self, mut maze: M) -> M {
             let mut vertices: Vec<(usize, usize)> = vec![];
             fastrand::seed(self.seed);
 
@@ -50,7 +49,7 @@ pub mod growing_tree {
 
     impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator {
         fn generate(&self) -> RectilinearMaze {
-            let mut maze = self.jarník();
+            let mut maze = self.jarník(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
             maze
         }
@@ -118,11 +117,8 @@ pub mod kruskal {
             fastrand::shuffle(&mut walls);
             walls
         }
-    }
 
-    impl MazeGenerator<RectilinearMaze> for KruskalsAlgorithm {
-        fn generate(&self) -> RectilinearMaze {
-            let mut maze = RectilinearMaze::new(self.extents);
+        fn run_kruskal<M: Maze>(&self, mut maze: M) -> M {
             let mut state = State::new(self.extents);
             for (x, y, direction) in self.get_walls() {
                 match maze.translate((x, y), direction) {
@@ -133,13 +129,20 @@ pub mod kruskal {
                     _ => {}
                 }
             }
+            maze
+        }
+    }
+
+    impl MazeGenerator<RectilinearMaze> for KruskalsAlgorithm {
+        fn generate(&self) -> RectilinearMaze {
+            let mut maze = self.run_kruskal(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
             maze
         }
     }
 }
 
-fn make_random_longest_exit(maze: &mut impl Maze) {
+fn make_random_longest_exit(maze: &mut RectilinearMaze) {
     maze.set_entrance(fastrand::usize(0..maze.get_extents().0));
     maze.set_exit(find_exit_with_longest_path(maze).0);
 }

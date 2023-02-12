@@ -54,8 +54,6 @@ pub trait Maze: Clone {
 
     fn get_entrance(&self) -> (usize, usize);
     fn get_exit(&self) -> (usize, usize);
-    fn set_entrance(&mut self, entrance: usize);
-    fn set_exit(&mut self, exit: usize);
 
     fn visit(&mut self, coords: (usize, usize));
     fn is_visited(&self, coords: (usize, usize)) -> bool;
@@ -145,6 +143,16 @@ impl RectilinearMaze {
     fn coordinates_in_extents(&self, (x, y): (usize, usize)) -> bool {
         x < self.extents.0 && y < self.extents.1
     }
+
+    fn set_entrance(&mut self, entrance: usize) {
+        self.entrance = entrance;
+        self.remove_wall((entrance, 0), Direction::Up);
+    }
+
+    fn set_exit(&mut self, exit: usize) {
+        self.exit = exit;
+        self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
+    }
 }
 
 impl Maze for RectilinearMaze {
@@ -228,16 +236,6 @@ impl Maze for RectilinearMaze {
                 None => false,
             })
             .collect()
-    }
-
-    fn set_entrance(&mut self, entrance: usize) {
-        self.entrance = entrance;
-        self.remove_wall((entrance, 0), Direction::Up);
-    }
-
-    fn set_exit(&mut self, exit: usize) {
-        self.exit = exit;
-        self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
     }
 }
 
