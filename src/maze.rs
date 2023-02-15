@@ -2,7 +2,12 @@ pub mod generator;
 pub mod paint;
 pub mod solver;
 
-use std::{collections::HashMap, fmt::Display, hash::Hash};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    hash::Hash,
+    ops::{Index, IndexMut},
+};
 
 // UnorderedEq is a way to compare vectors without paying heed to the order of the elements.
 // It's lifted from this SO answer: https://stackoverflow.com/a/42748484
@@ -46,6 +51,37 @@ pub trait Coordinates {
 impl Coordinates for (usize, usize) {
     fn get_random(extents: Self) -> Self {
         (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
+    }
+}
+
+pub struct Rectilinear2DMap<T> {
+    storage: Vec<Vec<T>>,
+}
+
+impl<T> Index<(usize, usize)> for Rectilinear2DMap<T> {
+    type Output = T;
+
+    fn index(&self, (x, y): (usize, usize)) -> &Self::Output {
+        &self.storage[y][x]
+    }
+}
+
+impl<T> IndexMut<(usize, usize)> for Rectilinear2DMap<T> {
+    fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut Self::Output {
+        &mut self.storage[y][x]
+    }
+}
+
+impl<T> Rectilinear2DMap<T> {
+    fn new<F>((ex, ey): (usize, usize), f: F) -> Self
+    where
+        F: Fn((usize, usize)) -> T,
+    {
+        Self {
+            storage: (0..(ey))
+                .map(|y| (0..ex).map(|x| f((x, y))).collect())
+                .collect(),
+        }
     }
 }
 

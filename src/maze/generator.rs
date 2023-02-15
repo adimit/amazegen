@@ -57,7 +57,8 @@ pub mod growing_tree {
 }
 
 pub mod kruskal {
-    use crate::maze::{Direction, Maze, RectilinearMaze};
+    use crate::maze::{Direction, Maze, Rectilinear2DMap, RectilinearMaze};
+    use std::ops::{Index, IndexMut};
 
     use super::{make_random_longest_exit, MazeGenerator};
 
@@ -66,8 +67,25 @@ pub mod kruskal {
     }
 
     struct State {
-        classes: Vec<Vec<usize>>,
+        classes: Rectilinear2DMap<Class>,
         cells: Vec<Vec<(usize, usize)>>,
+    }
+
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    struct Class(usize);
+
+    impl<T> Index<Class> for Vec<T> {
+        type Output = T;
+
+        fn index(&self, index: Class) -> &Self::Output {
+            &self[index.0]
+        }
+    }
+
+    impl<T> IndexMut<Class> for Vec<T> {
+        fn index_mut(&mut self, index: Class) -> &mut T {
+            &mut self[index.0]
+        }
     }
 
     impl State {
@@ -76,29 +94,21 @@ pub mod kruskal {
                 cells: (0..ey)
                     .flat_map(|y| (0..ex).map(move |x| vec![(x, y)]))
                     .collect(),
-                classes: (0..(ey))
-                    .map(|y| (0..ex).map(|x| x + (ex * y)).collect())
-                    .collect(),
+                classes: Rectilinear2DMap::new((ex, ey), |(x, y)| Class(x + (ex * y))),
             }
-        }
-
-        fn get_class(&self, (x, y): (usize, usize)) -> usize {
-            self.classes[y][x]
         }
 
         fn classes_are_distinct(&self, a: (usize, usize), b: (usize, usize)) -> bool {
-            self.get_class(a) != self.get_class(b)
+            self.classes[a] != self.classes[b]
         }
 
         fn link(&mut self, a: (usize, usize), b: (usize, usize)) {
-            let a_class = self.get_class(a);
-            let b_class = self.get_class(b);
             // to avoid the copy here we'd likely need unsafe
-            let drained: Vec<_> = self.cells[a_class].drain(..).collect();
-            for (x, y) in &drained {
-                self.classes[*y][*x] = b_class;
+            let drained: Vec<_> = self.cells[self.classes[a]].drain(..).collect();
+            for c in &drained {
+                self.classes[*c] = self.classes[b];
             }
-            self.cells[b_class].extend(drained.iter());
+            self.cells[self.classes[b]].extend(drained.iter());
         }
     }
 
