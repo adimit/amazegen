@@ -57,7 +57,7 @@ pub mod growing_tree {
 }
 
 pub mod kruskal {
-    use crate::maze::{Direction, Maze, Rectilinear2DMap, RectilinearMaze};
+    use crate::maze::{Coordinates, Direction, Maze, Rectilinear2DMap, RectilinearMaze};
     use std::ops::{Index, IndexMut};
 
     use super::{make_random_longest_exit, MazeGenerator};
@@ -66,9 +66,43 @@ pub mod kruskal {
         extents: (usize, usize),
     }
 
-    struct State {
-        classes: Rectilinear2DMap<Class>,
-        cells: Vec<Vec<(usize, usize)>>,
+    trait CoordinateMap<C: Coordinates, T>: Index<C, Output = T> + IndexMut<C> {}
+
+    struct State<C: Coordinates, M: CoordinateMap<C, Class>> {
+        classes: M,
+        cells: Vec<Vec<C>>,
+    }
+
+    impl<C, M> State<C, M>
+    where
+        C: Coordinates + Copy,
+        M: CoordinateMap<C, Class>,
+    {
+        fn classes_are_distinct(&self, a: C, b: C) -> bool {
+            self.classes[a] != self.classes[b]
+        }
+
+        fn link(&mut self, a: C, b: C) {
+            for c in &self.cells[self.classes[a].0] {
+                self.classes[*c] = self.classes[b];
+            }
+            // to avoid the copy here we'd likely need unsafe
+            let mut old = self.cells[self.classes[a]].drain(..).collect();
+            self.cells[self.classes[b]].append(&mut old);
+        }
+    }
+
+    impl<T> CoordinateMap<(usize, usize), T> for Rectilinear2DMap<T> {}
+
+    impl State<(usize, usize), Rectilinear2DMap<Class>> {
+        fn new((ex, ey): (usize, usize)) -> Self {
+            Self {
+                cells: (0..ey)
+                    .flat_map(|y| (0..ex).map(move |x| vec![(x, y)]))
+                    .collect(),
+                classes: Rectilinear2DMap::new((ex, ey), |(x, y)| Class(x + (ex * y))),
+            }
+        }
     }
 
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -85,30 +119,6 @@ pub mod kruskal {
     impl<T> IndexMut<Class> for Vec<T> {
         fn index_mut(&mut self, index: Class) -> &mut T {
             &mut self[index.0]
-        }
-    }
-
-    impl State {
-        fn new((ex, ey): (usize, usize)) -> Self {
-            State {
-                cells: (0..ey)
-                    .flat_map(|y| (0..ex).map(move |x| vec![(x, y)]))
-                    .collect(),
-                classes: Rectilinear2DMap::new((ex, ey), |(x, y)| Class(x + (ex * y))),
-            }
-        }
-
-        fn classes_are_distinct(&self, a: (usize, usize), b: (usize, usize)) -> bool {
-            self.classes[a] != self.classes[b]
-        }
-
-        fn link(&mut self, a: (usize, usize), b: (usize, usize)) {
-            // to avoid the copy here we'd likely need unsafe
-            let drained: Vec<_> = self.cells[self.classes[a]].drain(..).collect();
-            for c in &drained {
-                self.classes[*c] = self.classes[b];
-            }
-            self.cells[self.classes[b]].extend(drained.iter());
         }
     }
 

@@ -44,7 +44,7 @@ pub struct RectilinearMaze {
     pub extents: (usize, usize),
 }
 
-pub trait Coordinates {
+pub trait Coordinates: Copy {
     fn get_random(extents: Self) -> Self;
 }
 
