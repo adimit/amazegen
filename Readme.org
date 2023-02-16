@@ -40,22 +40,6 @@ To build it for a certain subdirectory of a page, use e.g. ~--base=/maze~ on the
 
 ** Desiderata
 
-*** DONE PDF export via the web interface
-
-Using =pdfkit=. Unfortunately, =vite= does not play well with =pdfkit= on account of the latter's usage of node libraries and the former's refusal to automatically monkey-patch the JS runtime to allow their use. (=webpack= and =browserify= do that.)
-
-I wasn't able to convince =vite= to pick up the fonts =pdfkit= requires, so instead I compiled it statically and added it to the global namespace. That seems to work well.
-
-*** DONE Deployment on a public server
-
-=https://aleks.bg/maze=?
-
-*** DONE A better maze generation algorithm
-
-Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends. It's probably enough to just use a different distribution on our current RNG.
-
-We could also use =fastrand= instead of =rand=. It's probably faster, smaller, and sufficient, though it doesn't support sampling distributions. But that can be implemented ad-hoc.
-
 *** A nicer UI
 
 The current UI is bare-bones. A UI that doesn't look quite as basic might go a long way to making the project feel more pleasant to use.
@@ -63,16 +47,6 @@ The current UI is bare-bones. A UI that doesn't look quite as basic might go a l
 *** An adjustable selection criterion for GrowingTree
 
 GrowingTree currently selects its next cell exclusively from the top of the stack. Were it to follow a certain random distribution, that could be made adjustable, which would allow for different maze topologies (choosing from further back will create more passages, intersections and dead ends).
-
-*** DONE Improve the placement of the exits
-
-The maze's exits are currently placed randomly. Using a heuristic, or just flat out choosing the longest possible path could improve the mazes and avoid producing mazes the solution for which is just a straight path.
-
-This was solved by selecting the entrance randomly and then selecting the longest path to the exit. It could be further improved by finding the maximum width of the spanning tree along one axis, but I feel this is enough for now.
-
-*** DONE Solution and distance visualisation
-
-A functionality to draw the solution as well as the option to colour the maze by distance as seen in /Mazes for Programmers/ would be a nice addition to the Web interface.
 
 *** Offer different maze topologies
 
