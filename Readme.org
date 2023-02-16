@@ -1,17 +1,87 @@
 * A Maze Generator
 
-A library, executable and website to generate mazes such as this one and render them to SVG.
+** Mission Statement
+A collection of maze generation algorithms, interesting visualisations, and a web interface UI. The algorithms and visualisations are written in [[https://www.rust-lang.org/][Rust]] and compiled to [[https://webassembly.org][WebAssembly]] so they can be used in a browser. Here's an example:
 
 [[./docs/maze-15-15-720910203442283167.svg]]
 
-The website lives [[https://aleks.bg/maze][here]] and it allows generating, and solving mazes, as well as inspecting their topology by colouring path lengths inside the maze. You can also create a PDF file to print the resulting mazes. The printed mazes have QR code backlinks to the site so you can check for a solution later.
-
-Note that the backlinks are not stable yet, and the maze you see when you follow a link may not be the one you printed as internals may change at any time.
-
-
 ** Status
 
-The project is currently an MVP. Rectilinear mazes can be generated with what is essentially a randomised depth-first search or a randomised version of [[https://en.wikipedia.org/wiki/Kruskal%27s_algorithm][Kruskal's algorithm]].
+The project is currently an MVP. It is hosted at https://aleks.bg/maze where you can tweak maze generation parameters. The web page provides a unique link to every generated maze[fn:1]. You can populate a PDF file with an arbitrary amount of mazes (one per page) and print them. The printed mazes have QR code backlinks to the site so you can check for a solution later.
+
+There's a command line application that similarly accepts the maze's parameters and random seed and outputs an SVG file with the maze's parameters as its name.
+
+You can use one of two algorithms to create the mazes:
+
+- "Growing Tree" (based on [[https://en.wikipedia.org/wiki/Vojt%C4%9Bch_Jarn%C3%ADk][Jarník's]], aka [[https://en.wikipedia.org/wiki/Prim%27s_algorithm][Prim's spanning tree algorithm]]) with a hard coded selection criterion that means the algorithm degenerates to a randomised depth-first search. Creates few, long, meandering passages
+- "Kruskal's Algorithm" (based on [[https://en.wikipedia.org/wiki/Kruskal's_algorithm][Kruskal's spanning tree algorithm]]). Creates mazes with lots of intersections and many short passages
+
+[fn:1] Note that the backlinks are not stable yet, and the maze you see when you follow a link may not be the one you printed as internals may change at any time.
+
+** Building
+
+The Rust project can be built using
+
+#+begin_src shell
+  cargo build --release
+#+end_src
+
+(You will need ~cargo~ and a Rust compiler.) To create the web page, you'll also need ~node~, ~yarn~[fn:2], and ~wasm-bindgen~.
+
+#+begin_src shell
+  cd web/frontend
+  wasm-pack build --target bundler --release && yarn build
+#+end_src
+
+To build it for a certain subdirectory of a page, use e.g. ~--base=/maze~ on the ~yarn build~ command.
+
+[fn:2] ~npm~ or comparable programs should work fine, too.
+
+
+** Desiderata
+
+*** DONE PDF export via the web interface
+
+Using =pdfkit=. Unfortunately, =vite= does not play well with =pdfkit= on account of the latter's usage of node libraries and the former's refusal to automatically monkey-patch the JS runtime to allow their use. (=webpack= and =browserify= do that.)
+
+I wasn't able to convince =vite= to pick up the fonts =pdfkit= requires, so instead I compiled it statically and added it to the global namespace. That seems to work well.
+
+*** DONE Deployment on a public server
+
+=https://aleks.bg/maze=?
+
+*** DONE A better maze generation algorithm
+
+Based on the Growing Tree algorithm from /Mazes for Programmers/. The current algorithm produces a lot of very short dead ends. It's probably enough to just use a different distribution on our current RNG.
+
+We could also use =fastrand= instead of =rand=. It's probably faster, smaller, and sufficient, though it doesn't support sampling distributions. But that can be implemented ad-hoc.
+
+*** A nicer UI
+
+The current UI is bare-bones. A UI that doesn't look quite as basic might go a long way to making the project feel more pleasant to use.
+
+*** An adjustable selection criterion for GrowingTree
+
+GrowingTree currently selects its next cell exclusively from the top of the stack. Were it to follow a certain random distribution, that could be made adjustable, which would allow for different maze topologies (choosing from further back will create more passages, intersections and dead ends).
+
+*** DONE Improve the placement of the exits
+
+The maze's exits are currently placed randomly. Using a heuristic, or just flat out choosing the longest possible path could improve the mazes and avoid producing mazes the solution for which is just a straight path.
+
+This was solved by selecting the entrance randomly and then selecting the longest path to the exit. It could be further improved by finding the maximum width of the spanning tree along one axis, but I feel this is enough for now.
+
+*** DONE Solution and distance visualisation
+
+A functionality to draw the solution as well as the option to colour the maze by distance as seen in /Mazes for Programmers/ would be a nice addition to the Web interface.
+
+*** Offer different maze topologies
+
+Braid mazes as well as quasi-3D mazes with "bridges" and "tunnels".
+
+*** Offer different maze geometries
+
+Circular, elliptic, triangular and hexagonal mazes look neat and might be fun to implement. Mazes could probably be drawn along Penrose tilings and [[https://aatishb.com/patterncollider/?symmetry=19&pattern=0.88&rotate=180][similar irregular tilings]].
+
 
 * License
 
