@@ -1,7 +1,7 @@
 use super::{solver::Solver, *};
 
 pub trait MazeGenerator<M: Maze> {
-    fn generate(&self) -> M;
+    fn generate(&mut self) -> M;
 }
 
 pub mod growing_tree {
@@ -48,7 +48,7 @@ pub mod growing_tree {
     }
 
     impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator {
-        fn generate(&self) -> RectilinearMaze {
+        fn generate(&mut self) -> RectilinearMaze {
             let mut maze = self.jarník(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
             maze
@@ -64,6 +64,7 @@ pub mod kruskal {
 
     pub struct KruskalsAlgorithm {
         extents: (usize, usize),
+        state: State<(usize, usize), Rectilinear2DMap<Class>>,
     }
 
     trait CoordinateMap<C: Coordinates, T>: Index<C, Output = T> + IndexMut<C> {}
@@ -125,25 +126,28 @@ pub mod kruskal {
     impl KruskalsAlgorithm {
         pub fn new(extents: (usize, usize), seed: u64) -> Self {
             fastrand::seed(seed);
-            KruskalsAlgorithm { extents }
+            KruskalsAlgorithm {
+                extents,
+                state: State::new(extents),
+            }
         }
-        fn get_walls(&self) -> Vec<(usize, usize, Direction)> {
+
+        fn get_walls(&self) -> Vec<((usize, usize), Direction)> {
             let mut walls: Vec<_> = (0..(self.extents.1))
                 .flat_map(|y| {
                     (0..(self.extents.0))
-                        .flat_map(move |x| [(x, y, Direction::Down), (x, y, Direction::Right)])
+                        .flat_map(move |x| [((x, y), Direction::Down), ((x, y), Direction::Right)])
                 })
                 .collect();
             fastrand::shuffle(&mut walls);
             walls
         }
 
-        fn run_kruskal<M: Maze<Coords = (usize, usize)>>(&self, mut maze: M) -> M {
-            let mut state = State::new(self.extents);
-            for (x, y, direction) in self.get_walls() {
+        fn run_kruskal<M: Maze<Coords = (usize, usize)>>(&mut self, mut maze: M) -> M {
+            for ((x, y), direction) in self.get_walls() {
                 match maze.translate((x, y), direction) {
-                    Some(target) if state.classes_are_distinct((x, y), target) => {
-                        state.link((x, y), target);
+                    Some(target) if self.state.classes_are_distinct((x, y), target) => {
+                        self.state.link((x, y), target);
                         maze.move_from((x, y), direction);
                     }
                     _ => {}
@@ -154,7 +158,7 @@ pub mod kruskal {
     }
 
     impl MazeGenerator<RectilinearMaze> for KruskalsAlgorithm {
-        fn generate(&self) -> RectilinearMaze {
+        fn generate(&mut self) -> RectilinearMaze {
             let mut maze = self.run_kruskal(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
             maze
