@@ -28,12 +28,11 @@ pub mod growing_tree {
             while !vertices.is_empty() {
                 let i = vertices.len() - 1;
                 let e = vertices[i];
-                let directions = maze.get_possible_paths(e);
-                if !directions.is_empty() {
-                    vertices.push(
-                        maze.move_from(e, directions[fastrand::usize(..directions.len())])
-                            .unwrap(),
-                    );
+                let targets = maze.get_possible_targets(e);
+                if !targets.is_empty() {
+                    let target = targets[fastrand::usize(..targets.len())];
+                    assert!(maze.move_from_to(e, target));
+                    vertices.push(target);
                 } else {
                     vertices.remove(i);
                 }
