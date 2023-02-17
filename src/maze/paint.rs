@@ -263,7 +263,7 @@ where
     };
 
     for instruction in instructions {
-        instruction.execute(&mut visual).unwrap();
+        instruction.execute(&visual).unwrap();
     }
 
     visual.pic.present().unwrap();
