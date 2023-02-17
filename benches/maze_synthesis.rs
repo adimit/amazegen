@@ -8,7 +8,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("maze_synthesis", |b| {
         b.iter(|| {
             Configuration {
-                algorithm: Kruskal,
+                algorithm: GrowingTree,
                 colour: "000000".into(),
                 features: vec![],
                 seed: generate_seed(),
