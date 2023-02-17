@@ -354,8 +354,8 @@ impl<'a, M: Maze<Coords = (usize, usize)>> Visuals<'a, M> {
         {
             let x0: i32 = cell_size * x as i32 + border;
             let y0: i32 = cell_size * y as i32 + border;
-            let x1: i32 = x0 + cell_size + 1;
-            let y1: i32 = y0 + cell_size + 1;
+            let x1: i32 = x0 + cell_size;
+            let y1: i32 = y0 + cell_size;
             let intensity = (max_distance - distances[x][y]) as f64 / max_distance as f64;
             let inverse = 1.0 - intensity;
             let style = RGBColor(
@@ -365,7 +365,7 @@ impl<'a, M: Maze<Coords = (usize, usize)>> Visuals<'a, M> {
             )
             .filled();
             self.pic
-                .draw(&Rectangle::new([(x0, y0), (x1, y1)], style))
+                .draw(&Rectangle::new([(x0 - 2, y0 - 2), (x1 + 2, y1 + 2)], style))
                 .unwrap();
         }
         Ok(())
