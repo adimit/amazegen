@@ -105,11 +105,13 @@ pub trait Maze: Clone {
 
     fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
+    fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
 
     fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
     fn get_walls(&self, coords: Self::Coords) -> Vec<Direction>;
     fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
     fn get_possible_paths(&self, coords: Self::Coords) -> Vec<Direction>;
+    fn get_possible_targets(&self, coords: Self::Coords) -> Vec<Self::Coords>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -284,6 +286,37 @@ impl Maze for RectilinearMaze {
             })
             .collect()
     }
+
+    fn get_possible_targets(&self, (x, y): Self::Coords) -> Vec<Self::Coords> {
+        Direction::iterator()
+            .filter_map(|direction| match self.translate((x, y), direction) {
+                Some((tx, ty))
+                    if self.fields[tx][ty] & VISIT == 0
+                        && self.fields[x][y] & direction.bitmask() == 0 =>
+                {
+                    Some((tx, ty))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn move_from_to(&mut self, (fx, fy): Self::Coords, (tx, ty): Self::Coords) -> bool {
+        use Direction::*;
+        let direction = match ((fx.abs_diff(tx)), (fy.abs_diff(ty))) {
+            (1, 0) if fx < tx => Some(Right),
+            (1, 0) => Some(Left),
+            (0, 1) if fy < ty => Some(Down),
+            (0, 1) => Some(Up),
+            _ => None,
+        };
+        direction
+            .map(|d| {
+                self.fields[fx][fy] |= VISIT | d.bitmask();
+                self.fields[tx][ty] |= VISIT | d.reciprocal().bitmask();
+            })
+            .is_some()
+    }
 }
 
 #[cfg(test)]
@@ -404,5 +437,35 @@ mod test {
             UnorderedEq(&m.get_possible_paths((1, 0))),
             UnorderedEq(&[Left, Right])
         );
+    }
+
+    #[test]
+    fn move_with_two_coordinates_removes_walls_when_coordinates_valid() {
+        use Direction::*;
+        let mut m = RectilinearMaze::new((10, 10));
+
+        assert!(m.move_from_to((0, 0), (1, 0))); // right
+        assert!(m.move_from_to((1, 1), (0, 1))); // left
+        assert!(m.move_from_to((2, 2), (2, 1))); // up
+        assert!(m.move_from_to((3, 3), (3, 4))); // down
+
+        assert_eq!(m.get_open_paths((0, 0)), vec![Right]);
+        assert_eq!(m.get_open_paths((1, 0)), vec![Left]);
+        assert_eq!(m.get_open_paths((1, 1)), vec![Left]);
+        assert_eq!(m.get_open_paths((0, 1)), vec![Right]);
+        assert_eq!(m.get_open_paths((2, 2)), vec![Up]);
+        assert_eq!(m.get_open_paths((2, 1)), vec![Down]);
+        assert_eq!(m.get_open_paths((3, 3)), vec![Down]);
+        assert_eq!(m.get_open_paths((3, 4)), vec![Up]);
+    }
+
+    #[test]
+    fn move_with_two_coordinates_does_not_remove_walls_when_coordinates_invalid() {
+        let mut m = RectilinearMaze::new((10, 10));
+        assert!(!m.move_from_to((0, 0), (2, 0)), "Can't skip cell"); // skip
+        assert!(!m.move_from_to((1, 1), (0, 0)), "Can't move diagonally"); // Diagonal
+        assert!(!m.move_from_to((1, 1), (2, 2)), "Can't move diagonally"); // Diagonal
+        assert!(!m.move_from_to((1, 1), (0, 2)), "Can't move diagonally"); // Diagonal
+        assert!(!m.move_from_to((1, 1), (2, 0)), "Can't move diagonally"); // Diagonal
     }
 }
