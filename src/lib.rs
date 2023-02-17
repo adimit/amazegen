@@ -11,8 +11,9 @@ extern "C" {
 pub mod config {
     use std::iter::once;
 
+    use crate::maze::generator::growing_tree::GrowingTreeGenerator;
+    use crate::maze::generator::kruskal::Kruskal;
     use crate::maze::generator::MazeGenerator;
-    use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::KruskalsAlgorithm};
     use crate::maze::paint::*;
     use crate::maze::Maze;
     use itertools::Itertools;
@@ -57,7 +58,7 @@ pub mod config {
                 Shape::Rectilinear(x, y) => (*x, *y),
             };
             match self {
-                Algorithm::Kruskal => KruskalsAlgorithm::new(extents, *seed).generate(),
+                Algorithm::Kruskal => Kruskal::new(extents, *seed).generate(),
                 Algorithm::GrowingTree => GrowingTreeGenerator::new(extents, *seed).generate(),
             }
         }

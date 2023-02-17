@@ -46,11 +46,18 @@ pub struct RectilinearMaze {
 
 pub trait Coordinates: Copy {
     fn get_random(extents: Self) -> Self;
+    fn get_all(extents: Self) -> Vec<Self>;
 }
 
 impl Coordinates for (usize, usize) {
     fn get_random(extents: Self) -> Self {
         (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
+    }
+
+    fn get_all((ex, ey): Self) -> Vec<Self> {
+        (0..(ey))
+            .flat_map(|y| (0..(ex)).map(move |x| (x, y)))
+            .collect()
     }
 }
 

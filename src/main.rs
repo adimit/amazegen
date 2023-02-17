@@ -6,7 +6,7 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 
 use crate::maze::generator::MazeGenerator;
-use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::KruskalsAlgorithm};
+use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::Kruskal};
 use crate::maze::paint::*;
 use crate::maze::*;
 
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
     // let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
-    let maze = KruskalsAlgorithm::new((x_size, y_size), seed).generate();
+    let maze = Kruskal::new((x_size, y_size), seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,

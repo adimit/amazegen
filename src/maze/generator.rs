@@ -5,26 +5,22 @@ pub trait MazeGenerator<M: Maze> {
 }
 
 pub mod growing_tree {
-    use crate::maze::{Maze, RectilinearMaze};
+    use crate::maze::{Coordinates, Maze, RectilinearMaze};
 
     use super::{make_random_longest_exit, MazeGenerator};
 
-    pub struct GrowingTreeGenerator {
-        extents: (usize, usize),
+    pub struct GrowingTreeGenerator<C: Coordinates> {
+        extents: C,
         seed: u64,
     }
 
-    impl GrowingTreeGenerator {
-        pub fn new(extents: (usize, usize), seed: u64) -> Self {
-            GrowingTreeGenerator { extents, seed }
-        }
-
-        fn jarník<M: Maze<Coords = (usize, usize)>>(&self, mut maze: M) -> M {
-            let mut vertices: Vec<(usize, usize)> = vec![];
+    impl<C: Coordinates> GrowingTreeGenerator<C> {
+        fn jarník<M: Maze<Coords = C>>(&self, mut maze: M) -> M {
+            let mut vertices: Vec<C> = vec![];
             fastrand::seed(self.seed);
 
             {
-                let start = (fastrand::usize(0..self.extents.0), 0);
+                let start = C::get_random(self.extents);
                 maze.visit(start);
                 vertices.push(start);
             }
@@ -35,7 +31,7 @@ pub mod growing_tree {
                 let directions = maze.get_possible_paths(e);
                 if !directions.is_empty() {
                     vertices.push(
-                        maze.move_from((e.0, e.1), directions[fastrand::usize(..directions.len())])
+                        maze.move_from(e, directions[fastrand::usize(..directions.len())])
                             .unwrap(),
                     );
                 } else {
@@ -47,7 +43,13 @@ pub mod growing_tree {
         }
     }
 
-    impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator {
+    impl GrowingTreeGenerator<(usize, usize)> {
+        pub fn new(extents: (usize, usize), seed: u64) -> Self {
+            Self { extents, seed }
+        }
+    }
+
+    impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator<(usize, usize)> {
         fn generate(&mut self) -> RectilinearMaze {
             let mut maze = self.jarník(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
@@ -62,12 +64,7 @@ pub mod kruskal {
 
     use super::{make_random_longest_exit, MazeGenerator};
 
-    pub struct KruskalsAlgorithm {
-        extents: (usize, usize),
-        state: State<(usize, usize), Rectilinear2DMap<Class>>,
-    }
-
-    trait CoordinateMap<C: Coordinates, T>: Index<C, Output = T> + IndexMut<C> {}
+    pub trait CoordinateMap<C: Coordinates, T>: Index<C, Output = T> + IndexMut<C> {}
 
     struct State<C: Coordinates, M: CoordinateMap<C, Class>> {
         classes: M,
@@ -84,11 +81,11 @@ pub mod kruskal {
         }
 
         fn link(&mut self, a: C, b: C) {
-            for c in &self.cells[self.classes[a].0] {
+            // to avoid the copy here we'd likely need unsafe
+            let mut old: Vec<C> = self.cells[self.classes[a]].drain(..).collect();
+            for c in &old {
                 self.classes[*c] = self.classes[b];
             }
-            // to avoid the copy here we'd likely need unsafe
-            let mut old = self.cells[self.classes[a]].drain(..).collect();
             self.cells[self.classes[b]].append(&mut old);
         }
     }
@@ -107,7 +104,7 @@ pub mod kruskal {
     }
 
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-    struct Class(usize);
+    pub struct Class(usize);
 
     impl<T> Index<Class> for Vec<T> {
         type Output = T;
@@ -123,32 +120,27 @@ pub mod kruskal {
         }
     }
 
-    impl KruskalsAlgorithm {
-        pub fn new(extents: (usize, usize), seed: u64) -> Self {
-            fastrand::seed(seed);
-            KruskalsAlgorithm {
-                extents,
-                state: State::new(extents),
-            }
-        }
+    pub struct Kruskal<C: Coordinates, M: CoordinateMap<C, Class>> {
+        extents: C,
+        state: State<C, M>,
+    }
 
-        fn get_walls(&self) -> Vec<((usize, usize), Direction)> {
-            let mut walls: Vec<_> = (0..(self.extents.1))
-                .flat_map(|y| {
-                    (0..(self.extents.0))
-                        .flat_map(move |x| [((x, y), Direction::Down), ((x, y), Direction::Right)])
-                })
+    impl<C: Coordinates, CM: CoordinateMap<C, Class>> Kruskal<C, CM> {
+        fn get_walls(&self) -> Vec<(C, Direction)> {
+            let mut walls: Vec<_> = C::get_all(self.extents)
+                .iter()
+                .flat_map(|c| [(*c, Direction::Down), (*c, Direction::Right)])
                 .collect();
             fastrand::shuffle(&mut walls);
             walls
         }
 
-        fn run_kruskal<M: Maze<Coords = (usize, usize)>>(&mut self, mut maze: M) -> M {
-            for ((x, y), direction) in self.get_walls() {
-                match maze.translate((x, y), direction) {
-                    Some(target) if self.state.classes_are_distinct((x, y), target) => {
-                        self.state.link((x, y), target);
-                        maze.move_from((x, y), direction);
+        fn run_kruskal<M: Maze<Coords = C>>(&mut self, mut maze: M) -> M {
+            for (c, direction) in self.get_walls() {
+                match maze.translate(c, direction) {
+                    Some(target) if self.state.classes_are_distinct(c, target) => {
+                        self.state.link(c, target);
+                        maze.move_from(c, direction);
                     }
                     _ => {}
                 }
@@ -157,7 +149,17 @@ pub mod kruskal {
         }
     }
 
-    impl MazeGenerator<RectilinearMaze> for KruskalsAlgorithm {
+    impl Kruskal<(usize, usize), Rectilinear2DMap<Class>> {
+        pub fn new(extents: (usize, usize), seed: u64) -> Self {
+            fastrand::seed(seed);
+            Self {
+                extents,
+                state: State::new(extents),
+            }
+        }
+    }
+
+    impl MazeGenerator<RectilinearMaze> for Kruskal<(usize, usize), Rectilinear2DMap<Class>> {
         fn generate(&mut self) -> RectilinearMaze {
             let mut maze = self.run_kruskal(RectilinearMaze::new(self.extents));
             make_random_longest_exit(&mut maze);
