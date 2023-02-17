@@ -9,6 +9,8 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+use itertools::Itertools;
+
 // UnorderedEq is a way to compare vectors without paying heed to the order of the elements.
 // It's lifted from this SO answer: https://stackoverflow.com/a/42748484
 #[derive(Debug, Copy, Clone)]
@@ -47,6 +49,8 @@ pub struct RectilinearMaze {
 pub trait Coordinates: Copy {
     fn get_random(extents: Self) -> Self;
     fn get_all(extents: Self) -> Vec<Self>;
+    fn is_in_extents(&self, extents: &Self) -> bool;
+    fn get_all_edges(extents: Self) -> Vec<(Self, Self)>;
 }
 
 impl Coordinates for (usize, usize) {
@@ -57,6 +61,22 @@ impl Coordinates for (usize, usize) {
     fn get_all((ex, ey): Self) -> Vec<Self> {
         (0..(ey))
             .flat_map(|y| (0..(ex)).map(move |x| (x, y)))
+            .collect()
+    }
+
+    fn is_in_extents(&self, extents: &Self) -> bool {
+        self.0 < extents.0 && self.1 < extents.1
+    }
+
+    fn get_all_edges((ex, ey): Self) -> Vec<(Self, Self)> {
+        (0..(ey - 1))
+            .flat_map(|y| {
+                (0..(ex - 1)).flat_map(move |x| [((x, y), (x + 1, y)), ((x, y), (x, y + 1))])
+            })
+            .merge([
+                ((ex - 2, ey - 1), (ex - 1, ey - 1)),
+                ((ex - 1, ey - 2), (ex - 1, ey - 1)),
+            ])
             .collect()
     }
 }
@@ -303,6 +323,10 @@ impl Maze for RectilinearMaze {
 
     fn move_from_to(&mut self, (fx, fy): Self::Coords, (tx, ty): Self::Coords) -> bool {
         use Direction::*;
+        // assert!(
+        //     (tx < self.extents.0) && (ty < self.extents.1),
+        //     "Attempted to move outside of extents"
+        // );
         let direction = match ((fx.abs_diff(tx)), (fy.abs_diff(ty))) {
             (1, 0) if fx < tx => Some(Right),
             (1, 0) => Some(Left),
@@ -467,5 +491,18 @@ mod test {
         assert!(!m.move_from_to((1, 1), (2, 2)), "Can't move diagonally"); // Diagonal
         assert!(!m.move_from_to((1, 1), (0, 2)), "Can't move diagonally"); // Diagonal
         assert!(!m.move_from_to((1, 1), (2, 0)), "Can't move diagonally"); // Diagonal
+    }
+
+    #[test]
+    fn move_with_two_coordinates_does_nothing_when_trying_to_move_off_extents() {
+        let mut m = RectilinearMaze::new((10, 10));
+        assert!(
+            !m.move_from_to((9, 9), (10, 9)),
+            "Can't move off to the right"
+        );
+        assert!(
+            !m.move_from_to((9, 9), (9, 10)),
+            "Can't move off to downwards"
+        );
     }
 }

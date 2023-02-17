@@ -58,7 +58,7 @@ pub mod growing_tree {
 }
 
 pub mod kruskal {
-    use crate::maze::{Coordinates, Direction, Maze, Rectilinear2DMap, RectilinearMaze};
+    use crate::maze::{Coordinates, Maze, Rectilinear2DMap, RectilinearMaze};
     use std::ops::{Index, IndexMut};
 
     use super::{make_random_longest_exit, MazeGenerator};
@@ -124,24 +124,18 @@ pub mod kruskal {
         state: State<C, M>,
     }
 
-    impl<C: Coordinates, CM: CoordinateMap<C, Class>> Kruskal<C, CM> {
-        fn get_walls(&self) -> Vec<(C, Direction)> {
-            let mut walls: Vec<_> = C::get_all(self.extents)
-                .iter()
-                .flat_map(|c| [(*c, Direction::Down), (*c, Direction::Right)])
-                .collect();
-            fastrand::shuffle(&mut walls);
-            walls
+    impl<C: Coordinates + std::fmt::Debug, CM: CoordinateMap<C, Class>> Kruskal<C, CM> {
+        fn get_edges(&self) -> Vec<(C, C)> {
+            let mut edges: Vec<_> = C::get_all_edges(self.extents);
+            fastrand::shuffle(&mut edges);
+            edges
         }
 
         fn run_kruskal<M: Maze<Coords = C>>(&mut self, mut maze: M) -> M {
-            for (c, direction) in self.get_walls() {
-                match maze.translate(c, direction) {
-                    Some(target) if self.state.classes_are_distinct(c, target) => {
-                        self.state.link(c, target);
-                        maze.move_from(c, direction);
-                    }
-                    _ => {}
+            for (from, to) in self.get_edges() {
+                if self.state.classes_are_distinct(from, to) {
+                    assert!(maze.move_from_to(from, to), "Invalid direction in move");
+                    self.state.link(from, to)
                 }
             }
             maze
