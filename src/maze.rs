@@ -122,7 +122,6 @@ pub trait Maze: Clone {
         coords: Self::Coords,
     ) -> Box<dyn Iterator<Item = Self::Coords> + '_>;
     fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
-    fn get_possible_paths(&self, coords: Self::Coords) -> Vec<Direction>;
     fn get_possible_targets(&self, coords: Self::Coords) -> Vec<Self::Coords>;
 }
 
@@ -264,17 +263,6 @@ impl Maze for RectilinearMaze {
         self.fields[x][y] & direction.bitmask() == 0
     }
 
-    fn get_possible_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
-        Direction::iterator()
-            .filter(|direction| match self.translate((x, y), *direction) {
-                Some((tx, ty)) => {
-                    self.fields[tx][ty] & VISIT == 0 && self.fields[x][y] & direction.bitmask() == 0
-                }
-                None => false,
-            })
-            .collect()
-    }
-
     fn get_possible_targets(&self, (x, y): Self::Coords) -> Vec<Self::Coords> {
         Direction::iterator()
             .filter_map(|direction| match self.translate((x, y), direction) {
@@ -341,48 +329,12 @@ mod test {
     }
 
     #[test]
-    fn get_possible_paths_filters_edges_of_maze() {
-        let m = RectilinearMaze::new((10, 10));
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((0, 0))),
-            UnorderedEq(&[Down, Right])
-        );
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((9, 0))),
-            UnorderedEq(&[Down, Left])
-        );
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((9, 9))),
-            UnorderedEq(&[Up, Left])
-        );
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((0, 9))),
-            UnorderedEq(&[Up, Right])
-        );
-    }
-
-    #[test]
     fn translate_does_not_allow_going_off_grid() {
         let m = RectilinearMaze::new((10, 10));
         assert_eq!(m.translate((0, 0), Left), None);
         assert_eq!(m.translate((0, 0), Up), None);
         assert_eq!(m.translate((9, 9), Down), None);
         assert_eq!(m.translate((9, 9), Right), None);
-    }
-
-    #[test]
-    fn get_possible_paths_filters_visited_cells() {
-        let mut m = RectilinearMaze::new((10, 10));
-        m.move_from_to((1, 1), (0, 1));
-
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((0, 1))),
-            UnorderedEq(&[Up, Down])
-        );
-        assert_eq!(
-            UnorderedEq(&m.get_possible_paths((1, 0))),
-            UnorderedEq(&[Left, Right])
-        );
     }
 
     #[test]
