@@ -121,7 +121,6 @@ pub trait Maze: Clone {
         &self,
         coords: Self::Coords,
     ) -> Box<dyn Iterator<Item = Self::Coords> + '_>;
-    fn get_walls(&self, coords: Self::Coords) -> Vec<Direction>;
     fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
     fn get_possible_paths(&self, coords: Self::Coords) -> Vec<Direction>;
     fn get_possible_targets(&self, coords: Self::Coords) -> Vec<Self::Coords>;
@@ -261,15 +260,6 @@ impl Maze for RectilinearMaze {
         )
     }
 
-    fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {
-        Direction::iterator()
-            .filter(|direction| {
-                let mask = direction.bitmask();
-                self.fields[x][y] & mask == 0
-            })
-            .collect()
-    }
-
     fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
         self.fields[x][y] & direction.bitmask() == 0
     }
@@ -351,28 +341,6 @@ mod test {
     }
 
     #[test]
-    fn get_walls_returns_where_there_are_walls() {
-        let mut m = RectilinearMaze::new((12, 12));
-        m.move_from_to((2, 2), (1, 2));
-        assert_eq!(
-            UnorderedEq(&m.get_walls((2, 2))),
-            UnorderedEq(&[Right, Up, Down])
-        );
-        assert_eq!(
-            UnorderedEq(&m.get_walls((1, 2))),
-            UnorderedEq(&[Left, Up, Down])
-        );
-    }
-
-    #[test]
-    fn get_walls_returns_walls_at_the_edges() {
-        let mut m = RectilinearMaze::new((10, 10));
-        m.move_from_to((0, 0), (0, 1));
-        m.move_from_to((0, 0), (1, 0));
-        assert_eq!(UnorderedEq(&m.get_walls((0, 0))), UnorderedEq(&[Left, Up]))
-    }
-
-    #[test]
     fn get_possible_paths_filters_edges_of_maze() {
         let m = RectilinearMaze::new((10, 10));
         assert_eq!(
@@ -419,7 +387,6 @@ mod test {
 
     #[test]
     fn move_with_two_coordinates_removes_walls_when_coordinates_valid() {
-        use Direction::*;
         let mut m = RectilinearMaze::new((10, 10));
 
         assert!(m.move_from_to((0, 0), (1, 0))); // right
