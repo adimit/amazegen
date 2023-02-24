@@ -146,6 +146,10 @@ impl RectilinearMaze {
         self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
     }
 
+    pub fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
+        self.fields[x][y] & direction.bitmask() == 0
+    }
+
     fn remove_wall(&mut self, (x, y): (usize, usize), direction: Direction) {
         self.fields[x][y] |= direction.bitmask()
     }
@@ -199,10 +203,6 @@ impl Maze for RectilinearMaze {
                     self.translate((x, y), direction).map(|target| (target))
                 }),
         )
-    }
-
-    fn has_wall(&self, (x, y): (usize, usize), direction: Direction) -> bool {
-        self.fields[x][y] & direction.bitmask() == 0
     }
 
     fn get_possible_targets(&self, (x, y): Self::Coords) -> Vec<Self::Coords> {

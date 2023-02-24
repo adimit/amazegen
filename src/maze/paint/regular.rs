@@ -7,7 +7,11 @@ use plotters::{
     style::{Color, RGBAColor, RGBColor},
 };
 
-use crate::maze::{regular::RectilinearMaze, solver::Solver};
+use crate::maze::{
+    regular::{Direction, Direction::*, RectilinearMaze},
+    solver::Solver,
+    Maze,
+};
 
 use super::{
     BorderWidth, CellSize, DrawingInstructions, MazeFileWriter, MazePaintError,
@@ -16,7 +20,6 @@ use super::{
 
 impl<'a> Visuals<'a, RectilinearMaze> {
     pub fn render_maze(&self, colour: &WebColour) -> Result<(), MazePaintError> {
-        use super::super::Direction::*;
         let cell_size = self.cell_size.0 as i32;
         let border = self.border_width.0 as i32;
 
@@ -210,10 +213,6 @@ where
 
     Ok(())
 }
-
-use crate::maze::regular::Direction;
-use crate::maze::regular::Direction::*;
-use crate::maze::Maze;
 
 fn get_wall_runs(maze: &RectilinearMaze, direction: Direction) -> Vec<Vec<(usize, usize)>> {
     match direction {

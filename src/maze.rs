@@ -3,8 +3,6 @@ pub mod paint;
 pub mod regular;
 pub mod solver;
 
-use regular::Direction;
-
 pub trait Node: Copy {
     fn get_random_node(extents: Self) -> Self;
     fn get_all_nodes(extents: Self) -> Vec<Self>;
@@ -27,6 +25,5 @@ pub trait Maze: Clone {
         &self,
         coords: Self::Coords,
     ) -> Box<dyn Iterator<Item = Self::Coords> + '_>;
-    fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
     fn get_possible_targets(&self, coords: Self::Coords) -> Vec<Self::Coords>;
 }
