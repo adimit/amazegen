@@ -15,7 +15,7 @@ pub mod config {
     use crate::maze::generator::kruskal::Kruskal;
     use crate::maze::generator::MazeGenerator;
     use crate::maze::paint::*;
-    use crate::maze::Maze;
+    use crate::maze::regular::RectilinearMaze;
     use itertools::Itertools;
     const STAIN_A: &str = "FFDC80";
     const STAIN_B: &str = "B9327D";
@@ -53,7 +53,7 @@ pub mod config {
     }
 
     impl Algorithm {
-        fn generate(&self, shape: &Shape, seed: &u64) -> impl Maze<Coords = (usize, usize)> {
+        fn generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
             let extents = match shape {
                 Shape::Rectilinear(x, y) => (*x, *y),
             };
