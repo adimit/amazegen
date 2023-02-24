@@ -1,11 +1,11 @@
-use super::{solver::Solver, *};
+use super::{regular::RectilinearMaze, solver::Solver, *};
 
 pub trait MazeGenerator<M: Maze> {
     fn generate(&mut self) -> M;
 }
 
 pub mod growing_tree {
-    use crate::maze::{Maze, Node, RectilinearMaze};
+    use crate::maze::{regular::RectilinearMaze, Maze, Node};
 
     use super::{make_random_longest_exit, MazeGenerator};
 
@@ -58,7 +58,10 @@ pub mod growing_tree {
 }
 
 pub mod kruskal {
-    use crate::maze::{Maze, Node, Rectilinear2DMap, RectilinearMaze};
+    use crate::maze::{
+        regular::{Rectilinear2DMap, RectilinearMaze},
+        Maze, Node,
+    };
     use std::ops::{Index, IndexMut};
 
     use super::{make_random_longest_exit, MazeGenerator};

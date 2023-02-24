@@ -93,8 +93,10 @@ fn get_wall_run<M: Maze<Coords = (usize, usize)>>(
 
 #[cfg(test)]
 mod test {
+    use crate::maze::regular::Direction::*;
+    use crate::maze::regular::RectilinearMaze;
+
     use super::*;
-    use crate::maze::{Direction::*, RectilinearMaze};
 
     #[test]
     fn deserialise_web_colour_from_triplet() {

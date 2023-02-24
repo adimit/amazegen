@@ -8,7 +8,7 @@ use std::str::FromStr;
 use crate::maze::generator::MazeGenerator;
 use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::Kruskal};
 use crate::maze::paint::*;
-use crate::maze::*;
+use crate::maze::regular::RectilinearMaze;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     let maze: RectilinearMaze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
