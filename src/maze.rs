@@ -114,7 +114,6 @@ pub trait Maze: Clone {
     fn get_exit(&self) -> Self::Coords;
 
     fn visit(&mut self, coords: Self::Coords);
-    fn is_visited(&self, coords: Self::Coords) -> bool;
 
     fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
@@ -251,10 +250,6 @@ impl Maze for RectilinearMaze {
         }
     }
 
-    fn is_visited(&self, (x, y): (usize, usize)) -> bool {
-        self.coordinates_in_extents((x, y)) && self.fields[x][y] & VISIT > 0
-    }
-
     fn move_from(
         &mut self,
         (x, y): (usize, usize),
@@ -358,28 +353,12 @@ mod test {
     use Direction::*;
 
     #[test]
-    fn is_visited_should_return_true_when_field_has_been_visited() {
-        let mut m = RectilinearMaze::new((12, 12));
-        m.visit((3, 2));
-        assert!(m.is_visited((3, 2)));
-        assert!(!m.is_visited((0, 0)));
-    }
-
-    #[test]
     fn visit_is_idempotent() {
         let mut m = RectilinearMaze::new((12, 12));
         m.visit((5, 5));
         assert_eq!(m.fields[5][5], 1);
         m.visit((5, 5));
         assert_eq!(m.fields[5][5], 1);
-    }
-
-    #[test]
-    fn move_marks_both_as_visited() {
-        let mut m = RectilinearMaze::new((12, 12));
-        m.move_from((1, 1), Down);
-        assert!(m.is_visited((1, 1)));
-        assert!(m.is_visited((1, 2)));
     }
 
     #[test]
