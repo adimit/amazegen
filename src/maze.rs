@@ -117,7 +117,6 @@ pub trait Maze: Clone {
 
     fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
 
-    fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
     fn get_walkable_edges(
         &self,
         coords: Self::Coords,
@@ -249,12 +248,6 @@ impl Maze for RectilinearMaze {
         }
     }
 
-    fn get_open_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
-        Direction::iterator()
-            .filter(|direction| self.fields[x][y] & direction.bitmask() != 0)
-            .collect()
-    }
-
     fn get_walkable_edges(
         &self,
         (x, y): Self::Coords,
@@ -358,14 +351,6 @@ mod test {
     }
 
     #[test]
-    fn get_open_paths_returns_where_there_are_no_walls() {
-        let mut m = RectilinearMaze::new((12, 12));
-        m.move_from_to((2, 2), (1, 2));
-        assert_eq!(m.get_open_paths((2, 2)), [Left]);
-        assert_eq!(m.get_open_paths((1, 2)), [Right]);
-    }
-
-    #[test]
     fn get_walls_returns_where_there_are_walls() {
         let mut m = RectilinearMaze::new((12, 12));
         m.move_from_to((2, 2), (1, 2));
@@ -441,15 +426,6 @@ mod test {
         assert!(m.move_from_to((1, 1), (0, 1))); // left
         assert!(m.move_from_to((2, 2), (2, 1))); // up
         assert!(m.move_from_to((3, 3), (3, 4))); // down
-
-        assert_eq!(m.get_open_paths((0, 0)), vec![Right]);
-        assert_eq!(m.get_open_paths((1, 0)), vec![Left]);
-        assert_eq!(m.get_open_paths((1, 1)), vec![Left]);
-        assert_eq!(m.get_open_paths((0, 1)), vec![Right]);
-        assert_eq!(m.get_open_paths((2, 2)), vec![Up]);
-        assert_eq!(m.get_open_paths((2, 1)), vec![Down]);
-        assert_eq!(m.get_open_paths((3, 3)), vec![Down]);
-        assert_eq!(m.get_open_paths((3, 4)), vec![Up]);
     }
 
     #[test]
