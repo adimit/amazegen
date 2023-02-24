@@ -46,13 +46,13 @@ pub struct RectilinearMaze {
     pub extents: (usize, usize),
 }
 
-pub trait Coordinates: Copy {
+pub trait Node: Copy {
     fn get_random_node(extents: Self) -> Self;
     fn get_all_nodes(extents: Self) -> Vec<Self>;
     fn get_all_edges(extents: Self) -> Vec<(Self, Self)>;
 }
 
-impl Coordinates for (usize, usize) {
+impl Node for (usize, usize) {
     fn get_random_node(extents: Self) -> Self {
         (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
     }
@@ -106,7 +106,7 @@ impl<T> Rectilinear2DMap<T> {
 }
 
 pub trait Maze: Clone {
-    type Coords: Coordinates;
+    type Coords: Node;
 
     fn get_extents(&self) -> Self::Coords;
 

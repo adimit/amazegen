@@ -5,16 +5,16 @@ pub trait MazeGenerator<M: Maze> {
 }
 
 pub mod growing_tree {
-    use crate::maze::{Coordinates, Maze, RectilinearMaze};
+    use crate::maze::{Maze, Node, RectilinearMaze};
 
     use super::{make_random_longest_exit, MazeGenerator};
 
-    pub struct GrowingTreeGenerator<C: Coordinates> {
+    pub struct GrowingTreeGenerator<C: Node> {
         extents: C,
         seed: u64,
     }
 
-    impl<C: Coordinates> GrowingTreeGenerator<C> {
+    impl<C: Node> GrowingTreeGenerator<C> {
         fn jarník<M: Maze<Coords = C>>(&self, mut maze: M) -> M {
             let mut vertices: Vec<C> = vec![];
             fastrand::seed(self.seed);
@@ -58,21 +58,21 @@ pub mod growing_tree {
 }
 
 pub mod kruskal {
-    use crate::maze::{Coordinates, Maze, Rectilinear2DMap, RectilinearMaze};
+    use crate::maze::{Maze, Node, Rectilinear2DMap, RectilinearMaze};
     use std::ops::{Index, IndexMut};
 
     use super::{make_random_longest_exit, MazeGenerator};
 
-    pub trait CoordinateMap<C: Coordinates, T>: Index<C, Output = T> + IndexMut<C> {}
+    pub trait CoordinateMap<C: Node, T>: Index<C, Output = T> + IndexMut<C> {}
 
-    struct State<C: Coordinates, M: CoordinateMap<C, Class>> {
+    struct State<C: Node, M: CoordinateMap<C, Class>> {
         classes: M,
         cells: Vec<Vec<C>>,
     }
 
     impl<C, M> State<C, M>
     where
-        C: Coordinates + Copy,
+        C: Node + Copy,
         M: CoordinateMap<C, Class>,
     {
         fn classes_are_distinct(&self, a: C, b: C) -> bool {
@@ -119,12 +119,12 @@ pub mod kruskal {
         }
     }
 
-    pub struct Kruskal<C: Coordinates, M: CoordinateMap<C, Class>> {
+    pub struct Kruskal<C: Node, M: CoordinateMap<C, Class>> {
         extents: C,
         state: State<C, M>,
     }
 
-    impl<C: Coordinates + std::fmt::Debug, CM: CoordinateMap<C, Class>> Kruskal<C, CM> {
+    impl<C: Node + std::fmt::Debug, CM: CoordinateMap<C, Class>> Kruskal<C, CM> {
         fn get_edges(&self) -> Vec<(C, C)> {
             let mut edges: Vec<_> = C::get_all_edges(self.extents);
             fastrand::shuffle(&mut edges);
