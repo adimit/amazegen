@@ -121,7 +121,6 @@ pub trait Maze: Clone {
     fn visit(&mut self, coords: Self::Coords);
     fn is_visited(&self, coords: Self::Coords) -> bool;
 
-    fn translate(&self, coord: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
 
@@ -222,6 +221,16 @@ impl RectilinearMaze {
         self.exit = exit;
         self.remove_wall((exit, self.extents.1 - 1), Direction::Down);
     }
+
+    fn translate(&self, (x, y): (usize, usize), direction: Direction) -> Option<(usize, usize)> {
+        match direction {
+            Direction::Left if x > 0 => Some((x - 1, y)),
+            Direction::Right if x < self.extents.0 - 1 => Some((x + 1, y)),
+            Direction::Up if y > 0 => Some((x, y - 1)),
+            Direction::Down if y < self.extents.1 - 1 => Some((x, y + 1)),
+            _ => None,
+        }
+    }
 }
 
 impl Maze for RectilinearMaze {
@@ -249,16 +258,6 @@ impl Maze for RectilinearMaze {
 
     fn is_visited(&self, (x, y): (usize, usize)) -> bool {
         self.coordinates_in_extents((x, y)) && self.fields[x][y] & VISIT > 0
-    }
-
-    fn translate(&self, (x, y): (usize, usize), direction: Direction) -> Option<(usize, usize)> {
-        match direction {
-            Direction::Left if x > 0 => Some((x - 1, y)),
-            Direction::Right if x < self.extents.0 - 1 => Some((x + 1, y)),
-            Direction::Up if y > 0 => Some((x, y - 1)),
-            Direction::Down if y < self.extents.1 - 1 => Some((x, y + 1)),
-            _ => None,
-        }
     }
 
     fn move_from(
