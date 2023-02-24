@@ -126,6 +126,10 @@ pub trait Maze: Clone {
     fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
 
     fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
+    fn get_walkable_edges(
+        &self,
+        coords: Self::Coords,
+    ) -> Box<dyn Iterator<Item = Self::Coords> + '_>;
     fn get_walls(&self, coords: Self::Coords) -> Vec<Direction>;
     fn has_wall(&self, coords: Self::Coords, direction: Direction) -> bool;
     fn get_possible_paths(&self, coords: Self::Coords) -> Vec<Direction>;
@@ -279,6 +283,19 @@ impl Maze for RectilinearMaze {
         Direction::iterator()
             .filter(|direction| self.fields[x][y] & direction.bitmask() != 0)
             .collect()
+    }
+
+    fn get_walkable_edges(
+        &self,
+        (x, y): Self::Coords,
+    ) -> Box<dyn Iterator<Item = Self::Coords> + '_> {
+        Box::new(
+            Direction::iterator()
+                .filter(move |direction| self.fields[x][y] & direction.bitmask() != 0)
+                .filter_map(move |direction| {
+                    self.translate((x, y), direction).map(|target| (target))
+                }),
+        )
     }
 
     fn get_walls(&self, (x, y): (usize, usize)) -> Vec<Direction> {

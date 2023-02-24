@@ -26,9 +26,7 @@ impl<'a, M: Maze<Coords = (usize, usize)>> Solver<'a, M> {
         loop {
             cursor = self
                 .maze
-                .get_open_paths(cursor)
-                .iter()
-                .filter_map(|d| self.maze.translate(cursor, *d))
+                .get_walkable_edges(cursor)
                 .min_by_key(|(x, y)| self.distances[*x][*y])
                 .unwrap();
             path.push(cursor);
@@ -49,10 +47,8 @@ fn dijkstra<M: Maze<Coords = (usize, usize)>>(maze: &M, origin: (usize, usize)) 
         let mut new_frontier: Vec<(usize, usize)> = frontier
             .drain(..)
             .flat_map(|cell| {
-                maze.get_open_paths(cell)
-                    .iter()
-                    .filter_map(|d| {
-                        let new = maze.translate(cell, *d)?;
+                maze.get_walkable_edges(cell)
+                    .filter_map(|new| {
                         if distances[new.0][new.1] == 0 {
                             distances[new.0][new.1] = distances[cell.0][cell.1] + 1;
                             Some(new)
