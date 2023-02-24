@@ -115,7 +115,6 @@ pub trait Maze: Clone {
 
     fn visit(&mut self, coords: Self::Coords);
 
-    fn move_from(&mut self, coors: Self::Coords, direction: Direction) -> Option<Self::Coords>;
     fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
 
     fn get_open_paths(&self, coords: Self::Coords) -> Vec<Direction>;
@@ -250,24 +249,6 @@ impl Maze for RectilinearMaze {
         }
     }
 
-    fn move_from(
-        &mut self,
-        (x, y): (usize, usize),
-        direction: Direction,
-    ) -> Option<(usize, usize)> {
-        let (tx, ty) = self.translate((x, y), direction)?;
-
-        if !self.coordinates_in_extents((x, y)) || !self.coordinates_in_extents((tx, ty)) {
-            panic!("origin or target out of bounds: ({x:?}, {y:?}) → {tx:?}, {ty:?}")
-        }
-
-        self.fields[x][y] |= VISIT | direction.bitmask();
-
-        self.fields[tx][ty] |= VISIT | direction.reciprocal().bitmask();
-
-        Some((tx, ty))
-    }
-
     fn get_open_paths(&self, (x, y): (usize, usize)) -> Vec<Direction> {
         Direction::iterator()
             .filter(|direction| self.fields[x][y] & direction.bitmask() != 0)
@@ -364,7 +345,7 @@ mod test {
     #[test]
     fn move_tears_down_the_walls_on_both_sides() {
         let mut m = RectilinearMaze::new((12, 12));
-        m.move_from((1, 1), Down);
+        m.move_from_to((1, 1), (1, 2));
         assert_eq!(m.fields[1][1] & DOWN, DOWN);
         assert_eq!(m.fields[1][1] & LEFT, 0);
         assert_eq!(m.fields[1][1] & RIGHT, 0);
@@ -379,7 +360,7 @@ mod test {
     #[test]
     fn get_open_paths_returns_where_there_are_no_walls() {
         let mut m = RectilinearMaze::new((12, 12));
-        m.move_from((2, 2), Left);
+        m.move_from_to((2, 2), (1, 2));
         assert_eq!(m.get_open_paths((2, 2)), [Left]);
         assert_eq!(m.get_open_paths((1, 2)), [Right]);
     }
@@ -387,7 +368,7 @@ mod test {
     #[test]
     fn get_walls_returns_where_there_are_walls() {
         let mut m = RectilinearMaze::new((12, 12));
-        m.move_from((2, 2), Left);
+        m.move_from_to((2, 2), (1, 2));
         assert_eq!(
             UnorderedEq(&m.get_walls((2, 2))),
             UnorderedEq(&[Right, Up, Down])
@@ -401,8 +382,8 @@ mod test {
     #[test]
     fn get_walls_returns_walls_at_the_edges() {
         let mut m = RectilinearMaze::new((10, 10));
-        m.move_from((0, 0), Down);
-        m.move_from((0, 0), Right);
+        m.move_from_to((0, 0), (0, 1));
+        m.move_from_to((0, 0), (1, 0));
         assert_eq!(UnorderedEq(&m.get_walls((0, 0))), UnorderedEq(&[Left, Up]))
     }
 
@@ -439,7 +420,7 @@ mod test {
     #[test]
     fn get_possible_paths_filters_visited_cells() {
         let mut m = RectilinearMaze::new((10, 10));
-        m.move_from((1, 1), Left);
+        m.move_from_to((1, 1), (0, 1));
 
         assert_eq!(
             UnorderedEq(&m.get_possible_paths((0, 1))),
@@ -479,18 +460,5 @@ mod test {
         assert!(!m.move_from_to((1, 1), (2, 2)), "Can't move diagonally"); // Diagonal
         assert!(!m.move_from_to((1, 1), (0, 2)), "Can't move diagonally"); // Diagonal
         assert!(!m.move_from_to((1, 1), (2, 0)), "Can't move diagonally"); // Diagonal
-    }
-
-    #[test]
-    fn move_with_two_coordinates_does_nothing_when_trying_to_move_off_extents() {
-        let mut m = RectilinearMaze::new((10, 10));
-        assert!(
-            !m.move_from_to((9, 9), (10, 9)),
-            "Can't move off to the right"
-        );
-        assert!(
-            !m.move_from_to((9, 9), (9, 10)),
-            "Can't move off to downwards"
-        );
     }
 }

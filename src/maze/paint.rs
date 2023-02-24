@@ -125,8 +125,8 @@ mod test {
     #[test]
     fn get_wall_runs_should_recognize_runs() {
         let mut maze = RectilinearMaze::new((10, 2));
-        maze.move_from((1, 0), Down);
-        maze.move_from((5, 0), Down);
+        maze.move_from_to((1, 0), (1, 1));
+        maze.move_from_to((5, 0), (5, 1));
 
         assert_eq!(
             get_wall_runs(&maze, Up),
@@ -137,8 +137,8 @@ mod test {
     #[test]
     fn get_wall_runs_works_vertically() {
         let mut maze = RectilinearMaze::new((2, 10));
-        maze.move_from((0, 2), Right);
-        maze.move_from((0, 5), Right);
+        maze.move_from_to((0, 2), (1, 2));
+        maze.move_from_to((0, 5), (1, 5));
 
         assert_eq!(
             get_wall_runs(&maze, Left),
