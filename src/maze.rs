@@ -73,10 +73,8 @@ impl Coordinates for (usize, usize) {
             .flat_map(|y| {
                 (0..(ex - 1)).flat_map(move |x| [((x, y), (x + 1, y)), ((x, y), (x, y + 1))])
             })
-            .merge([
-                ((ex - 2, ey - 1), (ex - 1, ey - 1)),
-                ((ex - 1, ey - 2), (ex - 1, ey - 1)),
-            ])
+            .merge((0..ey - 1).map(|y| ((ex - 1, y), (ex - 1, y + 1))))
+            .merge((0..ex - 1).map(|x| ((x, ey - 1), (x + 1, ey - 1))))
             .collect()
     }
 }
