@@ -254,7 +254,7 @@ where
     let x = cell_size as u32 * maze.get_extents().0 as u32 + border * 2;
     let y = cell_size as u32 * maze.get_extents().1 as u32 + border * 2;
 
-    let mut visual = Visuals {
+    let visual = Visuals {
         border_width: BorderWidth(border as usize),
         cell_size: CellSize(cell_size),
         pic: make_drawing_area((x, y)),
