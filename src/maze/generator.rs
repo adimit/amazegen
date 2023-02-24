@@ -20,7 +20,7 @@ pub mod growing_tree {
             fastrand::seed(self.seed);
 
             {
-                let start = C::get_random(self.extents);
+                let start = C::get_random_node(self.extents);
                 maze.visit(start);
                 vertices.push(start);
             }

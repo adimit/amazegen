@@ -47,25 +47,20 @@ pub struct RectilinearMaze {
 }
 
 pub trait Coordinates: Copy {
-    fn get_random(extents: Self) -> Self;
-    fn get_all(extents: Self) -> Vec<Self>;
-    fn is_in_extents(&self, extents: &Self) -> bool;
+    fn get_random_node(extents: Self) -> Self;
+    fn get_all_nodes(extents: Self) -> Vec<Self>;
     fn get_all_edges(extents: Self) -> Vec<(Self, Self)>;
 }
 
 impl Coordinates for (usize, usize) {
-    fn get_random(extents: Self) -> Self {
+    fn get_random_node(extents: Self) -> Self {
         (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
     }
 
-    fn get_all((ex, ey): Self) -> Vec<Self> {
+    fn get_all_nodes((ex, ey): Self) -> Vec<Self> {
         (0..(ey))
             .flat_map(|y| (0..(ex)).map(move |x| (x, y)))
             .collect()
-    }
-
-    fn is_in_extents(&self, extents: &Self) -> bool {
-        self.0 < extents.0 && self.1 < extents.1
     }
 
     fn get_all_edges((ex, ey): Self) -> Vec<(Self, Self)> {
