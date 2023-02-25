@@ -6,7 +6,7 @@ pub struct Solver<'a, M: Maze> {
     maze: &'a M,
 }
 
-impl<'a, M: Maze<Coords = (usize, usize)>> Solver<'a, M> {
+impl<'a, M: Maze<NodeType = (usize, usize)>> Solver<'a, M> {
     pub fn new(maze: &'a M, origin: (usize, usize)) -> Self {
         let distances = dijkstra(maze, origin);
         Self { maze, distances }
@@ -39,7 +39,10 @@ impl<'a, M: Maze<Coords = (usize, usize)>> Solver<'a, M> {
     }
 }
 
-fn dijkstra<M: Maze<Coords = (usize, usize)>>(maze: &M, origin: (usize, usize)) -> Vec<Vec<usize>> {
+fn dijkstra<M: Maze<NodeType = (usize, usize)>>(
+    maze: &M,
+    origin: (usize, usize),
+) -> Vec<Vec<usize>> {
     let mut distances = vec![vec![0usize; maze.get_extents().1]; maze.get_extents().0];
     let mut frontier: Vec<(usize, usize)> = vec![origin];
     distances[frontier[0].0][frontier[0].1] = 1;

@@ -170,7 +170,7 @@ impl RectilinearMaze {
 }
 
 impl Maze for RectilinearMaze {
-    type Coords = (usize, usize);
+    type NodeType = (usize, usize);
 
     fn get_extents(&self) -> (usize, usize) {
         self.extents
@@ -194,8 +194,8 @@ impl Maze for RectilinearMaze {
 
     fn get_walkable_edges(
         &self,
-        (x, y): Self::Coords,
-    ) -> Box<dyn Iterator<Item = Self::Coords> + '_> {
+        (x, y): Self::NodeType,
+    ) -> Box<dyn Iterator<Item = Self::NodeType> + '_> {
         Box::new(
             Direction::iterator()
                 .filter(move |direction| self.fields[x][y] & direction.bitmask() != 0)
@@ -205,7 +205,7 @@ impl Maze for RectilinearMaze {
         )
     }
 
-    fn get_possible_targets(&self, (x, y): Self::Coords) -> Vec<Self::Coords> {
+    fn get_possible_targets(&self, (x, y): Self::NodeType) -> Vec<Self::NodeType> {
         Direction::iterator()
             .filter_map(|direction| match self.translate((x, y), direction) {
                 Some((tx, ty))
@@ -219,7 +219,7 @@ impl Maze for RectilinearMaze {
             .collect()
     }
 
-    fn move_from_to(&mut self, (fx, fy): Self::Coords, (tx, ty): Self::Coords) -> bool {
+    fn move_from_to(&mut self, (fx, fy): Self::NodeType, (tx, ty): Self::NodeType) -> bool {
         use Direction::*;
         // assert!(
         //     (tx < self.extents.0) && (ty < self.extents.1),

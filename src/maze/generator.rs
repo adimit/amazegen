@@ -15,7 +15,7 @@ pub mod growing_tree {
     }
 
     impl<C: Node> GrowingTreeGenerator<C> {
-        fn jarník<M: Maze<Coords = C>>(&self, mut maze: M) -> M {
+        fn jarník<M: Maze<NodeType = C>>(&self, mut maze: M) -> M {
             let mut vertices: Vec<C> = vec![];
             fastrand::seed(self.seed);
 
@@ -134,7 +134,7 @@ pub mod kruskal {
             edges
         }
 
-        fn run_kruskal<M: Maze<Coords = C>>(&mut self, mut maze: M) -> M {
+        fn run_kruskal<M: Maze<NodeType = C>>(&mut self, mut maze: M) -> M {
             for (from, to) in self.get_edges() {
                 if self.state.classes_are_distinct(from, to) {
                     assert!(maze.move_from_to(from, to), "Invalid direction in move");
@@ -169,7 +169,7 @@ fn make_random_longest_exit(maze: &mut RectilinearMaze) {
     maze.set_exit(find_exit_with_longest_path(maze).0);
 }
 
-fn find_exit_with_longest_path<M: Maze<Coords = (usize, usize)>>(maze: &M) -> (usize, usize) {
+fn find_exit_with_longest_path<M: Maze<NodeType = (usize, usize)>>(maze: &M) -> (usize, usize) {
     let solver = Solver::new(maze, maze.get_entrance());
     let y = maze.get_extents().1 - 1;
     let best_exit = (0..maze.get_extents().0)

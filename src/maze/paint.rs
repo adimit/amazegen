@@ -18,7 +18,7 @@ pub enum MazePaintError {
     Save(#[from] std::io::Error),
 }
 
-pub trait MazeFileWriter<C: Node, M: Maze<Coords = C>> {
+pub trait MazeFileWriter<C: Node, M: Maze<NodeType = C>> {
     fn write_maze<I>(&mut self, maze: &M, instructions: I) -> Result<(), MazePaintError>
     where
         I: IntoIterator<Item = DrawingInstructions>;

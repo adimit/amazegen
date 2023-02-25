@@ -10,20 +10,20 @@ pub trait Node: Copy {
 }
 
 pub trait Maze: Clone {
-    type Coords: Node;
+    type NodeType: Node;
 
-    fn get_extents(&self) -> Self::Coords;
+    fn get_extents(&self) -> Self::NodeType;
 
-    fn get_entrance(&self) -> Self::Coords;
-    fn get_exit(&self) -> Self::Coords;
+    fn get_entrance(&self) -> Self::NodeType;
+    fn get_exit(&self) -> Self::NodeType;
 
-    fn visit(&mut self, coords: Self::Coords);
+    fn visit(&mut self, coords: Self::NodeType);
 
-    fn move_from_to(&mut self, from: Self::Coords, to: Self::Coords) -> bool;
+    fn move_from_to(&mut self, from: Self::NodeType, to: Self::NodeType) -> bool;
 
     fn get_walkable_edges(
         &self,
-        coords: Self::Coords,
-    ) -> Box<dyn Iterator<Item = Self::Coords> + '_>;
-    fn get_possible_targets(&self, coords: Self::Coords) -> Vec<Self::Coords>;
+        coords: Self::NodeType,
+    ) -> Box<dyn Iterator<Item = Self::NodeType> + '_>;
+    fn get_possible_targets(&self, coords: Self::NodeType) -> Vec<Self::NodeType>;
 }
