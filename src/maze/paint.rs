@@ -1,4 +1,5 @@
 pub mod regular;
+pub mod theta;
 
 use std::cell::RefCell;
 

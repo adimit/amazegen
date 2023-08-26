@@ -11,7 +11,8 @@ use crate::maze::paint::*;
 use crate::maze::regular::RectilinearMaze;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
-    let maze: RectilinearMaze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
+    let maze: RectilinearMaze =
+        GrowingTreeGenerator::<(usize, usize)>::new((x_size, y_size), seed).generate();
     let mut str = String::new();
     PlottersSvgStringWriter::new(&mut str, 40, 4)
         .write_maze(
@@ -69,7 +70,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
     // let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
-    let maze = Kruskal::new((x_size, y_size), seed).generate();
+    // let maze = Kruskal::new((x_size, y_size), seed).generate();
+    use crate::maze::theta::PolarNode;
+    let maze =
+        GrowingTreeGenerator::<PolarNode>::new(PolarNode { row: 10, column: 8 }, seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,

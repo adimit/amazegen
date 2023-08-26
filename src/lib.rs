@@ -59,7 +59,9 @@ pub mod config {
             };
             match self {
                 Algorithm::Kruskal => Kruskal::new(extents, *seed).generate(),
-                Algorithm::GrowingTree => GrowingTreeGenerator::new(extents, *seed).generate(),
+                Algorithm::GrowingTree => {
+                    GrowingTreeGenerator::<(usize, usize)>::new(extents, *seed).generate()
+                }
             }
         }
     }
