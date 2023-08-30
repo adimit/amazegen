@@ -42,7 +42,7 @@ To build it for a certain subdirectory of a page, use e.g. ~--base=/maze~ on the
 
 *** A nicer UI
 
-The current UI is bare-bones. A UI that doesn't look quite as basic might go a long way to making the project feel more pleasant to use.
+The current UI is bare-bones.
 
 *** An adjustable selection criterion for GrowingTree
 
