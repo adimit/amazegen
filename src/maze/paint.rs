@@ -113,23 +113,23 @@ pub enum DrawingInstructions {
 
 impl PartialOrd for DrawingInstructions {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        use std::cmp::Ordering::*;
-        use DrawingInstructions::*;
-        match (self, other) {
-            (StainMaze(_), ShowSolution(_)) => Some(Less),
-            (ShowSolution(_), StainMaze(_)) => Some(Greater),
-            (StainMaze(_), DrawMaze(_)) => Some(Less),
-            (DrawMaze(_), StainMaze(_)) => Some(Greater),
-            (DrawMaze(_), ShowSolution(_)) => Some(Less),
-            (ShowSolution(_), DrawMaze(_)) => Some(Greater),
-            _ => None,
-        }
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for DrawingInstructions {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
+        use std::cmp::Ordering::*;
+        use DrawingInstructions::*;
+        match (self, other) {
+            (StainMaze(_), ShowSolution(_)) => Less,
+            (ShowSolution(_), StainMaze(_)) => Greater,
+            (StainMaze(_), DrawMaze(_)) => Less,
+            (DrawMaze(_), StainMaze(_)) => Greater,
+            (DrawMaze(_), ShowSolution(_)) => Less,
+            (ShowSolution(_), DrawMaze(_)) => Greater,
+            _ => Equal,
+        }
     }
 }
 
