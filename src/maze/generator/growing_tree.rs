@@ -1,9 +1,5 @@
 use super::{make_random_longest_exit, MazeGenerator};
-use crate::maze::{
-    regular::RectilinearMaze,
-    theta::{PolarNode, ThetaMaze},
-    Maze, Node,
-};
+use crate::maze::{regular::RectilinearMaze, Maze, Node};
 
 pub struct GrowingTreeGenerator<C: Node> {
     extents: C,
@@ -44,22 +40,10 @@ impl GrowingTreeGenerator<(usize, usize)> {
     }
 }
 
-impl GrowingTreeGenerator<PolarNode> {
-    pub fn new(extents: PolarNode, seed: u64) -> Self {
-        Self { extents, seed }
-    }
-}
-
 impl MazeGenerator<RectilinearMaze> for GrowingTreeGenerator<(usize, usize)> {
     fn generate(&mut self) -> RectilinearMaze {
         let mut maze = self.jarník(RectilinearMaze::new(self.extents));
         make_random_longest_exit(&mut maze);
         maze
-    }
-}
-
-impl MazeGenerator<ThetaMaze> for GrowingTreeGenerator<PolarNode> {
-    fn generate(&mut self) -> ThetaMaze {
-        ThetaMaze::new(10.0, self.extents)
     }
 }

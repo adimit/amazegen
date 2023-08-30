@@ -69,11 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(os_string_to_number)
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
-    // let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
+    let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
     // let maze = Kruskal::new((x_size, y_size), seed).generate();
-    use crate::maze::theta::PolarNode;
-    let maze =
-        GrowingTreeGenerator::<PolarNode>::new(PolarNode { row: 10, column: 8 }, seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,
