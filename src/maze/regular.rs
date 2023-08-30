@@ -199,9 +199,7 @@ impl Maze for RectilinearMaze {
         Box::new(
             Direction::iterator()
                 .filter(move |direction| self.fields[x][y] & direction.bitmask() != 0)
-                .filter_map(move |direction| {
-                    self.translate((x, y), direction).map(|target| (target))
-                }),
+                .filter_map(move |direction| self.translate((x, y), direction)),
         )
     }
 
