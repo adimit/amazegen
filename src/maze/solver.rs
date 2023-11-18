@@ -47,25 +47,16 @@ fn dijkstra<M: Maze<NodeType = (usize, usize)>>(
     let mut frontier: Vec<(usize, usize)> = vec![origin];
     distances[frontier[0].0][frontier[0].1] = 1;
     while !frontier.is_empty() {
-        let mut new_frontier: Vec<(usize, usize)> = frontier
-            .drain(..)
-            .flat_map(|cell| {
-                let new_edges = maze
-                    .get_walkable_edges(cell)
-                    .filter(|new| distances[new.0][new.1] == 0)
-                    .collect::<Vec<_>>();
-
-                // side effect in flat-map probably better expressed as for-loop
-                for new in &new_edges {
+        let mut new_frontier: Vec<(usize, usize)> = vec![];
+        for cell in frontier.drain(..) {
+            for new in maze.get_walkable_edges(cell) {
+                if distances[new.0][new.1] == 0 {
                     distances[new.0][new.1] = distances[cell.0][cell.1] + 1;
+                    new_frontier.push(new)
                 }
-
-                new_edges
-            })
-            .collect::<Vec<_>>();
-
+            }
+        }
         frontier.append(&mut new_frontier);
     }
-
     distances
 }
