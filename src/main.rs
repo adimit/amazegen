@@ -8,6 +8,7 @@ use std::str::FromStr;
 use crate::maze::generator::MazeGenerator;
 use crate::maze::generator::{growing_tree::GrowingTreeGenerator, kruskal::Kruskal};
 use crate::maze::paint::*;
+use crate::maze::polar::test_maze;
 use crate::maze::regular::RectilinearMaze;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
@@ -56,7 +57,12 @@ where
     str::parse::<T>(s.to_str().ok_or(MazeError::ErrorParsingUtf8)?).map_err(MazeError::NotANumber)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ()> {
+    test_maze()?;
+    Ok(())
+}
+
+fn old_main() -> Result<(), Box<dyn std::error::Error>> {
     let args = env::args_os().collect::<Vec<_>>();
     use crate::maze::generator::*;
     use crate::maze::paint::*;
@@ -69,8 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(os_string_to_number)
         .unwrap_or(Ok(fastrand::u64(..)))?;
 
-    let maze = GrowingTreeGenerator::new((x_size, y_size), seed).generate();
-    // let maze = Kruskal::new((x_size, y_size), seed).generate();
+    let maze = Kruskal::new((x_size, y_size), seed).generate();
 
     PlottersSvgFileWriter::new(format!("maze-{x_size}-{y_size}-{seed}.svg"), 40, 4).write_maze(
         &maze,
@@ -78,6 +83,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             WebColour::from_string("000000").unwrap(),
         )],
     )?;
+
+    test_maze().unwrap();
 
     Ok(())
 }

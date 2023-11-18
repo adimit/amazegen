@@ -1,4 +1,6 @@
+use svg::node::element::path::Command::EllipticalArc;
 use svg::node::element::path::Data;
+use svg::node::element::path::Position::Absolute;
 use svg::node::element::Path;
 use svg::{Document, Node};
 
@@ -10,12 +12,15 @@ pub struct PolarNode {
     pub column: usize,
 }
 
-const RING_HEIGHT: f64 = 20.0;
+const RING_HEIGHT: f64 = 40.0;
+
+fn max_column(row: usize) -> usize {
+    ((row as f64 / 2.0).ceil() as usize) * 10
+}
 
 fn θ(row: usize) -> f64 {
     // TODO: cache theta values?
-    // TODO: assuming 10 cells for each ring
-    2.0 * π / 10.0
+    2.0 * π / max_column(row) as f64
 }
 
 fn inner_radius(row: usize) -> f64 {
@@ -90,15 +95,24 @@ pub fn test_maze() -> Result<(), ()> {
 
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
-    for column in 0..10 {
-        document.append(spoke(column));
-    }
-
-    fn arc(column: usize) -> Path {
-        let node = PolarNode { column, row: 10 };
-        let centre = CartesianPoint { x: 500, y: 500 };
+    fn arc(column: usize, row: usize) -> Path {
+        let node = PolarNode { column, row };
         let cell = compute_cell(node);
-        let data = Data::new().move_to((centre.x, centre.y));
+        let outer = outer_radius(node.row);
+        let inner = inner_radius(node.row);
+        let data = Data::new()
+            .move_to((cell.ax, cell.ay))
+            .line_to((cell.bx, cell.by))
+            .add(EllipticalArc(
+                Absolute,
+                (outer, outer, 0, 0, 0, cell.dx, cell.dy).into(),
+            ))
+            .line_to((cell.cx, cell.cy))
+            .add(EllipticalArc(
+                Absolute,
+                (inner, inner, 0, 1, 0, cell.ax, cell.ay).into(),
+            ));
+
         Path::new()
             .set("stroke", "black")
             .set("fill", "none")
@@ -106,8 +120,10 @@ pub fn test_maze() -> Result<(), ()> {
             .set("stroke-width", "3")
     }
 
-    for column in 0..10 {
-        document.append(arc(column));
+    for row in 1..10 {
+        for column in 0..max_column(row) {
+            document.append(arc(column, row));
+        }
     }
 
     svg::save("test-output.svg", &document).unwrap();

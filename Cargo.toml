@@ -20,6 +20,7 @@ fastrand = "2"
 # fastrand won't work with wasm unless we also add this line. 
 # See here: https://github.com/smol-rs/fastrand/issues/27
 instant = {version="*", features=["wasm-bindgen"]}
+svg = "0.14"
 hex = "0.4"
 itertools = "0.11"
 plotters = "0.3.5"

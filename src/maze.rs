@@ -1,7 +1,9 @@
 pub mod generator;
 pub mod paint;
+pub mod polar;
 pub mod regular;
 pub mod solver;
+pub mod theta;
 
 pub trait Node: Copy {
     fn get_random_node(extents: Self) -> Self;
