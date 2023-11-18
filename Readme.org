@@ -22,7 +22,7 @@ Circular mazes (also known as θ-mazes) have an interesting property: their cell
 
 $$1 + \sum_{i=1}^{i <n} c2^{\lfloor\log_2(i)\rfloor}}$$
 
-Where $c$ is the /column factor/, i.e. the number of cells in ring 1. (It is currently hard-coded to 8.) This means that a maze of size 10 maze has 297 cells, one of size 20 1193.
+Where $c$ is the /column factor/, i.e. the number of cells in ring 1. (It is currently hard-coded to 8.) This means that a maze of size 10 maze has 297 cells, one of size 20 1193. To get a maze with roughly the same amount of cells as a 10×10 rectilinear grid, we choose a ring size of 6, which yields 105 cells. This is the default setting for the Web UI.
 
 ** Building
 

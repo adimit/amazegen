@@ -21,33 +21,154 @@ const π: f64 = std::f64::consts::PI;
 // Similarly, the northern neighbours's index may be twice its own, and another one + 1. So it needs
 // to be aware of the `compute_no_of_columns` function's implementation.
 
-struct RingMaze {
-    ring_sizes: Vec<usize>,
-}
-
 struct RingCell {
     coordinates: RingNode,
     inaccessible_neighbours: Vec<RingNode>,
     accessible_neighbours: Vec<RingNode>,
 }
 
-impl RingCell {}
+impl RingCell {
+    pub fn carve(&mut self, neighbour: RingNode) {
+        if let Some(index) = self
+            .inaccessible_neighbours
+            .iter()
+            .position(|value| *value == neighbour)
+        {
+            self.inaccessible_neighbours.swap_remove(index);
+            self.accessible_neighbours.push(neighbour);
+        }
+    }
+
+    pub fn get_walls(&self) -> Vec<RingNode> {
+        self.inaccessible_neighbours.clone()
+    }
+
+    pub fn get_paths(&self) -> Vec<RingNode> {
+        self.accessible_neighbours.clone()
+    }
+
+    fn new(maze: &RingMaze, coordinates: RingNode) -> Self {
+        let ring_max = maze.max_column(coordinates.row);
+        let mut neighbours: Vec<RingNode> = vec![];
+
+        neighbours.push(RingNode {
+            column: if coordinates.column == 0 {
+                ring_max - 1
+            } else {
+                coordinates.column - 1
+            },
+            ..coordinates.clone()
+        });
+
+        neighbours.push(RingNode {
+            column: if coordinates.column + 1 >= ring_max {
+                0
+            } else {
+                coordinates.column + 1
+            },
+            ..coordinates.clone()
+        });
+
+        neighbours.push(RingNode {
+            column: if coordinates.row - 1 == 0 {
+                0
+            } else if maze.max_column(coordinates.row - 1) < ring_max {
+                coordinates.column / 2
+            } else {
+                coordinates.column
+            },
+            row: coordinates.row - 1,
+        });
+
+        if maze.max_column(coordinates.row + 1) > ring_max {
+            neighbours.push(RingNode {
+                column: coordinates.column * 2,
+                row: coordinates.row + 1,
+            });
+            neighbours.push(RingNode {
+                column: coordinates.column * 2 + 1,
+                row: coordinates.row + 1,
+            });
+        } else {
+            neighbours.push(RingNode {
+                column: coordinates.column,
+                row: coordinates.row + 1,
+            });
+        }
+
+        Self {
+            coordinates,
+            accessible_neighbours: vec![],
+            inaccessible_neighbours: neighbours,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn ring_cell_in_level_1_has_cell_0_as_southern_neighbour() {
+        let maze = RingMaze::new(6);
+        let cell = RingCell::new(&maze, RingNode { row: 1, column: 3 });
+        assert!(cell
+            .inaccessible_neighbours
+            .contains(&RingNode { column: 0, row: 0 }));
+    }
+
+    #[test]
+    fn ring_cell_one_level_lower_past_a_breakpoint_has_correct_column() {
+        let maze = RingMaze::new(6);
+        let cell = RingCell::new(&maze, RingNode { row: 2, column: 7 });
+        assert!(cell
+            .inaccessible_neighbours
+            .contains(&RingNode { row: 1, column: 3 }));
+    }
+
+    #[test]
+    fn ring_cell_one_level_higher_past_a_breakpoint_has_correct_column() {
+        let maze = RingMaze::new(6);
+        let cell = RingCell::new(&maze, RingNode { row: 3, column: 7 });
+        assert!(cell
+            .inaccessible_neighbours
+            .contains(&RingNode { row: 4, column: 14 }));
+        assert!(cell
+            .inaccessible_neighbours
+            .contains(&RingNode { row: 4, column: 15 }));
+    }
+
+    #[test]
+    fn ring_cell_one_level_lower_not_past_the_breakpoint_has_correct_column() {
+        let maze = RingMaze::new(6);
+        let cell = RingCell::new(&maze, RingNode { row: 3, column: 7 });
+        assert!(cell
+            .inaccessible_neighbours
+            .contains(&RingNode { row: 2, column: 7 }));
+    }
+}
+
+struct RingMaze {
+    ring_sizes: Vec<usize>,
+}
+
+const COLUMN_FACTOR: usize = 8;
 
 impl RingMaze {
     /// Ring mazes quickly gain a lot of cells. Since we need to subdivide
     /// the cells per ring for aesthetic reasons, the number of cells grows
     /// 2 ^ (log n) where n is the number of rings.
     /// An 8 * 10 grid has 297 cells (a rectilinear grid would just have 80).
-    fn compute_no_of_columns(row: usize, column_factor: usize) -> usize {
-        2_usize.pow(row.ilog2()) * column_factor
+    fn compute_no_of_columns(row: usize) -> usize {
+        2_usize.pow(row.ilog2()) * COLUMN_FACTOR
     }
 
-    pub fn new(column_factor: usize, max_rings: usize) -> RingMaze {
+    pub fn new(max_rings: usize) -> RingMaze {
         let mut rings = vec![1];
         rings.extend(
             (1..max_rings)
                 .into_iter()
-                .map(|row| Self::compute_no_of_columns(row, column_factor)),
+                .map(|row| Self::compute_no_of_columns(row)),
         );
         println!("Maze size: {}", &rings.iter().sum::<usize>());
         RingMaze { ring_sizes: rings }
@@ -59,7 +180,7 @@ impl RingMaze {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct RingNode {
     pub row: usize,
     pub column: usize,
@@ -136,7 +257,7 @@ struct CellCoordinates {
 
 pub fn test_maze() -> Result<(), ()> {
     println!("Generating maze...");
-    let maze = RingMaze::new(8, 10);
+    let maze = RingMaze::new(6);
     let grid = PolarGrid::new(&maze, 40.0);
 
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
