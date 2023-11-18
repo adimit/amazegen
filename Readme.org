@@ -18,6 +18,12 @@ You can use one of two algorithms to create the mazes:
 
 [fn:1] Note that the backlinks are not stable yet, and the maze you see when you follow a link may not be the one you printed as internals may change at any time.
 
+Circular mazes (also known as θ-mazes) have an interesting property: their cell size grows quite quickly, $2^{log_2(n)}$ where $n$ is the amount of rows. In practice, the number of cells in a given θ-maze is
+
+$$1 + \sum_{i=1}^{i <n} c2^{\lfloor\log_2(i)\rfloor}}$$
+
+Where $c$ is the /column factor/, i.e. the number of cells in ring 1. (It is currently hard-coded to 8.) This means that a maze of size 10 maze has 297 cells, one of size 20 1193.
+
 ** Building
 
 The Rust project can be built using

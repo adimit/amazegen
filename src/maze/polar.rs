@@ -6,13 +6,40 @@ use svg::{Document, Node};
 
 const π: f64 = std::f64::consts::PI;
 
+// Rough sketch:
+// Each ring is a vector of polar cells.
+// Each polar cell has a set of polar coordinates and a list of inaccessible neighbours,
+// which are polar coordinates, and a list of accessible neigbours (initially empty).
+// You can use polar coordinates to access the cell structure.
+// To render walls of a cell, you ask it whether any of its inaccessible neighbours has coordinates
+// with a greater row or column than itself. If yes, you draw the wall.
+// This elegantly handles the case of split cells in higher rings: if any of the cells neighbours
+// higher up is accessible, we just don't draw the northern wall at all. The outer cells get to
+// draw their southern walls instead.
+// The tricky bit is populating the inaccessible neighbours list. East & West are easy. South
+// can't rely on this cell's own index, as the southerly neigbour's index may be half of its own.
+// Similarly, the northern neighbours's index may be twice its own, and another one + 1. So it needs
+// to be aware of the `compute_no_of_columns` function's implementation.
+
 struct RingMaze {
-    rings: Vec<usize>,
+    ring_sizes: Vec<usize>,
 }
 
+struct RingCell {
+    coordinates: RingNode,
+    inaccessible_neighbours: Vec<RingNode>,
+    accessible_neighbours: Vec<RingNode>,
+}
+
+impl RingCell {}
+
 impl RingMaze {
-    fn columns(row: usize, column_factor: usize) -> usize {
-        2_usize.pow(row.ilog(2)) * column_factor
+    /// Ring mazes quickly gain a lot of cells. Since we need to subdivide
+    /// the cells per ring for aesthetic reasons, the number of cells grows
+    /// 2 ^ (log n) where n is the number of rings.
+    /// An 8 * 10 grid has 297 cells (a rectilinear grid would just have 80).
+    fn compute_no_of_columns(row: usize, column_factor: usize) -> usize {
+        2_usize.pow(row.ilog2()) * column_factor
     }
 
     pub fn new(column_factor: usize, max_rings: usize) -> RingMaze {
@@ -20,19 +47,20 @@ impl RingMaze {
         rings.extend(
             (1..max_rings)
                 .into_iter()
-                .map(|row| Self::columns(row, column_factor)),
+                .map(|row| Self::compute_no_of_columns(row, column_factor)),
         );
-        RingMaze { rings }
+        println!("Maze size: {}", &rings.iter().sum::<usize>());
+        RingMaze { ring_sizes: rings }
     }
 
-    /// No bounds checking on `ring`. Panics if `ring` > `rings` of this maze
+    /// No bounds checking on `ring`. Panics if `ring` ≥ `ring_sizes.len()` of this maze
     pub fn max_column(&self, ring: usize) -> usize {
-        self.rings[ring]
+        self.ring_sizes[ring]
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct PolarNode {
+pub struct RingNode {
     pub row: usize,
     pub column: usize,
 }
@@ -60,15 +88,15 @@ impl PolarGrid<'_> {
         self.ring_height * (row + 1) as f64
     }
 
-    fn θ_west(&self, node: PolarNode) -> f64 {
+    fn θ_west(&self, node: RingNode) -> f64 {
         self.θ(node.row) * (1.0 + node.column as f64)
     }
 
-    fn θ_east(&self, node: PolarNode) -> f64 {
+    fn θ_east(&self, node: RingNode) -> f64 {
         self.θ(node.row) * (node.column as f64)
     }
 
-    fn compute_cell(&self, node: PolarNode) -> CellCoordinates {
+    fn compute_cell(&self, node: RingNode) -> CellCoordinates {
         let inner = self.inner_radius(node.row);
         let outer = self.outer_radius(node.row);
         let east = self.θ_east(node);
@@ -114,7 +142,7 @@ pub fn test_maze() -> Result<(), ()> {
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
     fn arc(grid: &PolarGrid, column: usize, row: usize) -> Path {
-        let node = PolarNode { column, row };
+        let node = RingNode { column, row };
         let cell = grid.compute_cell(node);
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
@@ -138,7 +166,7 @@ pub fn test_maze() -> Result<(), ()> {
             .set("stroke-width", "3")
     }
 
-    for row in 1..maze.rings.len() {
+    for row in 1..maze.ring_sizes.len() {
         for column in 0..maze.max_column(row) {
             document.append(arc(&grid, column, row));
         }
