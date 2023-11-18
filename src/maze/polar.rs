@@ -79,20 +79,6 @@ pub fn test_maze() -> Result<(), ()> {
         }
     }
 
-    fn spoke(column: usize) -> Path {
-        let node = PolarNode { column, row: 10 };
-        let centre = CartesianPoint { x: 500, y: 500 };
-        let cell = compute_cell(node);
-        let data = Data::new()
-            .move_to((centre.x, centre.y))
-            .line_to((cell.bx, cell.by));
-        Path::new()
-            .set("stroke", "black")
-            .set("fill", "none")
-            .set("d", data)
-            .set("stroke-width", "3")
-    }
-
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
     fn arc(column: usize, row: usize) -> Path {
