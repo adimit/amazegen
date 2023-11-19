@@ -122,6 +122,77 @@ impl IndexMut<RingNode> for RingMaze {
     }
 }
 
+#[derive(Debug)]
+struct Cells<T> {
+    ring_sizes: Vec<usize>,
+    cells: Vec<T>,
+    extents: Vec<usize>,
+}
+
+impl<T> Cells<T>
+where
+    T: Copy + Clone,
+{
+    pub fn new(ring_sizes: &Vec<usize>, default: T) -> Self {
+        let extents = ring_sizes
+            .iter()
+            .scan(0, |state, &x| {
+                *state += x;
+                Some(*state)
+            })
+            .collect::<Vec<_>>();
+        Self {
+            ring_sizes: ring_sizes.clone(),
+            cells: vec![default; ring_sizes.iter().sum::<usize>()],
+            extents,
+        }
+    }
+}
+
+impl<T> Index<RingNode> for Cells<T> {
+    type Output = T;
+
+    fn index(&self, index: RingNode) -> &Self::Output {
+        /*
+            assert_eq!(
+                self.ring_sizes[0..index.row].iter().sum::<usize>(),
+                self.extents[index.row]
+        );
+            */
+        &self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+    }
+}
+
+impl<T> IndexMut<RingNode> for Cells<T> {
+    fn index_mut(&mut self, index: RingNode) -> &mut Self::Output {
+        /*
+            assert_eq!(
+                self.ring_sizes[0..index.row].iter().sum::<usize>(),
+                self.extents[index.row]
+        );
+            */
+        &mut self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+    }
+}
+
+fn dijkstra(maze: &RingMaze, origin: RingNode) -> Cells<usize> {
+    let mut distances = Cells::new(&maze.ring_sizes, 0);
+    let mut frontier: Vec<RingNode> = vec![origin];
+    while !frontier.is_empty() {
+        let mut new_frontier: Vec<RingNode> = vec![];
+        for cell in frontier.drain(..) {
+            for new in maze.get_paths(cell) {
+                if distances[new] == 0 {
+                    distances[new] = distances[cell] + 1;
+                    new_frontier.push(new);
+                }
+            }
+        }
+        frontier.append(&mut new_frontier);
+    }
+    distances
+}
+
 struct RingMaze {
     ring_sizes: Vec<usize>,
     cells: Vec<RingCell>,
@@ -339,10 +410,9 @@ struct CellCoordinates {
     dy: f64,
 }
 
-fn make_maze() -> RingMaze {
+fn make_maze(rings: usize, column_factor: usize) -> RingMaze {
     fastrand::seed(100);
-    let mut maze = RingMaze::new(12, 8);
-    jarník(maze)
+    jarník(RingMaze::new(rings, column_factor))
 }
 
 fn debug_maze(maze: &RingMaze) {
@@ -359,9 +429,35 @@ fn debug_maze(maze: &RingMaze) {
     }
 }
 
+fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<RingNode> {
+    let distances = dijkstra(maze, start);
+    let mut cursor = end;
+    let mut path = vec![cursor];
+    loop {
+        cursor = *maze
+            .get_paths(cursor)
+            .iter()
+            .min_by_key(|n| distances[**n])
+            .unwrap();
+        path.push(cursor);
+        if distances[cursor] == 1 {
+            break;
+        }
+    }
+
+    path
+}
+
 pub fn test_maze() -> Result<(), ()> {
-    let maze = make_maze();
+    let maze = make_maze(12, 8);
     let grid = PolarGrid::new(&maze, 40.0);
+    let path = find_shortest_path(
+        &maze,
+        RingNode { row: 11, column: 0 },
+        RingNode { row: 0, column: 0 },
+    );
+    println!("{:?}", path);
+
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
