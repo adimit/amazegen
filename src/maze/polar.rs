@@ -8,21 +8,6 @@ use svg::{Document, Node};
 
 const π: f64 = std::f64::consts::PI;
 
-// Rough sketch:
-// Each ring is a vector of polar cells.
-// Each polar cell has a set of polar coordinates and a list of inaccessible neighbours,
-// which are polar coordinates, and a list of accessible neigbours (initially empty).
-// You can use polar coordinates to access the cell structure.
-// To render walls of a cell, you ask it whether any of its inaccessible neighbours has coordinates
-// with a greater row or column than itself. If yes, you draw the wall.
-// This elegantly handles the case of split cells in higher rings: if any of the cells neighbours
-// higher up is accessible, we just don't draw the northern wall at all. The outer cells get to
-// draw their southern walls instead.
-// The tricky bit is populating the inaccessible neighbours list. East & West are easy. South
-// can't rely on this cell's own index, as the southerly neigbour's index may be half of its own.
-// Similarly, the northern neighbours's index may be twice its own, and another one + 1. So it needs
-// to be aware of the `compute_no_of_columns` function's implementation.
-
 #[derive(Clone, Debug)]
 struct RingCell {
     coordinates: RingNode,
@@ -372,11 +357,19 @@ mod test {
 struct PolarGrid<'a> {
     ring_height: f64,
     maze: &'a RingMaze,
+    centre: CartesianPoint,
 }
 
 impl PolarGrid<'_> {
-    fn new(maze: &RingMaze, ring_height: f64) -> PolarGrid {
-        PolarGrid { maze, ring_height }
+    fn new(maze: &RingMaze, ring_height: f64, stroke_width: f64) -> PolarGrid {
+        PolarGrid {
+            maze,
+            ring_height,
+            centre: CartesianPoint {
+                x: ring_height * maze.ring_sizes.len() as f64 + stroke_width,
+                y: ring_height * maze.ring_sizes.len() as f64 + stroke_width,
+            },
+        }
     }
 
     fn θ(&self, row: usize) -> f64 {
@@ -405,25 +398,24 @@ impl PolarGrid<'_> {
         let outer = self.outer_radius(node.row);
         let east = self.θ_east(node);
         let west = self.θ_west(node);
-        let centre = CartesianPoint { x: 500, y: 500 };
 
         CellCoordinates {
-            ax: centre.x as f64 + (inner * west.cos()),
-            ay: centre.y as f64 + (inner * west.sin()),
-            bx: centre.x as f64 + (outer * west.cos()),
-            by: centre.y as f64 + (outer * west.sin()),
-            cx: centre.x as f64 + (inner * east.cos()),
-            cy: centre.y as f64 + (inner * east.sin()),
-            dx: centre.x as f64 + (outer * east.cos()),
-            dy: centre.y as f64 + (outer * east.sin()),
+            ax: self.centre.x as f64 + (inner * west.cos()),
+            ay: self.centre.y as f64 + (inner * west.sin()),
+            bx: self.centre.x as f64 + (outer * west.cos()),
+            by: self.centre.y as f64 + (outer * west.sin()),
+            cx: self.centre.x as f64 + (inner * east.cos()),
+            cy: self.centre.y as f64 + (inner * east.sin()),
+            dx: self.centre.x as f64 + (outer * east.cos()),
+            dy: self.centre.y as f64 + (outer * east.sin()),
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct CartesianPoint {
-    x: u64,
-    y: u64,
+    x: f64,
+    y: f64,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -497,15 +489,14 @@ fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<Ri
 }
 
 fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
-    let centre = CartesianPoint { x: 500, y: 500 };
     if node.row == 0 && node.column == 0 {
-        return (centre.x as f64, centre.y as f64);
+        return (grid.centre.x as f64, grid.centre.y as f64);
     }
     let r = grid.inner_radius(node.row) + grid.ring_height / 2.0;
     let θ = grid.θ_east(*node) + grid.θ(node.row) / 2.0;
     (
-        centre.x as f64 + (r * θ.cos()),
-        centre.y as f64 + (r * θ.sin()),
+        grid.centre.x as f64 + (r * θ.cos()),
+        grid.centre.y as f64 + (r * θ.sin()),
     )
 }
 
@@ -529,9 +520,14 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
 }
 
 pub fn test_maze() -> Result<(), ()> {
-    let (maze, path_to_solution) = make_maze(10, 10);
-    let grid = PolarGrid::new(&maze, 40.0);
-    let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
+    let height = 40.0;
+    let rings = 6;
+    let column_factor = 8;
+    let (maze, path_to_solution) = make_maze(rings, column_factor);
+    let stroke_width = 3.0;
+    let grid = PolarGrid::new(&maze, height, stroke_width);
+    let pixels = grid.centre.x * 2.0 + 2.0 * stroke_width;
+    let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
         let node = cell.coordinates;
