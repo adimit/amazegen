@@ -198,8 +198,6 @@ struct RingMaze {
     cells: Vec<RingCell>,
 }
 
-const COLUMN_FACTOR: usize = 8;
-
 trait JarníkMaze {
     type Idx: PartialEq + Copy + Clone;
 
@@ -262,7 +260,7 @@ impl RingMaze {
     fn compute_cells(max_rings: usize, rings: &Vec<usize>, column_factor: usize) -> Vec<RingCell> {
         let mut cells = vec![RingCell {
             coordinates: RingNode { row: 0, column: 0 },
-            inaccessible_neighbours: (0..COLUMN_FACTOR)
+            inaccessible_neighbours: (0..column_factor)
                 .map(|column| RingNode { row: 1, column })
                 .collect(),
             accessible_neighbours: vec![],
