@@ -411,7 +411,7 @@ struct CellCoordinates {
 }
 
 fn make_maze(rings: usize, column_factor: usize) -> RingMaze {
-    fastrand::seed(100);
+    fastrand::seed(10);
     jarník(RingMaze::new(rings, column_factor))
 }
 
@@ -444,19 +444,60 @@ fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<Ri
             break;
         }
     }
+    path.push(start);
 
     path
+}
+fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
+    let centre = CartesianPoint { x: 500, y: 500 };
+    if node.row == 0 && node.column == 0 {
+        return (centre.x as f64, centre.y as f64);
+    }
+    let r = grid.inner_radius(node.row) + grid.ring_height / 2.0;
+    let θ = grid.θ_east(*node) + grid.θ(node.row) / 2.0;
+    (
+        centre.x as f64 + (r * θ.cos()),
+        centre.y as f64 + (r * θ.sin()),
+    )
+}
+
+fn draw_path(grid: &PolarGrid, path: &Vec<RingNode>) -> Path {
+    let mut data = Data::new();
+    data.append(Command::Move(Absolute, middle(grid, &path[0]).into()));
+    for node in path.iter().skip(1) {
+        data.append(Command::Line(Absolute, middle(grid, node).into()));
+    }
+    Path::new()
+        .set("stroke", "red")
+        .set("fill", "none")
+        .set("d", data)
+        .set("stroke-width", "3")
+}
+
+fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
+    let ring = maze.ring_sizes.len() - 1;
+    let column = fastrand::usize(0..maze.ring_sizes[ring]);
+    RingNode { row: ring, column }
 }
 
 pub fn test_maze() -> Result<(), ()> {
     let maze = make_maze(12, 8);
     let grid = PolarGrid::new(&maze, 40.0);
-    let path = find_shortest_path(
-        &maze,
-        RingNode { row: 11, column: 0 },
-        RingNode { row: 0, column: 0 },
-    );
-    println!("{:?}", path);
+    let outer_ring = 11;
+    let start = get_random_cell_on_the_outside(&maze);
+    let topo = dijkstra(&maze, start);
+    let exit = RingNode {
+        row: outer_ring,
+        column: (0..maze.ring_sizes[11])
+            .max_by_key(|column| {
+                topo[RingNode {
+                    column: *column,
+                    row: outer_ring,
+                }]
+            })
+            .unwrap(),
+    };
+    let path_to_solution = find_shortest_path(&maze, start, exit);
 
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
@@ -524,6 +565,9 @@ pub fn test_maze() -> Result<(), ()> {
         .set("d", data)
         .set("stroke-width", "3");
     document.append(path);
+
+    let solution = draw_path(&grid, &path_to_solution);
+    document.append(solution);
 
     svg::save("test-output.svg", &document).unwrap();
 
