@@ -340,8 +340,8 @@ struct CellCoordinates {
 }
 
 fn make_maze() -> RingMaze {
-    fastrand::seed(10);
-    let mut maze = RingMaze::new(6, 8);
+    fastrand::seed(100);
+    let mut maze = RingMaze::new(12, 8);
     jarník(maze)
 }
 
@@ -360,19 +360,15 @@ fn debug_maze(maze: &RingMaze) {
 }
 
 pub fn test_maze() -> Result<(), ()> {
-    println!("Generating maze…");
     let maze = make_maze();
-    debug_maze(&maze);
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
-    println!("Drawing maze…");
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
         let node = cell.coordinates;
         let c = grid.compute_cell(node);
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
-        print!("({}, {}): ", node.row, node.column);
 
         // east wall
         if cell
@@ -380,7 +376,6 @@ pub fn test_maze() -> Result<(), ()> {
             .iter()
             .any(|it| it.is_east_of(node, &grid.maze.ring_sizes))
         {
-            print!("E");
             data.append(Command::Move(Absolute, (c.cx, c.cy).into()));
             data.append(Command::Line(Absolute, (c.dx, c.dy).into()));
         }
@@ -391,7 +386,6 @@ pub fn test_maze() -> Result<(), ()> {
             .iter()
             .any(|it| it.is_west_of(node, &grid.maze.ring_sizes))
         {
-            print!("W");
             data.append(Command::Move(Absolute, (c.ax, c.ay).into()));
             data.append(Command::Line(Absolute, (c.bx, c.by).into()));
         }
@@ -402,7 +396,6 @@ pub fn test_maze() -> Result<(), ()> {
             .iter()
             .any(|it| it.is_north_of(node))
         {
-            print!("N");
             data.append(Command::Move(Absolute, (c.bx, c.by).into()));
             data.append(EllipticalArc(
                 Absolute,
@@ -416,14 +409,12 @@ pub fn test_maze() -> Result<(), ()> {
             .iter()
             .any(|it| it.is_south_of(node))
         {
-            print!("S");
             data.append(Command::Move(Absolute, (c.cx, c.cy).into()));
             data.append(EllipticalArc(
                 Absolute,
                 (inner, inner, 0, 0, 1, c.ax, c.ay).into(),
             ));
         }
-        println!();
     }
 
     let mut data = Data::new();
