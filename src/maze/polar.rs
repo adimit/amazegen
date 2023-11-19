@@ -430,13 +430,10 @@ struct CellCoordinates {
     dy: f64,
 }
 
-fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
-    fastrand::seed(10);
-    let mut maze = jarník(RingMaze::new(rings, column_factor));
-    let outer_ring = rings - 1;
-    let start = get_random_cell_on_the_outside(&maze);
+fn get_node_furthest_away_from(maze: &RingMaze, start: RingNode) -> RingNode {
+    let outer_ring = maze.ring_sizes.len() - 1;
     let topo = maze.dijkstra(start);
-    let exit = RingNode {
+    RingNode {
         row: outer_ring,
         column: (0..maze.ring_sizes[outer_ring])
             .max_by_key(|column| {
@@ -446,10 +443,18 @@ fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
                 }]
             })
             .unwrap(),
-    };
-    let path_to_solution = find_shortest_path(&maze, start, exit);
+    }
+}
+
+fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
+    //fastrand::seed(10);
+    let mut maze = jarník(RingMaze::new(rings, column_factor));
+    let start = get_random_cell_on_the_outside(&maze);
+    let exit = get_node_furthest_away_from(&maze, start);
+    let entrance = get_node_furthest_away_from(&maze, exit);
+    let path_to_solution = find_shortest_path(&maze, entrance, exit);
+    maze.open(entrance);
     maze.open(exit);
-    maze.open(start);
 
     (maze, path_to_solution)
 }
@@ -521,12 +526,12 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
 
 pub fn test_maze() -> Result<(), ()> {
     let height = 40.0;
-    let rings = 6;
+    let rings = 12;
     let column_factor = 8;
     let (maze, path_to_solution) = make_maze(rings, column_factor);
     let stroke_width = 3.0;
     let grid = PolarGrid::new(&maze, height, stroke_width);
-    let pixels = grid.centre.x * 2.0 + 2.0 * stroke_width;
+    let pixels = (grid.centre.x + stroke_width) * 2.0;
     let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
