@@ -307,8 +307,7 @@ pub fn test_maze() -> Result<(), ()> {
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
-    fn arc(data: &mut Data, grid: &PolarGrid, column: usize, row: usize) {
-        let node = RingNode { column, row };
+    fn render_cell(data: &mut Data, grid: &PolarGrid, node: RingNode) {
         let cell = grid.compute_cell(node);
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
@@ -328,7 +327,7 @@ pub fn test_maze() -> Result<(), ()> {
     let mut data = Data::new();
     for row in 1..maze.ring_sizes.len() {
         for column in 0..maze.max_column(row) {
-            arc(&mut data, &grid, column, row)
+            render_cell(&mut data, &grid, RingNode { column, row })
         }
     }
     let path = Path::new()
