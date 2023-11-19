@@ -6,6 +6,8 @@ use svg::node::element::path::Position::Absolute;
 use svg::node::element::Path;
 use svg::{Document, Node};
 
+use crate::maze::paint::WebColour;
+
 const π: f64 = std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
@@ -446,17 +448,17 @@ fn get_node_furthest_away_from(maze: &RingMaze, start: RingNode) -> RingNode {
     }
 }
 
-fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
+fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
     //fastrand::seed(10);
     let mut maze = jarník(RingMaze::new(rings, column_factor));
     let start = get_random_cell_on_the_outside(&maze);
     let exit = get_node_furthest_away_from(&maze, start);
     let entrance = get_node_furthest_away_from(&maze, exit);
-    let path_to_solution = find_shortest_path(&maze, entrance, exit);
+    let (path_to_solution, distances) = find_shortest_path(&maze, entrance, exit);
     maze.open(entrance);
     maze.open(exit);
 
-    (maze, path_to_solution)
+    (maze, path_to_solution, distances)
 }
 
 fn debug_maze(maze: &RingMaze) {
@@ -473,7 +475,11 @@ fn debug_maze(maze: &RingMaze) {
     }
 }
 
-fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<RingNode> {
+fn find_shortest_path(
+    maze: &RingMaze,
+    start: RingNode,
+    end: RingNode,
+) -> (Vec<RingNode>, Cells<usize>) {
     let distances = maze.dijkstra(start);
     let mut cursor = end;
     let mut path = vec![cursor];
@@ -490,7 +496,7 @@ fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<Ri
     }
     path.push(start);
 
-    path
+    (path, distances)
 }
 
 fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
@@ -526,13 +532,71 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
 
 pub fn test_maze() -> Result<(), ()> {
     let height = 40.0;
-    let rings = 12;
+    let rings = 32;
     let column_factor = 8;
-    let (maze, path_to_solution) = make_maze(rings, column_factor);
+    let (maze, path_to_solution, distances) = make_maze(rings, column_factor);
     let stroke_width = 3.0;
     let grid = PolarGrid::new(&maze, height, stroke_width);
     let pixels = (grid.centre.x + stroke_width) * 2.0;
     let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+
+    let max_distance = distances.cells.iter().max().unwrap();
+    const STAIN_A: &str = "FFDC80";
+    const STAIN_B: &str = "B9327D";
+    let a = WebColour::from_string(STAIN_A).unwrap();
+    let b = WebColour::from_string(STAIN_B).unwrap();
+
+    fn get_colour(absolute: u8, fraction: f64) -> u8 {
+        (absolute as f64 * fraction) as u8
+    }
+
+    for node in maze.cells.iter() {
+        let outer = grid.outer_radius(node.coordinates.row);
+        let inner = grid.inner_radius(node.coordinates.row);
+        let c = grid.compute_cell(node.coordinates);
+        let intensity = (max_distance - distances[node.coordinates]) as f64 / *max_distance as f64;
+        let inverse = 1.0 - intensity;
+        let fill = format!(
+            "rgb({}, {}, {})",
+            get_colour(a.r, intensity) + get_colour(b.r, inverse),
+            get_colour(a.g, intensity) + get_colour(b.g, inverse),
+            get_colour(a.b, intensity) + get_colour(b.b, inverse),
+        );
+        let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
+            Data::new()
+                .move_to((grid.centre.x, grid.centre.y + grid.ring_height))
+                .elliptical_arc_to((
+                    grid.ring_height,
+                    grid.ring_height,
+                    0,
+                    1,
+                    0,
+                    grid.centre.x,
+                    grid.centre.y - grid.ring_height,
+                ))
+                .elliptical_arc_to((
+                    grid.ring_height,
+                    grid.ring_height,
+                    0,
+                    1,
+                    0,
+                    grid.centre.x,
+                    grid.centre.y + grid.ring_height,
+                ))
+        } else {
+            Data::new()
+                .move_to((c.ax, c.ay))
+                .line_to((c.bx, c.by))
+                .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
+                .line_to((c.cx, c.cy))
+                .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay))
+        };
+        let path = Path::new()
+            .set("stroke", "none")
+            .set("fill", fill)
+            .set("d", data);
+        document.append(path);
+    }
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
         let node = cell.coordinates;
@@ -599,8 +663,8 @@ pub fn test_maze() -> Result<(), ()> {
         .set("stroke-width", "3");
     document.append(path);
 
-    // let solution = draw_path(&grid, &path_to_solution);
-    // document.append(solution);
+    let solution = draw_path(&grid, &path_to_solution);
+    document.append(solution);
 
     svg::save("test-output.svg", &document).unwrap();
 
