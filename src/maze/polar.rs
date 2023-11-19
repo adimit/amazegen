@@ -188,7 +188,7 @@ impl RingMaze {
     }
 
     pub fn get_random_node(&self) -> RingNode {
-        todo!()
+        self.cells[fastrand::usize(0..self.cells.len())].coordinates
     }
 
     pub fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
@@ -199,6 +199,26 @@ impl RingMaze {
     fn max_column(&self, ring: usize) -> usize {
         self.ring_sizes[ring]
     }
+}
+
+fn jarník(mut maze: RingMaze) -> RingMaze {
+    let mut vertices: Vec<RingNode> = vec![maze.get_random_node()];
+    fastrand::seed(7);
+
+    while !vertices.is_empty() {
+        let i = vertices.len() - 1;
+        let e = vertices[i];
+        let targets = maze.get_walls(e);
+        if !targets.is_empty() {
+            let target = targets[fastrand::usize(0..targets.len())];
+            maze.carve(e, target);
+            vertices.push(target);
+        } else {
+            vertices.swap_remove(i);
+        }
+    }
+
+    maze
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -276,9 +296,14 @@ struct CellCoordinates {
     dy: f64,
 }
 
+fn make_maze() -> RingMaze {
+    let mut fresh = RingMaze::new(12, 9);
+    jarník(fresh)
+}
+
 pub fn test_maze() -> Result<(), ()> {
     println!("Generating maze...");
-    let maze = RingMaze::new(12, 9);
+    let maze = make_maze();
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
