@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use svg::node::element::path::Command::EllipticalArc;
 use svg::node::element::path::Data;
 use svg::node::element::path::Position::Absolute;
@@ -148,8 +150,23 @@ mod test {
     }
 }
 
+impl Index<RingNode> for RingMaze {
+    type Output = RingCell;
+
+    fn index(&self, index: RingNode) -> &Self::Output {
+        &self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+    }
+}
+
+impl IndexMut<RingNode> for RingMaze {
+    fn index_mut(&mut self, index: RingNode) -> &mut Self::Output {
+        &mut self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+    }
+}
+
 struct RingMaze {
     ring_sizes: Vec<usize>,
+    cells: Vec<RingCell>,
 }
 
 const COLUMN_FACTOR: usize = 8;
@@ -171,7 +188,10 @@ impl RingMaze {
                 .map(|row| Self::compute_no_of_columns(row)),
         );
         println!("Maze size: {}", &rings.iter().sum::<usize>());
-        RingMaze { ring_sizes: rings }
+        RingMaze {
+            ring_sizes: rings,
+            cells: vec![],
+        }
     }
 
     /// No bounds checking on `ring`. Panics if `ring` ≥ `ring_sizes.len()` of this maze
