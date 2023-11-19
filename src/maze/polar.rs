@@ -265,6 +265,13 @@ impl RingMaze {
     fn max_column(&self, ring: usize) -> usize {
         self.ring_sizes[ring]
     }
+
+    fn open(&mut self, node: RingNode) {
+        self[node].accessible_neighbours.push(RingNode {
+            row: node.row + 1,
+            column: 0,
+        })
+    }
 }
 
 fn jarník(mut maze: RingMaze) -> RingMaze {
@@ -410,9 +417,28 @@ struct CellCoordinates {
     dy: f64,
 }
 
-fn make_maze(rings: usize, column_factor: usize) -> RingMaze {
+fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
     fastrand::seed(10);
-    jarník(RingMaze::new(rings, column_factor))
+    let mut maze = jarník(RingMaze::new(rings, column_factor));
+    let outer_ring = rings - 1;
+    let start = get_random_cell_on_the_outside(&maze);
+    let topo = dijkstra(&maze, start);
+    let exit = RingNode {
+        row: outer_ring,
+        column: (0..maze.ring_sizes[outer_ring])
+            .max_by_key(|column| {
+                topo[RingNode {
+                    column: *column,
+                    row: outer_ring,
+                }]
+            })
+            .unwrap(),
+    };
+    let path_to_solution = find_shortest_path(&maze, start, exit);
+    maze.open(exit);
+    maze.open(start);
+
+    (maze, path_to_solution)
 }
 
 fn debug_maze(maze: &RingMaze) {
@@ -481,24 +507,8 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
 }
 
 pub fn test_maze() -> Result<(), ()> {
-    let maze = make_maze(12, 8);
+    let (maze, path_to_solution) = make_maze(10, 10);
     let grid = PolarGrid::new(&maze, 40.0);
-    let outer_ring = 11;
-    let start = get_random_cell_on_the_outside(&maze);
-    let topo = dijkstra(&maze, start);
-    let exit = RingNode {
-        row: outer_ring,
-        column: (0..maze.ring_sizes[11])
-            .max_by_key(|column| {
-                topo[RingNode {
-                    column: *column,
-                    row: outer_ring,
-                }]
-            })
-            .unwrap(),
-    };
-    let path_to_solution = find_shortest_path(&maze, start, exit);
-
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
