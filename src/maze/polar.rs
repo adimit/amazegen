@@ -31,7 +31,7 @@ struct RingCell {
 }
 
 impl RingCell {
-    pub fn carve(&mut self, neighbour: RingNode) {
+    fn carve(&mut self, neighbour: RingNode) {
         if let Some(index) = self
             .inaccessible_neighbours
             .iter()
@@ -42,11 +42,11 @@ impl RingCell {
         }
     }
 
-    pub fn get_walls(&self) -> Vec<RingNode> {
+    fn get_walls(&self) -> Vec<RingNode> {
         self.inaccessible_neighbours.clone()
     }
 
-    pub fn get_paths(&self) -> Vec<RingNode> {
+    fn get_paths(&self) -> Vec<RingNode> {
         self.accessible_neighbours.clone()
     }
 
@@ -143,6 +143,9 @@ impl RingMaze {
         2_usize.pow(row.ilog2()) * COLUMN_FACTOR
     }
 
+    /// Cells are stored in a flat vector. The index implementation for `RindNode`
+    /// finds out how many cells are in each ring via the ring sizes.
+    /// Vector index of (r, c) = sum of ring sizes up to r + c
     fn compute_cells(max_rings: usize, rings: &Vec<usize>) -> Vec<RingCell> {
         let mut cells = vec![RingCell {
             coordinates: RingNode { row: 0, column: 0 },
@@ -171,8 +174,29 @@ impl RingMaze {
         }
     }
 
+    pub fn carve(&mut self, node: RingNode, neighbour: RingNode) {
+        self[node].carve(neighbour);
+        self[neighbour].carve(node);
+    }
+
+    pub fn get_walls(&self, node: RingNode) -> Vec<RingNode> {
+        self[node].get_walls()
+    }
+
+    pub fn get_paths(&self, node: RingNode) -> Vec<RingNode> {
+        self[node].get_paths()
+    }
+
+    pub fn get_random_node(&self) -> RingNode {
+        todo!()
+    }
+
+    pub fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
+        todo!()
+    }
+
     /// No bounds checking on `ring`. Panics if `ring` ≥ `ring_sizes.len()` of this maze
-    pub fn max_column(&self, ring: usize) -> usize {
+    fn max_column(&self, ring: usize) -> usize {
         self.ring_sizes[ring]
     }
 }
@@ -254,9 +278,8 @@ struct CellCoordinates {
 
 pub fn test_maze() -> Result<(), ()> {
     println!("Generating maze...");
-    let maze = RingMaze::new(3);
+    let maze = RingMaze::new(6);
     let grid = PolarGrid::new(&maze, 40.0);
-
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
     fn arc(grid: &PolarGrid, column: usize, row: usize) -> Path {
