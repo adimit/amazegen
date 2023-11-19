@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use svg::node::element::path::Command::EllipticalArc;
+use svg::node::element::path::Command::{self, EllipticalArc};
 use svg::node::element::path::Data;
 use svg::node::element::path::Position::Absolute;
 use svg::node::element::Path;
@@ -307,36 +307,36 @@ pub fn test_maze() -> Result<(), ()> {
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
-    fn arc(grid: &PolarGrid, column: usize, row: usize) -> Path {
+    fn arc(data: &mut Data, grid: &PolarGrid, column: usize, row: usize) {
         let node = RingNode { column, row };
         let cell = grid.compute_cell(node);
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
-        let data = Data::new()
-            .move_to((cell.ax, cell.ay))
-            .line_to((cell.bx, cell.by))
-            .add(EllipticalArc(
-                Absolute,
-                (outer, outer, 0, 0, 0, cell.dx, cell.dy).into(),
-            ))
-            .line_to((cell.cx, cell.cy))
-            .add(EllipticalArc(
-                Absolute,
-                (inner, inner, 0, 1, 0, cell.ax, cell.ay).into(),
-            ));
-
-        Path::new()
-            .set("stroke", "black")
-            .set("fill", "none")
-            .set("d", data)
-            .set("stroke-width", "3")
+        data.append(Command::Move(Absolute, (cell.ax, cell.ay).into()));
+        data.append(Command::Line(Absolute, (cell.bx, cell.by).into()));
+        data.append(EllipticalArc(
+            Absolute,
+            (outer, outer, 0, 0, 0, cell.dx, cell.dy).into(),
+        ));
+        data.append(Command::Move(Absolute, (cell.cx, cell.cy).into()));
+        data.append(EllipticalArc(
+            Absolute,
+            (inner, inner, 0, 1, 0, cell.ax, cell.ay).into(),
+        ));
     }
 
+    let mut data = Data::new();
     for row in 1..maze.ring_sizes.len() {
         for column in 0..maze.max_column(row) {
-            document.append(arc(&grid, column, row));
+            arc(&mut data, &grid, column, row)
         }
     }
+    let path = Path::new()
+        .set("stroke", "black")
+        .set("fill", "none")
+        .set("d", data)
+        .set("stroke-width", "3");
+    document.append(path);
 
     svg::save("test-output.svg", &document).unwrap();
 
