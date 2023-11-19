@@ -200,6 +200,53 @@ struct RingMaze {
 
 const COLUMN_FACTOR: usize = 8;
 
+trait JarníkMaze {
+    type Idx: PartialEq + Copy + Clone;
+
+    fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx);
+
+    fn get_walls(&self, node: Self::Idx) -> Vec<Self::Idx>;
+
+    fn get_paths(&self, node: Self::Idx) -> Vec<Self::Idx>;
+
+    fn get_random_node(&self) -> Self::Idx;
+
+    fn open(&mut self, node: Self::Idx);
+
+    fn dijkstra(&self, origin: Self::Idx) -> Cells<usize>;
+}
+
+impl JarníkMaze for RingMaze {
+    type Idx = RingNode;
+    fn carve(&mut self, node: RingNode, neighbour: RingNode) {
+        self[node].carve(neighbour);
+        self[neighbour].carve(node);
+    }
+
+    fn get_walls(&self, node: RingNode) -> Vec<RingNode> {
+        self[node].get_walls()
+    }
+
+    fn get_paths(&self, node: RingNode) -> Vec<RingNode> {
+        self[node].get_paths()
+    }
+
+    fn get_random_node(&self) -> RingNode {
+        self.cells[fastrand::usize(0..self.cells.len())].coordinates
+    }
+
+    fn open(&mut self, node: RingNode) {
+        self[node].accessible_neighbours.push(RingNode {
+            row: node.row + 1,
+            column: 0,
+        })
+    }
+
+    fn dijkstra(&self, origin: RingNode) -> Cells<usize> {
+        dijkstra(self, origin)
+    }
+}
+
 impl RingMaze {
     /// Ring mazes quickly gain a lot of cells. Since we need to subdivide
     /// the cells per ring for aesthetic reasons, the number of cells grows
@@ -229,7 +276,7 @@ impl RingMaze {
         cells
     }
 
-    pub fn new(max_rings: usize, column_factor: usize) -> RingMaze {
+    fn new(max_rings: usize, column_factor: usize) -> RingMaze {
         let mut rings = vec![1];
         rings.extend((1..max_rings).map(|row| Self::compute_no_of_columns(row, column_factor)));
 
@@ -240,24 +287,7 @@ impl RingMaze {
         }
     }
 
-    pub fn carve(&mut self, node: RingNode, neighbour: RingNode) {
-        self[node].carve(neighbour);
-        self[neighbour].carve(node);
-    }
-
-    pub fn get_walls(&self, node: RingNode) -> Vec<RingNode> {
-        self[node].get_walls()
-    }
-
-    pub fn get_paths(&self, node: RingNode) -> Vec<RingNode> {
-        self[node].get_paths()
-    }
-
-    pub fn get_random_node(&self) -> RingNode {
-        self.cells[fastrand::usize(0..self.cells.len())].coordinates
-    }
-
-    pub fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
+    fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
         todo!()
     }
 
@@ -265,19 +295,12 @@ impl RingMaze {
     fn max_column(&self, ring: usize) -> usize {
         self.ring_sizes[ring]
     }
-
-    fn open(&mut self, node: RingNode) {
-        self[node].accessible_neighbours.push(RingNode {
-            row: node.row + 1,
-            column: 0,
-        })
-    }
 }
 
-fn jarník(mut maze: RingMaze) -> RingMaze {
+fn jarník<M: JarníkMaze>(mut maze: M) -> M {
     let start = maze.get_random_node();
-    let mut vertices: Vec<RingNode> = vec![start];
-    let mut visited: Vec<RingNode> = vec![start];
+    let mut vertices: Vec<M::Idx> = vec![start];
+    let mut visited: Vec<M::Idx> = vec![start];
 
     while !vertices.is_empty() {
         let i = vertices.len() - 1;
@@ -422,7 +445,7 @@ fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>) {
     let mut maze = jarník(RingMaze::new(rings, column_factor));
     let outer_ring = rings - 1;
     let start = get_random_cell_on_the_outside(&maze);
-    let topo = dijkstra(&maze, start);
+    let topo = maze.dijkstra(start);
     let exit = RingNode {
         row: outer_ring,
         column: (0..maze.ring_sizes[outer_ring])
@@ -456,7 +479,7 @@ fn debug_maze(maze: &RingMaze) {
 }
 
 fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<RingNode> {
-    let distances = dijkstra(maze, start);
+    let distances = maze.dijkstra(start);
     let mut cursor = end;
     let mut path = vec![cursor];
     loop {
@@ -474,6 +497,7 @@ fn find_shortest_path(maze: &RingMaze, start: RingNode, end: RingNode) -> Vec<Ri
 
     path
 }
+
 fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
     let centre = CartesianPoint { x: 500, y: 500 };
     if node.row == 0 && node.column == 0 {
@@ -576,8 +600,8 @@ pub fn test_maze() -> Result<(), ()> {
         .set("stroke-width", "3");
     document.append(path);
 
-    let solution = draw_path(&grid, &path_to_solution);
-    document.append(solution);
+    // let solution = draw_path(&grid, &path_to_solution);
+    // document.append(solution);
 
     svg::save("test-output.svg", &document).unwrap();
 
