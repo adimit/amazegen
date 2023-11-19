@@ -139,14 +139,14 @@ impl RingMaze {
     /// the cells per ring for aesthetic reasons, the number of cells grows
     /// 2 ^ (log n) where n is the number of rings.
     /// An 8 * 10 grid has 297 cells (a rectilinear grid would just have 80).
-    fn compute_no_of_columns(row: usize) -> usize {
-        2_usize.pow(row.ilog2()) * COLUMN_FACTOR
+    fn compute_no_of_columns(row: usize, column_factor: usize) -> usize {
+        2_usize.pow(row.ilog2()) * column_factor
     }
 
     /// Cells are stored in a flat vector. The index implementation for `RindNode`
     /// finds out how many cells are in each ring via the ring sizes.
     /// Vector index of (r, c) = sum of ring sizes up to r + c
-    fn compute_cells(max_rings: usize, rings: &Vec<usize>) -> Vec<RingCell> {
+    fn compute_cells(max_rings: usize, rings: &Vec<usize>, column_factor: usize) -> Vec<RingCell> {
         let mut cells = vec![RingCell {
             coordinates: RingNode { row: 0, column: 0 },
             inaccessible_neighbours: (0..COLUMN_FACTOR)
@@ -156,18 +156,18 @@ impl RingMaze {
         }];
 
         cells.extend((1..max_rings).flat_map(|row| {
-            (0..Self::compute_no_of_columns(row))
+            (0..Self::compute_no_of_columns(row, column_factor))
                 .map(move |column| RingCell::new(rings, RingNode { row, column }))
         }));
 
         cells
     }
 
-    pub fn new(max_rings: usize) -> RingMaze {
+    pub fn new(max_rings: usize, column_factor: usize) -> RingMaze {
         let mut rings = vec![1];
-        rings.extend((1..max_rings).map(|row| Self::compute_no_of_columns(row)));
+        rings.extend((1..max_rings).map(|row| Self::compute_no_of_columns(row, column_factor)));
 
-        let cells = Self::compute_cells(max_rings, &rings);
+        let cells = Self::compute_cells(max_rings, &rings, column_factor);
         RingMaze {
             ring_sizes: rings,
             cells,
@@ -278,7 +278,7 @@ struct CellCoordinates {
 
 pub fn test_maze() -> Result<(), ()> {
     println!("Generating maze...");
-    let maze = RingMaze::new(6);
+    let maze = RingMaze::new(12, 9);
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
