@@ -108,11 +108,6 @@ impl RingCell {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-}
-
 impl Index<RingNode> for RingMaze {
     type Output = RingCell;
 
@@ -150,7 +145,7 @@ impl RingMaze {
         let mut cells = vec![RingCell {
             coordinates: RingNode { row: 0, column: 0 },
             inaccessible_neighbours: (0..COLUMN_FACTOR)
-                .map(|column| RingNode { row: 0, column })
+                .map(|column| RingNode { row: 1, column })
                 .collect(),
             accessible_neighbours: vec![],
         }];
@@ -202,13 +197,19 @@ impl RingMaze {
 }
 
 fn jarník(mut maze: RingMaze) -> RingMaze {
-    let mut vertices: Vec<RingNode> = vec![maze.get_random_node()];
-    fastrand::seed(7);
+    let start = maze.get_random_node();
+    let mut vertices: Vec<RingNode> = vec![start];
+    let mut visited: Vec<RingNode> = vec![start];
 
     while !vertices.is_empty() {
         let i = vertices.len() - 1;
         let e = vertices[i];
-        let targets = maze.get_walls(e);
+        let targets = maze
+            .get_walls(e)
+            .iter()
+            .filter(|n| !visited.contains(n))
+            .cloned()
+            .collect::<Vec<_>>();
         if !targets.is_empty() {
             let target = targets[fastrand::usize(0..targets.len())];
             maze.carve(e, target);
@@ -216,6 +217,7 @@ fn jarník(mut maze: RingMaze) -> RingMaze {
         } else {
             vertices.swap_remove(i);
         }
+        visited.push(e);
     }
 
     maze
@@ -225,6 +227,47 @@ fn jarník(mut maze: RingMaze) -> RingMaze {
 pub struct RingNode {
     pub row: usize,
     pub column: usize,
+}
+
+impl RingNode {
+    pub fn is_north_of(&self, other: RingNode) -> bool {
+        self.row > other.row
+    }
+
+    pub fn is_south_of(&self, other: RingNode) -> bool {
+        self.row < other.row
+    }
+
+    pub fn is_east_of(&self, other: RingNode, extents: &Vec<usize>) -> bool {
+        self.row == other.row
+            && (self.column + 1 == other.column
+                || (other.column == 0 && self.column == extents[self.row] - 1))
+    }
+
+    pub fn is_west_of(&self, other: RingNode, extents: &Vec<usize>) -> bool {
+        self.row == other.row
+            && (self.column == other.column + 1
+                || (self.column == 0 && other.column == extents[self.row] - 1))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn east_west_of_wraps_around_properly() {
+        let rings = RingMaze::new(6, 8).ring_sizes;
+        let node = RingNode { row: 1, column: 0 };
+        assert!(RingNode { row: 1, column: 1 }.is_west_of(node, &rings));
+        assert!(
+            !RingNode { row: 1, column: 7 }.is_west_of(node, &rings),
+            "Should not be directly west of a node that wrapped around the eastern end"
+        );
+
+        assert!(!RingNode { row: 1, column: 1 }.is_east_of(node, &rings));
+        assert!(RingNode { row: 1, column: 7 }.is_east_of(node, &rings));
+    }
 }
 
 struct PolarGrid<'a> {
@@ -297,39 +340,97 @@ struct CellCoordinates {
 }
 
 fn make_maze() -> RingMaze {
-    let mut fresh = RingMaze::new(12, 9);
-    jarník(fresh)
+    fastrand::seed(10);
+    let mut maze = RingMaze::new(6, 8);
+    jarník(maze)
+}
+
+fn debug_maze(maze: &RingMaze) {
+    for cell in maze.cells.iter() {
+        print!("({}, {}): ", cell.coordinates.row, cell.coordinates.column);
+        for neighbour in cell.inaccessible_neighbours.iter() {
+            print!("[{}, {}] ", neighbour.row, neighbour.column);
+        }
+        print!("| ");
+        for neighbour in cell.accessible_neighbours.iter() {
+            print!("({}, {}) ", neighbour.row, neighbour.column);
+        }
+        println!();
+    }
 }
 
 pub fn test_maze() -> Result<(), ()> {
-    println!("Generating maze...");
+    println!("Generating maze…");
     let maze = make_maze();
+    debug_maze(&maze);
     let grid = PolarGrid::new(&maze, 40.0);
     let mut document = Document::new().set("viewBox", (0, 0, 1000, 1000));
 
-    fn render_cell(data: &mut Data, grid: &PolarGrid, node: RingNode) {
-        let cell = grid.compute_cell(node);
+    println!("Drawing maze…");
+    fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
+        let node = cell.coordinates;
+        let c = grid.compute_cell(node);
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
-        data.append(Command::Move(Absolute, (cell.ax, cell.ay).into()));
-        data.append(Command::Line(Absolute, (cell.bx, cell.by).into()));
-        data.append(EllipticalArc(
-            Absolute,
-            (outer, outer, 0, 0, 0, cell.dx, cell.dy).into(),
-        ));
-        data.append(Command::Move(Absolute, (cell.cx, cell.cy).into()));
-        data.append(EllipticalArc(
-            Absolute,
-            (inner, inner, 0, 1, 0, cell.ax, cell.ay).into(),
-        ));
+        print!("({}, {}): ", node.row, node.column);
+
+        // east wall
+        if cell
+            .inaccessible_neighbours
+            .iter()
+            .any(|it| it.is_east_of(node, &grid.maze.ring_sizes))
+        {
+            print!("E");
+            data.append(Command::Move(Absolute, (c.cx, c.cy).into()));
+            data.append(Command::Line(Absolute, (c.dx, c.dy).into()));
+        }
+
+        // west wall
+        if cell
+            .inaccessible_neighbours
+            .iter()
+            .any(|it| it.is_west_of(node, &grid.maze.ring_sizes))
+        {
+            print!("W");
+            data.append(Command::Move(Absolute, (c.ax, c.ay).into()));
+            data.append(Command::Line(Absolute, (c.bx, c.by).into()));
+        }
+
+        // north wall
+        if !cell
+            .accessible_neighbours
+            .iter()
+            .any(|it| it.is_north_of(node))
+        {
+            print!("N");
+            data.append(Command::Move(Absolute, (c.bx, c.by).into()));
+            data.append(EllipticalArc(
+                Absolute,
+                (outer, outer, 0, 0, 0, c.dx, c.dy).into(),
+            ));
+        }
+
+        // south wall
+        if cell
+            .inaccessible_neighbours
+            .iter()
+            .any(|it| it.is_south_of(node))
+        {
+            print!("S");
+            data.append(Command::Move(Absolute, (c.cx, c.cy).into()));
+            data.append(EllipticalArc(
+                Absolute,
+                (inner, inner, 0, 0, 1, c.ax, c.ay).into(),
+            ));
+        }
+        println!();
     }
 
     let mut data = Data::new();
-    for row in 1..maze.ring_sizes.len() {
-        for column in 0..maze.max_column(row) {
-            render_cell(&mut data, &grid, RingNode { column, row })
-        }
+    for node in maze.cells.iter() {
+        render_cell(&mut data, &grid, node);
     }
+
     let path = Path::new()
         .set("stroke", "black")
         .set("fill", "none")
