@@ -6,6 +6,8 @@ use svg::node::element::path::Position::Absolute;
 use svg::node::element::Path;
 use svg::{Document, Node};
 
+use crate::maze::feature::Algorithm;
+use crate::maze::paint::DrawingInstructions;
 use crate::maze::paint::WebColour;
 
 const π: f64 = std::f64::consts::PI;
@@ -402,14 +404,14 @@ impl PolarGrid<'_> {
         let west = self.θ_west(node);
 
         CellCoordinates {
-            ax: self.centre.x as f64 + (inner * west.cos()),
-            ay: self.centre.y as f64 + (inner * west.sin()),
-            bx: self.centre.x as f64 + (outer * west.cos()),
-            by: self.centre.y as f64 + (outer * west.sin()),
-            cx: self.centre.x as f64 + (inner * east.cos()),
-            cy: self.centre.y as f64 + (inner * east.sin()),
-            dx: self.centre.x as f64 + (outer * east.cos()),
-            dy: self.centre.y as f64 + (outer * east.sin()),
+            ax: self.centre.x + (inner * west.cos()),
+            ay: self.centre.y + (inner * west.sin()),
+            bx: self.centre.x + (outer * west.cos()),
+            by: self.centre.y + (outer * west.sin()),
+            cx: self.centre.x + (inner * east.cos()),
+            cy: self.centre.y + (inner * east.sin()),
+            dx: self.centre.x + (outer * east.cos()),
+            dy: self.centre.y + (outer * east.sin()),
         }
     }
 }
@@ -448,8 +450,12 @@ fn get_node_furthest_away_from(maze: &RingMaze, start: RingNode) -> RingNode {
     }
 }
 
-fn make_maze(rings: usize, column_factor: usize) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
-    //fastrand::seed(10);
+fn make_maze(
+    rings: usize,
+    column_factor: usize,
+    seed: u64,
+) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
+    fastrand::seed(seed);
     let mut maze = jarník(RingMaze::new(rings, column_factor));
     let start = get_random_cell_on_the_outside(&maze);
     let exit = get_node_furthest_away_from(&maze, start);
@@ -511,14 +517,17 @@ fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
     )
 }
 
-fn draw_path(grid: &PolarGrid, path: &Vec<RingNode>) -> Path {
+fn draw_path(grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
     let mut data = Data::new();
     data.append(Command::Move(Absolute, middle(grid, &path[0]).into()));
     for node in path.iter().skip(1) {
         data.append(Command::Line(Absolute, middle(grid, node).into()));
     }
     Path::new()
-        .set("stroke", "red")
+        .set(
+            "stroke",
+            format!("rgb({}, {}, {})", colour.r, colour.g, colour.b),
+        )
         .set("fill", "none")
         .set("d", data)
         .set("stroke-width", "3")
@@ -530,72 +539,83 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
     RingNode { row: ring, column }
 }
 
-pub fn test_maze() -> Result<(), ()> {
-    let height = 40.0;
-    let rings = 32;
-    let column_factor = 8;
-    let (maze, path_to_solution, distances) = make_maze(rings, column_factor);
-    let stroke_width = 3.0;
-    let grid = PolarGrid::new(&maze, height, stroke_width);
-    let pixels = (grid.centre.x + stroke_width) * 2.0;
-    let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+trait MazeGen {
+    fn create_maze(
+        &self,
+        seed: u64,
+        features: Vec<DrawingInstructions>,
+        algorithm: Algorithm,
+    ) -> String;
+}
 
-    let max_distance = distances.cells.iter().max().unwrap();
-    const STAIN_A: &str = "FFDC80";
-    const STAIN_B: &str = "B9327D";
-    let a = WebColour::from_string(STAIN_A).unwrap();
-    let b = WebColour::from_string(STAIN_B).unwrap();
+struct RingMazeSvg {
+    stroke_width: f64,
+    cell_size: f64,
+    colour: String,
+    size: usize,
+}
 
+impl RingMazeSvg {
     fn get_colour(absolute: u8, fraction: f64) -> u8 {
         (absolute as f64 * fraction) as u8
     }
 
-    for node in maze.cells.iter() {
-        let outer = grid.outer_radius(node.coordinates.row);
-        let inner = grid.inner_radius(node.coordinates.row);
-        let c = grid.compute_cell(node.coordinates);
-        let intensity = (max_distance - distances[node.coordinates]) as f64 / *max_distance as f64;
-        let inverse = 1.0 - intensity;
-        let fill = format!(
-            "rgb({}, {}, {})",
-            get_colour(a.r, intensity) + get_colour(b.r, inverse),
-            get_colour(a.g, intensity) + get_colour(b.g, inverse),
-            get_colour(a.b, intensity) + get_colour(b.b, inverse),
-        );
-        let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
-            Data::new()
-                .move_to((grid.centre.x, grid.centre.y + grid.ring_height))
-                .elliptical_arc_to((
-                    grid.ring_height,
-                    grid.ring_height,
-                    0,
-                    1,
-                    0,
-                    grid.centre.x,
-                    grid.centre.y - grid.ring_height,
-                ))
-                .elliptical_arc_to((
-                    grid.ring_height,
-                    grid.ring_height,
-                    0,
-                    1,
-                    0,
-                    grid.centre.x,
-                    grid.centre.y + grid.ring_height,
-                ))
-        } else {
-            Data::new()
-                .move_to((c.ax, c.ay))
-                .line_to((c.bx, c.by))
-                .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
-                .line_to((c.cx, c.cy))
-                .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay))
-        };
-        let path = Path::new()
-            .set("stroke", "none")
-            .set("fill", fill)
-            .set("d", data);
-        document.append(path);
+    fn stain(
+        &self,
+        grid: &PolarGrid,
+        distances: &Cells<usize>,
+        (a, b): (WebColour, WebColour),
+        document: &mut Document,
+    ) {
+        let max_distance = distances.cells.iter().max().unwrap();
+        for node in grid.maze.cells.iter() {
+            let outer = grid.outer_radius(node.coordinates.row);
+            let inner = grid.inner_radius(node.coordinates.row);
+            let c = grid.compute_cell(node.coordinates);
+            let intensity =
+                (max_distance - distances[node.coordinates]) as f64 / *max_distance as f64;
+            let inverse = 1.0 - intensity;
+            let fill = format!(
+                "rgb({}, {}, {})",
+                Self::get_colour(a.r, intensity) + Self::get_colour(b.r, inverse),
+                Self::get_colour(a.g, intensity) + Self::get_colour(b.g, inverse),
+                Self::get_colour(a.b, intensity) + Self::get_colour(b.b, inverse),
+            );
+            let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
+                Data::new()
+                    .move_to((grid.centre.x, grid.centre.y + grid.ring_height))
+                    .elliptical_arc_to((
+                        grid.ring_height,
+                        grid.ring_height,
+                        0,
+                        1,
+                        0,
+                        grid.centre.x,
+                        grid.centre.y - grid.ring_height,
+                    ))
+                    .elliptical_arc_to((
+                        grid.ring_height,
+                        grid.ring_height,
+                        0,
+                        1,
+                        0,
+                        grid.centre.x,
+                        grid.centre.y + grid.ring_height,
+                    ))
+            } else {
+                Data::new()
+                    .move_to((c.ax, c.ay))
+                    .line_to((c.bx, c.by))
+                    .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
+                    .line_to((c.cx, c.cy))
+                    .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay))
+            };
+            let path = Path::new()
+                .set("stroke", "none")
+                .set("fill", fill)
+                .set("d", data);
+            document.append(path);
+        }
     }
 
     fn render_cell(data: &mut Data, grid: &PolarGrid, cell: &RingCell) {
@@ -650,23 +670,84 @@ pub fn test_maze() -> Result<(), ()> {
             ));
         }
     }
+}
 
-    let mut data = Data::new();
-    for node in maze.cells.iter() {
-        render_cell(&mut data, &grid, node);
+impl MazeGen for RingMazeSvg {
+    fn create_maze(
+        &self,
+        seed: u64,
+        features: Vec<DrawingInstructions>,
+        _algorithm: Algorithm,
+    ) -> String {
+        let (maze, path_to_solution, distances) = make_maze(self.size, 8, seed);
+        let grid = PolarGrid::new(&maze, self.cell_size, self.stroke_width);
+        let pixels = (grid.centre.x + self.stroke_width) * 2.0;
+        let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+
+        for feature in features {
+            match feature {
+                DrawingInstructions::ShowSolution(colour) => {
+                    let solution = draw_path(&grid, &path_to_solution, colour);
+                    document.append(solution);
+                }
+                DrawingInstructions::StainMaze(colours) => {
+                    self.stain(&grid, &distances, colours, &mut document);
+                }
+                DrawingInstructions::DrawMaze(_) => {}
+            }
+        }
+
+        let mut data = Data::new();
+        for node in maze.cells.iter() {
+            Self::render_cell(&mut data, &grid, node);
+        }
+
+        let path = Path::new()
+            .set("stroke", self.colour.as_str())
+            .set("fill", "none")
+            .set("d", data)
+            .set("stroke-width", self.stroke_width);
+        document.append(path);
+
+        let mut strbuf: Vec<u8> = Vec::new();
+        svg::write(&mut strbuf, &document).unwrap();
+        String::from_utf8(strbuf).unwrap()
     }
+}
 
-    let path = Path::new()
-        .set("stroke", "black")
-        .set("fill", "none")
-        .set("d", data)
-        .set("stroke-width", "3");
-    document.append(path);
-
-    let solution = draw_path(&grid, &path_to_solution);
-    document.append(solution);
-
-    svg::save("test-output.svg", &document).unwrap();
-
+pub fn test_maze() -> Result<(), ()> {
+    let mazegen = RingMazeSvg {
+        cell_size: 40.0,
+        size: 16,
+        colour: "black".into(),
+        stroke_width: 4.0,
+    };
+    let str = mazegen.create_maze(
+        fastrand::get_seed(),
+        vec![
+            DrawingInstructions::StainMaze((
+                WebColour {
+                    r: 255,
+                    g: 50,
+                    b: 255,
+                    a: 255,
+                },
+                WebColour {
+                    r: 50,
+                    g: 120,
+                    b: 255,
+                    a: 255,
+                },
+            )),
+            DrawingInstructions::ShowSolution(WebColour {
+                r: 255,
+                g: 128,
+                b: 255,
+                a: 255,
+            }),
+        ],
+        Algorithm::GrowingTree,
+    );
+    println!("{}", str);
     Ok(())
 }
