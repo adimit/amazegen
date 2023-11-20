@@ -1,6 +1,6 @@
 pub mod maze;
 
-use maze::feature::Configuration;
+use maze::feature::{Algorithm, Configuration, Feature, Shape};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -15,17 +15,17 @@ pub fn generate_maze(js: JsValue) -> String {
     configuration.execute().0
 }
 
-//#[wasm_bindgen]
-//pub fn test_config() -> JsValue {
-//    let configuration = Configuration {
-//        seed: 1,
-//        shape: Shape::Rectilinear(11, 12),
-//        colour: "#FF00FF".into(),
-//        features: vec![Feature::Stain],
-//        algorithm: Algorithm::Kruskal,
-//    };
-//    serde_wasm_bindgen::to_value(&configuration).unwrap()
-//}
+#[wasm_bindgen]
+pub fn test_config() -> JsValue {
+    let configuration = Configuration {
+        seed: 1,
+        shape: Shape::Theta(11),
+        colour: "#FF00FF".into(),
+        features: vec![Feature::Stain],
+        algorithm: Algorithm::Kruskal,
+    };
+    serde_wasm_bindgen::to_value(&configuration).unwrap()
+}
 
 #[cfg(test)]
 mod test {

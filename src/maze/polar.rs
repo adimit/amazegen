@@ -539,20 +539,20 @@ fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
     RingNode { row: ring, column }
 }
 
-trait MazeGen {
+pub trait MazeGen {
     fn create_maze(
         &self,
         seed: u64,
         features: Vec<DrawingInstructions>,
-        algorithm: Algorithm,
+        algorithm: &Algorithm,
     ) -> String;
 }
 
-struct RingMazeSvg {
-    stroke_width: f64,
-    cell_size: f64,
-    colour: String,
-    size: usize,
+pub struct RingMazeSvg {
+    pub stroke_width: f64,
+    pub cell_size: f64,
+    pub colour: String,
+    pub size: usize,
 }
 
 impl RingMazeSvg {
@@ -677,7 +677,7 @@ impl MazeGen for RingMazeSvg {
         &self,
         seed: u64,
         features: Vec<DrawingInstructions>,
-        _algorithm: Algorithm,
+        _algorithm: &Algorithm,
     ) -> String {
         let (maze, path_to_solution, distances) = make_maze(self.size, 8, seed);
         let grid = PolarGrid::new(&maze, self.cell_size, self.stroke_width);
@@ -746,7 +746,7 @@ pub fn test_maze() -> Result<(), ()> {
                 a: 255,
             }),
         ],
-        Algorithm::GrowingTree,
+        &Algorithm::GrowingTree,
     );
     println!("{}", str);
     Ok(())

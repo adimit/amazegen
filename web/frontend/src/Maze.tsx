@@ -7,8 +7,17 @@ export default function Maze(): JSX.Element {
   let input: HTMLInputElement | undefined;
   let pdfInput: HTMLInputElement | undefined;
 
-  const { configuration, toggleFeature, newSeed, setAlgorithm, setSize } =
-    configurationHashSignal();
+  const {
+    configuration,
+    toggleFeature,
+    newSeed,
+    setAlgorithm,
+    setSize,
+    setShape,
+    incrementSize,
+    decrementSize,
+    getSize,
+  } = configurationHashSignal();
   const [numberOfMazes, setNumberOfMazes] = createSignal(4);
 
   createEffect(() => {
@@ -21,16 +30,10 @@ export default function Maze(): JSX.Element {
     <>
       <section>
         <h2>Size</h2>
-        <button
-          onClick={() =>
-            setSize(Math.max(configuration().shape.Rectilinear[0] - 1, 2))
-          }
-        >
-          -
-        </button>
+        <button onClick={decrementSize}>-</button>
         <input
           ref={input}
-          value={configuration().shape.Rectilinear[0]}
+          value={getSize()}
           type="number"
           onChange={(_) => {
             const n = Number(input?.value);
@@ -39,16 +42,29 @@ export default function Maze(): JSX.Element {
             }
           }}
         />
-        <button
-          onClick={() =>
-            setSize(Math.min(configuration().shape.Rectilinear[0] + 1, 100))
-          }
-        >
-          +
-        </button>
+        <button onClick={incrementSize}>+</button>
       </section>
       <section>
-        <h2>Type</h2>
+        <h2>Shape</h2>
+        <label>
+          <input
+            type="radio"
+            onInput={() => setShape("Rectilinear")}
+            checked={"Rectilinear" in configuration().shape}
+          />
+          Square
+        </label>
+        <label>
+          <input
+            type="radio"
+            onInput={() => setShape("Theta")}
+            checked={"Theta" in configuration().shape}
+          />
+          Circle
+        </label>
+      </section>
+      <section>
+        <h2>Algorithm</h2>
         <label>
           <input
             type="radio"

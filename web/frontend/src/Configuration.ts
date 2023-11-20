@@ -1,13 +1,11 @@
 import {
   Accessor,
   createEffect,
-  createMemo,
   createSignal,
   onCleanup,
   onMount,
-  untrack,
 } from "solid-js";
-import { generate_maze, generate_seed } from "./pkg";
+import { generate_maze, generate_seed, test_config } from "./pkg";
 
 export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
@@ -17,7 +15,15 @@ export interface ShapeRectilinear {
   Rectilinear: [number, number];
 }
 
-export type Shape = ShapeRectilinear;
+console.log(test_config());
+
+export interface ShapeTheta {
+  Theta: number;
+}
+
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type ShapeKeys = KeysOfUnion<Shape>;
+export type Shape = ShapeRectilinear | ShapeTheta;
 
 export interface Configuration {
   algorithm: Algorithm;
@@ -49,6 +55,22 @@ const readFromHash = (): Configuration => {
     return !isNaN(n) && n > 1 && n < 101 ? n : undefined;
   };
 
+  const parseShape = (str: string | undefined): Shape | undefined => {
+    if (str === undefined) return undefined;
+    const size = parseSize(str.substring(1));
+    if (size !== undefined && str.startsWith("R")) {
+      return { Rectilinear: [size, size] };
+    }
+    if (size !== undefined && str.startsWith("T")) {
+      return { Theta: size };
+    }
+    const legacy = parseSize(str);
+    if (legacy !== undefined) {
+      return { Rectilinear: [legacy, legacy] };
+    }
+    return undefined;
+  };
+
   const parseBigint = (str: string | undefined): bigint | undefined => {
     if (str === undefined) return undefined;
     try {
@@ -65,39 +87,50 @@ const readFromHash = (): Configuration => {
     return undefined;
   };
 
-  const parse = [parseSize, parseBigint, parseAlgorithm];
-  const [size, seed, algorithm] =
+  const parse = [parseShape, parseBigint, parseAlgorithm];
+  const [shape, seed, algorithm] =
     (document?.location.hash
       .substring(1)
       .split("|")
       .map((str, index) => parse[index](str)) as [
-      number | undefined,
+      Shape | undefined,
       bigint | undefined,
       Algorithm | undefined
     ]) ?? [];
 
   return {
     ...getDefaultConfiguration(),
-    ...(size !== undefined && {
-      shape: { Rectilinear: [size, size] },
-    }),
+    ...(shape !== undefined && { shape }),
     ...(seed !== undefined && { seed }),
     ...(algorithm !== undefined && { algorithm }),
   };
 };
 
+const hashShape = (shape: Shape): string => {
+  if ("Rectilinear" in shape) {
+    return `R${shape.Rectilinear[0]}`;
+  }
+  if ("Theta" in shape) {
+    return `T${shape.Theta}`;
+  }
+  console.log("Error: unrecognized shape", shape);
+  throw new Error(`Error: unrecognized shape ${JSON.stringify(shape)}`);
+};
+
 export const computeHash = ({
   seed,
-  shape: {
-    Rectilinear: [size, _],
-  },
+  shape,
   algorithm,
-}: Configuration): string => `${size}|${seed}|${algorithm}`;
+}: Configuration): string => `${hashShape(shape)}|${seed}|${algorithm}`;
 
 export const configurationHashSignal = (): {
   configuration: Accessor<Configuration>;
+  setShape: (s: ShapeKeys) => Configuration;
   setSize: (s: number) => Configuration;
+  incrementSize: () => Configuration;
+  decrementSize: () => Configuration;
   newSeed: () => Configuration;
+  getSize: () => number;
   setAlgorithm: (a: Algorithm) => Configuration;
   addFeature: (f: Feature) => Configuration;
   removeFeature: (f: Feature) => Configuration;
@@ -111,13 +144,23 @@ export const configurationHashSignal = (): {
     }
   });
 
+  const shapeEquals = (a: Shape, b: Shape): boolean => {
+    if ("Rectilinear" in a && "Rectilinear" in b) {
+      return a.Rectilinear[0] === b.Rectilinear[0];
+    }
+    if ("Theta" in a && "Theta" in b) {
+      return a.Theta === b.Theta;
+    }
+    return false;
+  };
+
   const onHashChange = (_e: HashChangeEvent): void => {
     const current = configuration();
     const hash = readFromHash();
     if (
       current.seed !== hash.seed ||
       current.algorithm !== hash.algorithm ||
-      current.shape.Rectilinear[0] !== hash.shape.Rectilinear[0]
+      !shapeEquals(current.shape, hash.shape)
     ) {
       setConfiguration(readFromHash());
     }
@@ -141,14 +184,54 @@ export const configurationHashSignal = (): {
       features: [...new Set([...configuration().features, f])],
     });
 
+  const adjustSize = (by: (old: number) => number): Configuration => {
+    const { shape } = configuration();
+    if ("Rectilinear" in shape) {
+      return setConfiguration({
+        ...configuration(),
+        shape: {
+          Rectilinear: [by(shape.Rectilinear[0]), by(shape.Rectilinear[1])],
+        },
+      });
+    } else {
+      return setConfiguration({
+        ...configuration(),
+        shape: {
+          Theta: by(shape.Theta),
+        },
+      });
+    }
+  };
+
+  const getSize = (): number => {
+    const { shape } = configuration();
+    if ("Rectilinear" in shape) {
+      return shape.Rectilinear[0];
+    } else {
+      return shape.Theta;
+    }
+  };
+
   return {
     configuration,
-    setSize: (s: number): Configuration =>
-      setConfiguration({ ...configuration(), shape: { Rectilinear: [s, s] } }),
+    setShape: (shape: ShapeKeys): Configuration =>
+      setConfiguration({
+        ...configuration(),
+        shape:
+          shape === "Rectilinear"
+            ? {
+                Rectilinear: [getSize() * 2, getSize() * 2],
+              }
+            : { Theta: Math.floor(getSize() / 2) },
+      }),
+    setSize: (s: number): Configuration => adjustSize(() => s),
+    incrementSize: (): Configuration => adjustSize((old) => old + 1),
+    decrementSize: (): Configuration => adjustSize((old) => old - 1),
     newSeed: (): Configuration =>
       setConfiguration({ ...configuration(), seed: generate_seed() }),
     setAlgorithm: (algorithm: Algorithm): Configuration =>
       setConfiguration({ ...configuration(), algorithm }),
+    getSize,
     addFeature,
     removeFeature,
     toggleFeature: (f): Configuration =>

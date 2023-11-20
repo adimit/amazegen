@@ -6,6 +6,8 @@ use crate::maze::generator::MazeGenerator;
 use crate::maze::paint::*;
 use crate::maze::regular::RectilinearMaze;
 use itertools::Itertools;
+
+use super::polar::{MazeGen, RingMazeSvg};
 const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";
 const SOLUTION: &str = "8FE080";
@@ -13,6 +15,7 @@ const SOLUTION: &str = "8FE080";
 #[derive(serde::Deserialize, serde::Serialize)]
 pub enum Shape {
     Rectilinear(usize, usize),
+    Theta(usize),
 }
 
 #[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize)]
@@ -45,6 +48,7 @@ impl Algorithm {
     fn generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
         let extents = match shape {
             Shape::Rectilinear(x, y) => (*x, *y),
+            Shape::Theta(_) => todo!(),
         };
         match self {
             Algorithm::Kruskal => Kruskal::new(extents, *seed).generate(),
@@ -67,7 +71,7 @@ pub struct Configuration {
 pub struct SVG(pub String);
 
 impl Configuration {
-    pub fn execute(&self) -> SVG {
+    fn legacy_maze(&self) -> SVG {
         let mut str = String::new();
         PlottersSvgStringWriter::new(&mut str, 40, 4)
             .write_maze(
@@ -83,5 +87,31 @@ impl Configuration {
             )
             .unwrap();
         SVG(str)
+    }
+
+    pub fn execute(&self) -> SVG {
+        match self.shape {
+            Shape::Rectilinear(_, _) => self.legacy_maze(),
+            Shape::Theta(size) => {
+                let mazegen = RingMazeSvg {
+                    cell_size: 40.0,
+                    size,
+                    colour: format!("#{}", self.colour.clone()),
+                    stroke_width: 8.0,
+                };
+                SVG(mazegen.create_maze(
+                    self.seed,
+                    self.features
+                        .iter()
+                        .map(|f| Into::<DrawingInstructions>::into(*f))
+                        .sorted()
+                        .merge(once(DrawingInstructions::DrawMaze(
+                            WebColour::from_string(&self.colour).unwrap(),
+                        )))
+                        .collect::<Vec<_>>(),
+                    &self.algorithm,
+                ))
+            }
+        }
     }
 }

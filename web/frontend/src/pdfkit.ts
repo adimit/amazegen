@@ -5,6 +5,7 @@ import {
   computeHash,
   Configuration,
   generateMaze,
+  Shape,
 } from "./Configuration";
 import { generate_seed } from "./pkg";
 
@@ -76,6 +77,22 @@ const prettyPrintAlgorithm = (algorithm: Algorithm): string => {
   }
 };
 
+const getShapeName = (s: Shape): string => {
+  if ("Rectilinear" in s) {
+    return `square-${s.Rectilinear[0]}`;
+  } else {
+    return `circle-${s.Theta}`;
+  }
+};
+
+const getSizeInformation = (s: Shape): string => {
+  if ("Rectilinear" in s) {
+    return `${s.Rectilinear[0]}×${s.Rectilinear[1]}`;
+  } else {
+    return `${s.Theta}`;
+  }
+};
+
 export const generatePdf = async (
   configuration: Configuration,
   numberOfMazes: number
@@ -83,7 +100,7 @@ export const generatePdf = async (
   const { default: SVGtoPDF } = await import("svg-to-pdfkit");
   const QR = await import("qrcode");
   const font = await (await fetch(bitterRegular)).arrayBuffer();
-  await withPdf(`maze-${configuration.shape.Rectilinear[0]}`, async (pdf) => {
+  await withPdf(`maze-${getShapeName(configuration.shape)}`, async (pdf) => {
     const addMaze = async (mazeSeed: bigint): Promise<void> => {
       const myConf = { ...configuration, seed: mazeSeed, colour: "000000" };
       const qr = await QR.toString(
@@ -99,16 +116,18 @@ export const generatePdf = async (
       const svg = generateMaze(myConf);
       template.innerHTML = svg;
       const svgNode = template.content.firstChild as SVGElement;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      svgNode.attributes.getNamedItem("width")!.value = "680px";
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      svgNode.attributes.getNamedItem("height")!.value = "680px";
+      const width = document.createAttribute("width");
+      width.value = "680px";
+      svgNode.attributes.setNamedItem(width);
+      const height = document.createAttribute("height");
+      height.value = "680px";
+      svgNode.attributes.setNamedItem(height);
       pdf
         .font(font)
         .text(
-          `Size: ${myConf.shape.Rectilinear[0]}×${
-            myConf.shape.Rectilinear[0]
-          }\nSeed: ${mazeSeed}\nAlgorithm: ${prettyPrintAlgorithm(
+          `Size: ${getSizeInformation(
+            myConf.shape
+          )}\nSeed: ${mazeSeed}\nAlgorithm: ${prettyPrintAlgorithm(
             myConf.algorithm
           )}`,
           50,
