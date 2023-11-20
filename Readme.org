@@ -18,11 +18,13 @@ You can use one of two algorithms to create the mazes:
 
 [fn:1] Note that the backlinks are not stable yet, and the maze you see when you follow a link may not be the one you printed as internals may change at any time.
 
-Circular mazes (also known as θ-mazes) have an interesting property: their cell size grows quite quickly, $2^{log_2(n)}$ where $n$ is the amount of rows. In practice, the number of cells in a given θ-maze is
+You can also choose between different shapes of the overall maze: a square or a circle are available. The latter is also known as a θ-maze.
 
-$$1 + \sum_{i=1}^{i <n} c2^{\lfloor\log_2(i)\rfloor}}$$
+Circular mazes  have an interesting property: their cell count grows: $2^{log_2(n)}$ where $n$ is the amount of rings. Compare square mazes that grow at $n^2$. In practice, the number of cells in a given θ-maze is
 
-Where $c$ is the /column factor/, i.e. the number of cells in ring 1. (It is currently hard-coded to 8.) This means that a maze of size 10 maze has 297 cells, one of size 20 1193. To get a maze with roughly the same amount of cells as a 10×10 rectilinear grid, we choose a ring size of 6, which yields 105 cells. This is the default setting for the Web UI.
+$$1 + \sum_{i=1}^{i <n} c2^{\lfloor\log_2(i)\rfloor}$$
+
+Where $c$ is the /column factor/, i.e. the number of cells in ring 1. (It is currently hard-coded to 8.) This means that a maze of size 10 maze has 297 cells, one of size 20 1193. When switching between square and circle mazes in the UI, we therefore halve the number of cells. This makes intuitive sense, as each ring is like one line of cells in a square maze, but the rings count twice. So a comparable circle maze will always have half the "size". This means that it will have fewer cells, as the above function grows more slowly than $n^2$.
 
 ** Building
 
