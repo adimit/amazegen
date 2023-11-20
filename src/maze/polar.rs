@@ -397,12 +397,13 @@ impl PolarGrid<'_> {
         self.θ(node.row) * (node.column as f64)
     }
 
-    fn compute_cell(&self, node: RingNode) -> CellCoordinates {
-        let inner = self.inner_radius(node.row);
-        let outer = self.outer_radius(node.row);
-        let east = self.θ_east(node);
-        let west = self.θ_west(node);
-
+    fn compute_cartesian_coordinates(
+        &self,
+        inner: f64,
+        outer: f64,
+        east: f64,
+        west: f64,
+    ) -> CellCoordinates {
         CellCoordinates {
             ax: self.centre.x + (inner * west.cos()),
             ay: self.centre.y + (inner * west.sin()),
@@ -413,6 +414,26 @@ impl PolarGrid<'_> {
             dx: self.centre.x + (outer * east.cos()),
             dy: self.centre.y + (outer * east.sin()),
         }
+    }
+
+    fn compute_cell(&self, node: RingNode) -> CellCoordinates {
+        let inner = self.inner_radius(node.row);
+        let outer = self.outer_radius(node.row);
+        let east = self.θ_east(node);
+        let west = self.θ_west(node);
+
+        self.compute_cartesian_coordinates(inner, outer, east, west)
+    }
+
+    // make the stain cells ever so slightly bigger to avoid gaps between cells
+    fn compute_cell_with_fudge(&self, node: RingNode) -> CellCoordinates {
+        let inner = self.inner_radius(node.row) - 1.5;
+        let outer = self.outer_radius(node.row) + 1.5;
+        let fudge = self.θ(node.row) / 25.0;
+        let east = self.θ_east(node) - fudge;
+        let west = self.θ_west(node) + fudge;
+
+        self.compute_cartesian_coordinates(inner, outer, east, west)
     }
 }
 
@@ -576,7 +597,7 @@ impl RingMazeSvg {
         for node in grid.maze.cells.iter() {
             let outer = grid.outer_radius(node.coordinates.row);
             let inner = grid.inner_radius(node.coordinates.row);
-            let c = grid.compute_cell(node.coordinates);
+            let c = grid.compute_cell_with_fudge(node.coordinates);
             let intensity =
                 (max_distance - distances[node.coordinates]) as f64 / *max_distance as f64;
             let inverse = 1.0 - intensity;
@@ -587,26 +608,11 @@ impl RingMazeSvg {
                 Self::get_colour(a.b, intensity) + Self::get_colour(b.b, inverse),
             );
             let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
+                let r = grid.ring_height + 1.0;
                 Data::new()
-                    .move_to((grid.centre.x, grid.centre.y + grid.ring_height))
-                    .elliptical_arc_to((
-                        grid.ring_height,
-                        grid.ring_height,
-                        0,
-                        1,
-                        0,
-                        grid.centre.x,
-                        grid.centre.y - grid.ring_height,
-                    ))
-                    .elliptical_arc_to((
-                        grid.ring_height,
-                        grid.ring_height,
-                        0,
-                        1,
-                        0,
-                        grid.centre.x,
-                        grid.centre.y + grid.ring_height,
-                    ))
+                    .move_to((grid.centre.x, grid.centre.y + r))
+                    .elliptical_arc_to((r, r, 0, 1, 0, grid.centre.x, grid.centre.y - r))
+                    .elliptical_arc_to((r, r, 0, 1, 0, grid.centre.x, grid.centre.y + r))
             } else {
                 Data::new()
                     .move_to((c.ax, c.ay))
