@@ -705,6 +705,7 @@ impl MazeGen for RingMazeSvg {
         let path = Path::new()
             .set("stroke", self.colour.as_str())
             .set("fill", "none")
+            .set("stroke-linecap", "round")
             .set("d", data)
             .set("stroke-width", self.stroke_width);
         document.append(path);
