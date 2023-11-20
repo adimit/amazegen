@@ -31,6 +31,7 @@ export interface Configuration {
   features: Feature[];
   seed: bigint;
   shape: Shape;
+  stroke_width: number;
 }
 
 export type SVG = string;
@@ -48,6 +49,7 @@ const readFromHash = (): Configuration => {
     shape: { Rectilinear: [DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE] },
     features: [],
     colour: "EEEEEE",
+    stroke_width: 8,
   });
 
   const parseSize = (str: string | undefined): number | undefined => {

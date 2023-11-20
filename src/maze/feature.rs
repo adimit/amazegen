@@ -66,6 +66,7 @@ pub struct Configuration {
     pub colour: String,
     pub features: Vec<Feature>,
     pub algorithm: Algorithm,
+    pub stroke_width: f64,
 }
 
 pub struct SVG(pub String);
@@ -73,7 +74,7 @@ pub struct SVG(pub String);
 impl Configuration {
     fn legacy_maze(&self) -> SVG {
         let mut str = String::new();
-        PlottersSvgStringWriter::new(&mut str, 40, 4)
+        PlottersSvgStringWriter::new(&mut str, 40, (self.stroke_width / 2.0).floor() as usize)
             .write_maze(
                 &self.algorithm.generate(&self.shape, &self.seed),
                 self.features
@@ -97,7 +98,7 @@ impl Configuration {
                     cell_size: 40.0,
                     size,
                     colour: format!("#{}", self.colour.clone()),
-                    stroke_width: 8.0,
+                    stroke_width: self.stroke_width,
                 };
                 SVG(mazegen.create_maze(
                     self.seed,

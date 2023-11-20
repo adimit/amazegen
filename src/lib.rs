@@ -23,6 +23,7 @@ pub fn test_config() -> JsValue {
         colour: "#FF00FF".into(),
         features: vec![Feature::Stain],
         algorithm: Algorithm::Kruskal,
+        stroke_width: 8.0,
     };
     serde_wasm_bindgen::to_value(&configuration).unwrap()
 }
@@ -39,6 +40,7 @@ mod test {
             features: vec![],
             seed: 1,
             shape: crate::maze::feature::Shape::Rectilinear(10, 10),
+            stroke_width: 8.0,
         }
         .execute();
         assert_eq!(svg.0.contains("<svg"), true)

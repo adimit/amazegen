@@ -102,7 +102,12 @@ export const generatePdf = async (
   const font = await (await fetch(bitterRegular)).arrayBuffer();
   await withPdf(`maze-${getShapeName(configuration.shape)}`, async (pdf) => {
     const addMaze = async (mazeSeed: bigint): Promise<void> => {
-      const myConf = { ...configuration, seed: mazeSeed, colour: "000000" };
+      const myConf = {
+        ...configuration,
+        seed: mazeSeed,
+        colour: "000000",
+        stroke_width: 2,
+      };
       const qr = await QR.toString(
         new URL(`#${computeHash(myConf)}`, FRONTEND_URL).toString(),
         {
