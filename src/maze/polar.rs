@@ -517,22 +517,6 @@ fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
     )
 }
 
-fn draw_path(grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
-    let mut data = Data::new();
-    data.append(Command::Move(Absolute, middle(grid, &path[0]).into()));
-    for node in path.iter().skip(1) {
-        data.append(Command::Line(Absolute, middle(grid, node).into()));
-    }
-    Path::new()
-        .set(
-            "stroke",
-            format!("rgb({}, {}, {})", colour.r, colour.g, colour.b),
-        )
-        .set("fill", "none")
-        .set("d", data)
-        .set("stroke-width", "3")
-}
-
 fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
     let ring = maze.ring_sizes.len() - 1;
     let column = fastrand::usize(0..maze.ring_sizes[ring]);
@@ -558,6 +542,27 @@ pub struct RingMazeSvg {
 impl RingMazeSvg {
     fn get_colour(absolute: u8, fraction: f64) -> u8 {
         (absolute as f64 * fraction) as u8
+    }
+
+    fn draw_path(&self, grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
+        let mut data = Data::new();
+        let coords = path
+            .iter()
+            .map(|node| middle(grid, node))
+            .collect::<Vec<_>>();
+        data.append(Command::Move(Absolute, coords[0].into()));
+        for coord in coords.iter().skip(1) {
+            data.append(Command::Line(Absolute, (*coord).into()));
+        }
+        Path::new()
+            .set(
+                "stroke",
+                format!("rgb({}, {}, {})", colour.r, colour.g, colour.b),
+            )
+            .set("fill", "none")
+            .set("stroke-linejoin", "round")
+            .set("d", data)
+            .set("stroke-width", self.stroke_width)
     }
 
     fn stain(
@@ -687,7 +692,7 @@ impl MazeGen for RingMazeSvg {
         for feature in features {
             match feature {
                 DrawingInstructions::ShowSolution(colour) => {
-                    let solution = draw_path(&grid, &path_to_solution, colour);
+                    let solution = self.draw_path(&grid, &path_to_solution, colour);
                     document.append(solution);
                 }
                 DrawingInstructions::StainMaze(colours) => {
