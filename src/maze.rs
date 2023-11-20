@@ -1,6 +1,5 @@
 pub mod feature;
 pub mod generator;
-pub mod interface;
 pub mod paint;
 pub mod polar;
 pub mod regular;
