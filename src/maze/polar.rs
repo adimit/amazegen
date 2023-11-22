@@ -1,8 +1,9 @@
+use std::cmp::min;
 use std::ops::{Index, IndexMut};
 
 use svg::node::element::path::Command::{self, EllipticalArc};
-use svg::node::element::path::Data;
 use svg::node::element::path::Position::Absolute;
+use svg::node::element::path::{Data, Parameters};
 use svg::node::element::Path;
 use svg::{Document, Node};
 
@@ -358,6 +359,21 @@ mod test {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PolarPoint {
+    θ: f64,
+    r: f64,
+}
+
+impl PolarPoint {
+    fn to_cartesian(&self, centre: CartesianPoint) -> CartesianPoint {
+        CartesianPoint {
+            x: centre.x + (self.r * self.θ.cos()),
+            y: centre.y + (self.r * self.θ.sin()),
+        }
+    }
+}
+
 struct PolarGrid<'a> {
     ring_height: f64,
     maze: &'a RingMaze,
@@ -424,6 +440,19 @@ impl PolarGrid<'_> {
 
         self.compute_cartesian_coordinates(inner, outer, east, west)
     }
+
+    // to de-squigglify:
+    // the key is to recognise jumps in the cell count between rings.
+    // you need an iterator with lookahead and lookbehind.
+    // first, you need to look around: did your point just zig zag (i.e. the last point is down one ring, you are up, and then the next is down again, or vv)?
+    // AND the jump went past a ring cell count change?
+    // then split this point into two points.
+    // then, next pass:
+    // look behind to see if the last segment didn't cross a jump in ring cell count.
+    // if it did AND you went *down* (reduced the ring), take your current cell's radius, but the last cell's theta.
+    // similarly, if you're going to jump *up* in the next segment, past a jump, adjust your cell's theta to anticipate the next cell's theta.
+    // then, when emitting consecutive cells in the same ring, instead of drawing a line, draw and arc
+    // no idea what to do about the middle. Perhaps don't draw the middle at all, just use it as a control point for a quadratic bezier curve for the preceding and following point.
 
     // make the stain cells ever so slightly bigger to avoid gaps between cells
     fn compute_cell_with_fudge(&self, node: RingNode) -> CellCoordinates {
@@ -560,30 +589,100 @@ pub struct RingMazeSvg {
     pub size: usize,
 }
 
+impl Into<Parameters> for CartesianPoint {
+    fn into(self) -> Parameters {
+        (self.x, self.y).into()
+    }
+}
+
 impl RingMazeSvg {
-    fn get_colour(absolute: u8, fraction: f64) -> u8 {
-        (absolute as f64 * fraction) as u8
+    fn polar(grid: &PolarGrid, node: &RingNode) -> PolarPoint {
+        if node.row == 0 && node.column == 0 {
+            return PolarPoint { r: 0.0, θ: 0.0 };
+        }
+        PolarPoint {
+            r: grid.inner_radius(node.row) + grid.ring_height / 2.0,
+            θ: grid.θ_east(*node) + grid.θ(node.row) / 2.0,
+        }
     }
 
     fn draw_path(&self, grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
-        let mut data = Data::new();
-        let coords = path
+        let r_out = grid.outer_radius(path[0].row);
+
+        let nodes = path
             .iter()
-            .map(|node| middle(grid, node))
+            .enumerate()
+            .flat_map(|(i, node)| {
+                if path[i.checked_sub(1).unwrap_or(0)].row != node.row
+                    && path[min(path.len() - 1, i + 1)].row != node.row
+                {
+                    vec![node, node]
+                } else {
+                    vec![node]
+                }
+            })
             .collect::<Vec<_>>();
-        data.append(Command::Move(Absolute, coords[0].into()));
-        for coord in coords.iter().skip(1) {
-            data.append(Command::Line(Absolute, (*coord).into()));
-        }
+
+        let split_path = nodes
+            .iter()
+            .map(|node| Self::polar(grid, node))
+            .collect::<Vec<_>>();
+
+        let points = split_path
+            .iter()
+            .enumerate()
+            .map(|(i, node)| {
+                let prev = split_path[i.checked_sub(1).unwrap_or(0)];
+                let next = split_path[min(split_path.len() - 1, i + 1)];
+                if node.r < prev.r {
+                    PolarPoint {
+                        θ: prev.θ,
+                        r: node.r,
+                    }
+                } else if node.r < next.r {
+                    PolarPoint {
+                        θ: next.θ,
+                        r: node.r,
+                    }
+                } else {
+                    *node
+                }
+            })
+            .map(|p| p.to_cartesian(grid.centre))
+            .collect::<Vec<_>>();
+
+        let mut data = Data::new().move_to(points[0]);
+        points.iter().skip(1).enumerate().for_each(|(i, point)| {
+            if split_path[i].r == split_path[i + 1].r {
+                let sweep = if nodes[i].is_west_of(*nodes[i + 1], &grid.maze.ring_sizes) {
+                    0
+                } else {
+                    1
+                };
+                data.append(Command::EllipticalArc(
+                    Absolute,
+                    (
+                        split_path[i + 1].r,
+                        split_path[i + 1].r,
+                        0,
+                        0,
+                        sweep,
+                        point.x,
+                        point.y,
+                    )
+                        .into(),
+                ));
+            } else {
+                data.append(Command::Line(Absolute, (point.x, point.y).into()));
+            }
+        });
+
         Path::new()
-            .set(
-                "stroke",
-                format!("rgb({}, {}, {})", colour.r, colour.g, colour.b),
-            )
+            .set("stroke", colour.to_web_string())
             .set("fill", "none")
             .set("stroke-linejoin", "round")
             .set("d", data)
-            .set("stroke-width", self.stroke_width)
+            .set("stroke-width", 2.0 * self.stroke_width)
     }
 
     fn stain(
@@ -593,20 +692,15 @@ impl RingMazeSvg {
         (a, b): (WebColour, WebColour),
         document: &mut Document,
     ) {
-        let max_distance = distances.cells.iter().max().unwrap();
+        let max_distance = *distances.cells.iter().max().unwrap();
         for node in grid.maze.cells.iter() {
             let outer = grid.outer_radius(node.coordinates.row);
             let inner = grid.inner_radius(node.coordinates.row);
             let c = grid.compute_cell_with_fudge(node.coordinates);
             let intensity =
-                (max_distance - distances[node.coordinates]) as f64 / *max_distance as f64;
+                (max_distance - distances[node.coordinates]) as f64 / max_distance as f64;
             let inverse = 1.0 - intensity;
-            let fill = format!(
-                "rgb({}, {}, {})",
-                Self::get_colour(a.r, intensity) + Self::get_colour(b.r, inverse),
-                Self::get_colour(a.g, intensity) + Self::get_colour(b.g, inverse),
-                Self::get_colour(a.b, intensity) + Self::get_colour(b.b, inverse),
-            );
+            let fill = a.blend(intensity).add(&b.blend(inverse)).to_web_string();
             let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
                 let r = grid.ring_height + 1.0;
                 Data::new()
@@ -698,8 +792,7 @@ impl MazeGen for RingMazeSvg {
         for feature in features {
             match feature {
                 DrawingInstructions::ShowSolution(colour) => {
-                    let solution = self.draw_path(&grid, &path_to_solution, colour);
-                    document.append(solution);
+                    document.append(self.draw_path(&grid, &path_to_solution, colour));
                 }
                 DrawingInstructions::StainMaze(colours) => {
                     self.stain(&grid, &distances, colours, &mut document);

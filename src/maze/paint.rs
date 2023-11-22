@@ -1,6 +1,6 @@
 pub mod regular;
 
-use std::cell::RefCell;
+use std::{cell::RefCell, cmp::max};
 
 use super::{regular::RectilinearMaze, solver::Solver, Maze, Node};
 
@@ -91,6 +91,34 @@ impl WebColour {
                 a: u8v[3],
             }),
             l => Err(ColourReadError::IllegalLength(l)),
+        }
+    }
+
+    pub fn to_web_string(&self) -> String {
+        format!(
+            "rgba({},{},{},{})",
+            self.r,
+            self.g,
+            self.b,
+            self.a as f64 / 255.0
+        )
+    }
+
+    pub fn blend(&self, f: f64) -> Self {
+        WebColour {
+            r: (self.r as f64 * f) as u8,
+            g: (self.g as f64 * f) as u8,
+            b: (self.b as f64 * f) as u8,
+            a: self.a,
+        }
+    }
+
+    pub fn add(&self, other: &Self) -> Self {
+        WebColour {
+            r: self.r.saturating_add(other.r),
+            g: self.g.saturating_add(other.g),
+            b: self.b.saturating_add(other.b),
+            a: max(self.a, other.a),
         }
     }
 }
