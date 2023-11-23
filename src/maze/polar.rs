@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use svg::node::element::path::Command::{self, EllipticalArc};
 use svg::node::element::path::Position::Absolute;
 use svg::node::element::path::{Data, Parameters};
-use svg::node::element::Path;
+use svg::node::element::{Circle, Path};
 use svg::{Document, Node};
 
 use crate::maze::feature::Algorithm;
@@ -670,32 +670,36 @@ impl RingMazeSvg {
         (a, b): (WebColour, WebColour),
         document: &mut Document,
     ) {
-        let max_distance = *distances.cells.iter().max().unwrap();
-        for node in grid.maze.cells.iter() {
+        let max_distance = *distances.cells.iter().max().unwrap() as f64;
+        let get_fill = |node: RingNode| {
+            let intensity = (max_distance - distances[node] as f64) / max_distance;
+            let inverse = 1.0 - intensity;
+            a.blend(intensity).add(&b.blend(inverse)).to_web_string()
+        };
+        {
+            document.append(
+                Circle::new()
+                    .set("cx", grid.centre.x)
+                    .set("cy", grid.centre.y)
+                    .set("r", grid.ring_height + 1.0)
+                    .set("stroke", "none")
+                    .set("fill", get_fill(RingNode { column: 0, row: 0 })),
+            );
+        };
+
+        for node in grid.maze.cells.iter().skip(1) {
             let outer = grid.outer_radius(node.coordinates.row);
             let inner = grid.inner_radius(node.coordinates.row);
             let c = grid.compute_cell_with_fudge(node.coordinates);
-            let intensity =
-                (max_distance - distances[node.coordinates]) as f64 / max_distance as f64;
-            let inverse = 1.0 - intensity;
-            let fill = a.blend(intensity).add(&b.blend(inverse)).to_web_string();
-            let data = if (node.coordinates == RingNode { column: 0, row: 0 }) {
-                let r = grid.ring_height + 1.0;
-                Data::new()
-                    .move_to((grid.centre.x, grid.centre.y + r))
-                    .elliptical_arc_to((r, r, 0, 1, 0, grid.centre.x, grid.centre.y - r))
-                    .elliptical_arc_to((r, r, 0, 1, 0, grid.centre.x, grid.centre.y + r))
-            } else {
-                Data::new()
-                    .move_to((c.ax, c.ay))
-                    .line_to((c.bx, c.by))
-                    .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
-                    .line_to((c.cx, c.cy))
-                    .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay))
-            };
+            let data = Data::new()
+                .move_to((c.ax, c.ay))
+                .line_to((c.bx, c.by))
+                .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
+                .line_to((c.cx, c.cy))
+                .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay));
             let path = Path::new()
                 .set("stroke", "none")
-                .set("fill", fill)
+                .set("fill", get_fill(node.coordinates))
                 .set("d", data);
             document.append(path);
         }
