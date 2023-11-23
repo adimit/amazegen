@@ -69,10 +69,10 @@ pub struct Configuration {
     pub stroke_width: f64,
 }
 
-pub struct SVG(pub String);
+pub struct Svg(pub String);
 
 impl Configuration {
-    fn legacy_maze(&self) -> SVG {
+    fn legacy_maze(&self) -> Svg {
         let mut str = String::new();
         PlottersSvgStringWriter::new(&mut str, 40, (self.stroke_width / 2.0).floor() as usize)
             .write_maze(
@@ -87,10 +87,10 @@ impl Configuration {
                     .collect::<Vec<_>>(),
             )
             .unwrap();
-        SVG(str)
+        Svg(str)
     }
 
-    pub fn execute(&self) -> SVG {
+    pub fn execute(&self) -> Svg {
         match self.shape {
             Shape::Rectilinear(_, _) => self.legacy_maze(),
             Shape::Theta(size) => {
@@ -100,7 +100,7 @@ impl Configuration {
                     colour: format!("#{}", self.colour.clone()),
                     stroke_width: self.stroke_width,
                 };
-                SVG(mazegen.create_maze(
+                Svg(mazegen.create_maze(
                     self.seed,
                     self.features
                         .iter()

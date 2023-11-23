@@ -94,7 +94,7 @@ impl WebColour {
         }
     }
 
-    pub fn to_web_string(&self) -> String {
+    pub fn to_web_string(self) -> String {
         format!(
             "rgba({},{},{},{})",
             self.r,

@@ -1,3 +1,4 @@
+#![allow(mixed_script_confusables)]
 mod maze;
 
 use std::env;

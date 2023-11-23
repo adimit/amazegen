@@ -11,6 +11,7 @@ use crate::maze::feature::Algorithm;
 use crate::maze::paint::DrawingInstructions;
 use crate::maze::paint::WebColour;
 
+#[allow(non_upper_case_globals)]
 const π: f64 = std::f64::consts::PI;
 
 #[derive(Clone, Debug)]
@@ -40,7 +41,7 @@ impl RingCell {
         self.accessible_neighbours.clone()
     }
 
-    fn new(rings: &Vec<usize>, coordinates: RingNode) -> Self {
+    fn new(rings: &[usize], coordinates: RingNode) -> Self {
         let mut neighbours: Vec<RingNode> = vec![];
         let ring_max = rings[coordinates.row];
 
@@ -50,7 +51,7 @@ impl RingCell {
             } else {
                 coordinates.column - 1
             },
-            ..coordinates.clone()
+            ..coordinates
         });
 
         neighbours.push(RingNode {
@@ -59,7 +60,7 @@ impl RingCell {
             } else {
                 coordinates.column + 1
             },
-            ..coordinates.clone()
+            ..coordinates
         });
 
         neighbours.push(RingNode {
@@ -123,7 +124,7 @@ impl<T> Cells<T>
 where
     T: Copy + Clone,
 {
-    pub fn new(ring_sizes: &Vec<usize>, default: T) -> Self {
+    pub fn new(ring_sizes: &[usize], default: T) -> Self {
         let extents = ring_sizes
             .iter()
             .scan(0, |state, &x| {
@@ -132,7 +133,7 @@ where
             })
             .collect::<Vec<_>>();
         Self {
-            ring_sizes: ring_sizes.clone(),
+            ring_sizes: ring_sizes.to_vec(),
             cells: vec![default; ring_sizes.iter().sum::<usize>()],
             extents,
         }
@@ -327,13 +328,13 @@ impl RingNode {
         self.row < other.row
     }
 
-    pub fn is_east_of(&self, other: RingNode, extents: &Vec<usize>) -> bool {
+    pub fn is_east_of(&self, other: RingNode, extents: &[usize]) -> bool {
         self.row == other.row
             && (self.column + 1 == other.column
                 || (other.column == 0 && self.column == extents[self.row] - 1))
     }
 
-    pub fn is_west_of(&self, other: RingNode, extents: &Vec<usize>) -> bool {
+    pub fn is_west_of(&self, other: RingNode, extents: &[usize]) -> bool {
         self.row == other.row
             && (self.column == other.column + 1
                 || (self.column == 0 && other.column == extents[self.row] - 1))
@@ -366,7 +367,7 @@ struct PolarPoint {
 }
 
 impl PolarPoint {
-    fn to_cartesian(&self, centre: CartesianPoint) -> CartesianPoint {
+    fn to_cartesian(self, centre: CartesianPoint) -> CartesianPoint {
         CartesianPoint {
             x: centre.x + (self.r * self.θ.cos()),
             y: centre.y + (self.r * self.θ.sin()),
@@ -441,19 +442,6 @@ impl PolarGrid<'_> {
         self.compute_cartesian_coordinates(inner, outer, east, west)
     }
 
-    // to de-squigglify:
-    // the key is to recognise jumps in the cell count between rings.
-    // you need an iterator with lookahead and lookbehind.
-    // first, you need to look around: did your point just zig zag (i.e. the last point is down one ring, you are up, and then the next is down again, or vv)?
-    // AND the jump went past a ring cell count change?
-    // then split this point into two points.
-    // then, next pass:
-    // look behind to see if the last segment didn't cross a jump in ring cell count.
-    // if it did AND you went *down* (reduced the ring), take your current cell's radius, but the last cell's theta.
-    // similarly, if you're going to jump *up* in the next segment, past a jump, adjust your cell's theta to anticipate the next cell's theta.
-    // then, when emitting consecutive cells in the same ring, instead of drawing a line, draw and arc
-    // no idea what to do about the middle. Perhaps don't draw the middle at all, just use it as a control point for a quadratic bezier curve for the preceding and following point.
-
     // make the stain cells ever so slightly bigger to avoid gaps between cells
     fn compute_cell_with_fudge(&self, node: RingNode) -> CellCoordinates {
         let inner = self.inner_radius(node.row) - 1.5;
@@ -517,6 +505,7 @@ fn make_maze(
     (maze, path_to_solution, distances)
 }
 
+/*
 fn debug_maze(maze: &RingMaze) {
     for cell in maze.cells.iter() {
         print!("({}, {}): ", cell.coordinates.row, cell.coordinates.column);
@@ -530,6 +519,7 @@ fn debug_maze(maze: &RingMaze) {
         println!();
     }
 }
+*/
 
 fn find_shortest_path(
     maze: &RingMaze,
@@ -555,18 +545,6 @@ fn find_shortest_path(
     (path, distances)
 }
 
-fn middle(grid: &PolarGrid, node: &RingNode) -> (f64, f64) {
-    if node.row == 0 && node.column == 0 {
-        return (grid.centre.x as f64, grid.centre.y as f64);
-    }
-    let r = grid.inner_radius(node.row) + grid.ring_height / 2.0;
-    let θ = grid.θ_east(*node) + grid.θ(node.row) / 2.0;
-    (
-        grid.centre.x as f64 + (r * θ.cos()),
-        grid.centre.y as f64 + (r * θ.sin()),
-    )
-}
-
 fn get_random_cell_on_the_outside(maze: &RingMaze) -> RingNode {
     let ring = maze.ring_sizes.len() - 1;
     let column = fastrand::usize(0..maze.ring_sizes[ring]);
@@ -589,9 +567,9 @@ pub struct RingMazeSvg {
     pub size: usize,
 }
 
-impl Into<Parameters> for CartesianPoint {
-    fn into(self) -> Parameters {
-        (self.x, self.y).into()
+impl From<CartesianPoint> for Parameters {
+    fn from(val: CartesianPoint) -> Parameters {
+        (val.x, val.y).into()
     }
 }
 
@@ -613,7 +591,7 @@ impl RingMazeSvg {
             .iter()
             .enumerate()
             .flat_map(|(i, node)| {
-                if path[i.checked_sub(1).unwrap_or(0)].row != node.row
+                if path[i.saturating_sub(1)].row != node.row
                     && path[min(path.len() - 1, i + 1)].row != node.row
                 {
                     vec![node, node]
@@ -632,7 +610,7 @@ impl RingMazeSvg {
             .iter()
             .enumerate()
             .map(|(i, node)| {
-                let prev = split_path[i.checked_sub(1).unwrap_or(0)];
+                let prev = split_path[i.saturating_sub(1)];
                 let next = split_path[min(split_path.len() - 1, i + 1)];
                 if node.r < prev.r {
                     PolarPoint {
