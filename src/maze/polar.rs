@@ -585,8 +585,6 @@ impl RingMazeSvg {
     }
 
     fn draw_path(&self, grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
-        let r_out = grid.outer_radius(path[0].row);
-
         let nodes = path
             .iter()
             .enumerate()
@@ -629,19 +627,27 @@ impl RingMazeSvg {
             .map(|p| p.to_cartesian(grid.centre))
             .collect::<Vec<_>>();
 
-        let mut data = Data::new().move_to(points[0]);
-        points.iter().skip(1).enumerate().for_each(|(i, point)| {
-            if split_path[i].r == split_path[i + 1].r {
-                let sweep = if nodes[i].is_west_of(*nodes[i + 1], &grid.maze.ring_sizes) {
-                    0
-                } else {
-                    1
-                };
+        let r_out = grid.outer_radius(path[0].row) + self.stroke_width / 2.0;
+        let mut data = Data::new().move_to(
+            (PolarPoint {
+                r: r_out,
+                θ: split_path[0].θ,
+            })
+            .to_cartesian(grid.centre),
+        );
+        points.iter().enumerate().for_each(|(i, point)| {
+            if split_path[i.saturating_sub(1)].r == split_path[i].r {
+                let sweep =
+                    if nodes[i.saturating_sub(1)].is_west_of(*nodes[i], &grid.maze.ring_sizes) {
+                        0
+                    } else {
+                        1
+                    };
                 data.append(Command::EllipticalArc(
                     Absolute,
                     (
-                        split_path[i + 1].r,
-                        split_path[i + 1].r,
+                        split_path[i].r,
+                        split_path[i].r,
                         0,
                         0,
                         sweep,
@@ -654,6 +660,14 @@ impl RingMazeSvg {
                 data.append(Command::Line(Absolute, (point.x, point.y).into()));
             }
         });
+        {
+            let exit = (PolarPoint {
+                r: r_out,
+                θ: split_path.last().unwrap().θ,
+            })
+            .to_cartesian(grid.centre);
+            data.append(Command::Line(Absolute, (exit.x, exit.y).into()));
+        };
 
         Path::new()
             .set("stroke", colour.to_web_string())
