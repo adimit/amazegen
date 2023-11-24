@@ -1,4 +1,5 @@
 use std::cmp::min;
+use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 
 use svg::node::element::path::Command::{self, EllipticalArc};
@@ -138,6 +139,21 @@ where
             extents,
         }
     }
+
+    pub fn from_iter(ring_sizes: &[usize], iter: impl Iterator<Item = T>) -> Self {
+        let extents = ring_sizes
+            .iter()
+            .scan(0, |state, &x| {
+                *state += x;
+                Some(*state)
+            })
+            .collect::<Vec<_>>();
+        Self {
+            ring_sizes: ring_sizes.to_vec(),
+            cells: iter.collect::<Vec<_>>(),
+            extents,
+        }
+    }
 }
 
 impl<T> Index<RingNode> for Cells<T> {
@@ -190,7 +206,7 @@ struct RingMaze {
 }
 
 trait JarníkMaze {
-    type Idx: PartialEq + Copy + Clone;
+    type Idx: Eq + PartialEq + Copy + Clone + std::hash::Hash;
 
     fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx);
 
@@ -203,6 +219,10 @@ trait JarníkMaze {
     fn open(&mut self, node: Self::Idx);
 
     fn dijkstra(&self, origin: Self::Idx) -> Cells<usize>;
+
+    fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)>;
+
+    fn get_all_nodes(&self) -> Vec<Self::Idx>;
 }
 
 impl JarníkMaze for RingMaze {
@@ -233,6 +253,35 @@ impl JarníkMaze for RingMaze {
 
     fn dijkstra(&self, origin: RingNode) -> Cells<usize> {
         dijkstra(self, origin)
+    }
+
+    fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
+        let mut frontier = vec![&self.cells[0]];
+        let mut edges: Vec<(RingNode, RingNode)> = vec![];
+        while !frontier.is_empty() {
+            let node = frontier.pop().unwrap();
+            let new_edges = node
+                .inaccessible_neighbours
+                .iter()
+                .cloned()
+                .filter(|n| {
+                    n.is_north_of(node.coordinates)
+                        || n.is_east_of(node.coordinates, &self.ring_sizes)
+                })
+                .inspect(|n| {
+                    if n.is_north_of(node.coordinates) {
+                        frontier.push(&self[*n]);
+                    }
+                })
+                .map(|n| (node.coordinates, n));
+            edges.extend(new_edges);
+        }
+
+        edges
+    }
+
+    fn get_all_nodes(&self) -> Vec<Self::Idx> {
+        self.cells.iter().map(|c| c.coordinates).collect()
     }
 }
 
@@ -276,10 +325,6 @@ impl RingMaze {
         }
     }
 
-    fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
-        todo!()
-    }
-
     /// No bounds checking on `ring`. Panics if `ring` ≥ `ring_sizes.len()` of this maze
     fn max_column(&self, ring: usize) -> usize {
         self.ring_sizes[ring]
@@ -313,7 +358,71 @@ fn jarník<M: JarníkMaze>(mut maze: M) -> M {
     maze
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+struct Kruskal<M>
+where
+    M: JarníkMaze,
+{
+    // we need a bijection between each node's class and all the nodes in a given class
+    // a class is just an integer that happens to be the same one as the node's original
+    // index from get_all_nodes()
+    // each node has exactly one class
+    classes: HashMap<M::Idx, usize>,
+    // each class can have multiple nodes, but starts out with exactly one node
+    class_members: Vec<Vec<M::Idx>>,
+}
+
+impl<'a, M> Kruskal<M>
+where
+    M: JarníkMaze,
+{
+    fn new(all_nodes: &Vec<M::Idx>) -> Self {
+        Self {
+            classes: all_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, n)| (*n, i))
+                .collect::<HashMap<_, _>>(),
+            class_members: all_nodes
+                .iter()
+                .cloned()
+                .map(|n| vec![n])
+                .collect::<Vec<_>>(),
+        }
+    }
+
+    fn link(&mut self, a: M::Idx, b: M::Idx) {
+        let class_of_a = self.classes.get(&a).unwrap().clone();
+        let class_of_b = self.classes.get(&b).unwrap();
+        let members_of_b = self.class_members[*class_of_b]
+            .drain(..)
+            .collect::<Vec<_>>();
+        for member_of_b in members_of_b {
+            self.classes.insert(member_of_b, class_of_a);
+            self.class_members[class_of_a].push(member_of_b);
+        }
+    }
+
+    fn classes_are_distinct(&self, a: M::Idx, b: M::Idx) -> bool {
+        self.classes.get(&a) != self.classes.get(&b)
+    }
+}
+
+fn kruskal<M: JarníkMaze>(mut maze: M) -> M {
+    let mut state = Kruskal::<M>::new(&maze.get_all_nodes());
+    let mut edges = maze.get_all_edges();
+    fastrand::shuffle(&mut edges);
+
+    for (a, b) in edges {
+        if state.classes_are_distinct(a, b) {
+            maze.carve(a, b);
+            state.link(a, b);
+        }
+    }
+
+    maze
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RingNode {
     pub row: usize,
     pub column: usize,
@@ -343,6 +452,8 @@ impl RingNode {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
+
     use super::*;
 
     #[test]
@@ -357,6 +468,41 @@ mod test {
 
         assert!(!RingNode { row: 1, column: 1 }.is_east_of(node, &rings));
         assert!(RingNode { row: 1, column: 7 }.is_east_of(node, &rings));
+    }
+
+    #[test]
+    fn edge_count_is_correct() {
+        let maze = RingMaze::new(5, 8);
+        let expected_edge_count = 2 * 8 + 2 * 16 + 2 * 16 + 2 * 32;
+        assert_eq!(maze.get_all_edges().len(), expected_edge_count);
+    }
+
+    #[test]
+    fn no_edge_contains_itself_in_reverse() {
+        let maze = RingMaze::new(5, 8);
+        let edges = maze.get_all_edges();
+        for (a, b) in edges.iter() {
+            assert!(
+                !edges.contains(&(*b, *a)),
+                "Edge ({}, {})-({}, {}) and its reciprocal shouldn't both be in the edge list",
+                a.row,
+                a.column,
+                b.row,
+                b.column
+            );
+        }
+    }
+
+    #[test]
+    fn no_edge_should_occur_twice() {
+        let maze = RingMaze::new(5, 8);
+        let edges = maze.get_all_edges();
+        let unique_edges = edges.iter().unique().collect::<Vec<_>>();
+        assert_eq!(
+            edges.len(),
+            unique_edges.len(),
+            "Edge count of unique edges and total edges should be the same"
+        );
     }
 }
 
@@ -492,9 +638,14 @@ fn make_maze(
     rings: usize,
     column_factor: usize,
     seed: u64,
+    algorithm: &Algorithm,
 ) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
     fastrand::seed(seed);
-    let mut maze = jarník(RingMaze::new(rings, column_factor));
+    let mut template = RingMaze::new(rings, column_factor);
+    let mut maze = match algorithm {
+        Algorithm::GrowingTree => jarník(template),
+        Algorithm::Kruskal => kruskal(template),
+    };
     let start = get_random_cell_on_the_outside(&maze);
     let exit = get_node_furthest_away_from(&maze, start);
     let entrance = get_node_furthest_away_from(&maze, exit);
@@ -778,9 +929,9 @@ impl MazeGen for RingMazeSvg {
         &self,
         seed: u64,
         features: Vec<DrawingInstructions>,
-        _algorithm: &Algorithm,
+        algorithm: &Algorithm,
     ) -> String {
-        let (maze, path_to_solution, distances) = make_maze(self.size, 8, seed);
+        let (maze, path_to_solution, distances) = make_maze(self.size, 8, seed, algorithm);
         let grid = PolarGrid::new(&maze, self.cell_size, self.stroke_width);
         let pixels = (grid.centre.x + self.stroke_width) * 2.0;
         let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
