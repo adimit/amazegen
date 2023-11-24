@@ -61,14 +61,14 @@ const readFromHash = (): Configuration => {
     if (str === undefined) return undefined;
     const size = parseSize(str.substring(1));
     if (size !== undefined && str.startsWith("R")) {
-      return { Rectilinear: [clamp(size), clamp(size)] };
+      return rect(size);
     }
     if (size !== undefined && str.startsWith("T")) {
-      return { Theta: clamp(size, 50) };
+      return theta(size);
     }
     const legacy = parseSize(str);
     if (legacy !== undefined) {
-      return { Rectilinear: [clamp(legacy), clamp(legacy)] };
+      return rect(legacy);
     }
     return undefined;
   };
@@ -194,19 +194,12 @@ export const configurationHashSignal = (): {
     if ("Rectilinear" in shape) {
       return setConfiguration({
         ...configuration(),
-        shape: {
-          Rectilinear: [
-            clamp(by(shape.Rectilinear[0])),
-            clamp(by(shape.Rectilinear[1])),
-          ],
-        },
+        shape: rect(by(shape.Rectilinear[0])),
       });
     } else {
       return setConfiguration({
         ...configuration(),
-        shape: {
-          Theta: clamp(by(shape.Theta), 50),
-        },
+        shape: theta(by(shape.Theta)),
       });
     }
   };
@@ -226,11 +219,7 @@ export const configurationHashSignal = (): {
       setConfiguration({
         ...configuration(),
         shape:
-          shape === "Rectilinear"
-            ? {
-                Rectilinear: [clamp(getSize() * 2), clamp(getSize() * 2)],
-              }
-            : { Theta: clamp(Math.floor(getSize() / 2), 50) },
+          shape === "Rectilinear" ? rect(getSize() * 2) : theta(getSize() / 2),
       }),
     setSize: (s: number): Configuration => adjustSize(() => s),
     incrementSize: (): Configuration => adjustSize((old) => old + 1),
@@ -246,3 +235,8 @@ export const configurationHashSignal = (): {
       configuration().features.includes(f) ? removeFeature(f) : addFeature(f),
   };
 };
+
+const rect = (size: number): Shape => ({
+  Rectilinear: [clamp(size), clamp(size)],
+});
+const theta = (size: number): Shape => ({ Theta: clamp(size, 50) });
