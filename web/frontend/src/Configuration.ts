@@ -54,17 +54,17 @@ const readFromHash = (): Configuration => {
 
   const parseSize = (str: string | undefined): number | undefined => {
     const n = Number(str);
-    return !isNaN(n) && n > 1 && n < 101 ? n : undefined;
+    return !isNaN(n) ? n : undefined;
   };
 
   const parseShape = (str: string | undefined): Shape | undefined => {
     if (str === undefined) return undefined;
     const size = parseSize(str.substring(1));
     if (size !== undefined && str.startsWith("R")) {
-      return { Rectilinear: [size, size] };
+      return { Rectilinear: [clamp(size), clamp(size)] };
     }
     if (size !== undefined && str.startsWith("T")) {
-      return { Theta: size };
+      return { Theta: clamp(size, 50) };
     }
     const legacy = parseSize(str);
     if (legacy !== undefined) {
@@ -124,6 +124,9 @@ export const computeHash = ({
   shape,
   algorithm,
 }: Configuration): string => `${hashShape(shape)}|${seed}|${algorithm}`;
+
+const clamp = (n: number, max: number = 100): number =>
+  Math.max(2, Math.min(max, n));
 
 export const configurationHashSignal = (): {
   configuration: Accessor<Configuration>;
@@ -188,8 +191,6 @@ export const configurationHashSignal = (): {
 
   const adjustSize = (by: (old: number) => number): Configuration => {
     const { shape } = configuration();
-    const clamp = (n: number, max: number = 100): number =>
-      Math.max(2, Math.min(max, n));
     if ("Rectilinear" in shape) {
       return setConfiguration({
         ...configuration(),
