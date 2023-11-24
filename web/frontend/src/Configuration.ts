@@ -5,7 +5,7 @@ import {
   onCleanup,
   onMount,
 } from "solid-js";
-import { generate_maze, generate_seed, test_config } from "./pkg";
+import { generate_maze, generate_seed } from "./pkg";
 
 export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
@@ -14,8 +14,6 @@ export type Feature = (typeof features)[number];
 export interface ShapeRectilinear {
   Rectilinear: [number, number];
 }
-
-console.log(test_config());
 
 export interface ShapeTheta {
   Theta: number;
