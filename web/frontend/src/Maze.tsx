@@ -38,7 +38,7 @@ export default function Maze(): JSX.Element {
           onChange={(_) => {
             const n = Number(input?.value);
             if (!isNaN(n)) {
-              setSize(Math.max(Math.min(n, 100), 2));
+              setSize(n);
             }
           }}
         />

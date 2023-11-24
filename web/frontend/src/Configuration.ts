@@ -188,18 +188,23 @@ export const configurationHashSignal = (): {
 
   const adjustSize = (by: (old: number) => number): Configuration => {
     const { shape } = configuration();
+    const clamp = (n: number, max: number = 100): number =>
+      Math.max(2, Math.min(max, n));
     if ("Rectilinear" in shape) {
       return setConfiguration({
         ...configuration(),
         shape: {
-          Rectilinear: [by(shape.Rectilinear[0]), by(shape.Rectilinear[1])],
+          Rectilinear: [
+            clamp(by(shape.Rectilinear[0])),
+            clamp(by(shape.Rectilinear[1])),
+          ],
         },
       });
     } else {
       return setConfiguration({
         ...configuration(),
         shape: {
-          Theta: by(shape.Theta),
+          Theta: clamp(by(shape.Theta), 50),
         },
       });
     }
