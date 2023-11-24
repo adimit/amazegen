@@ -674,7 +674,7 @@ impl RingMazeSvg {
             .set("fill", "none")
             .set("stroke-linejoin", "round")
             .set("d", data)
-            .set("stroke-width", 2.0 * self.stroke_width)
+            .set("stroke-width", 1.5 * self.stroke_width)
     }
 
     fn stain(
