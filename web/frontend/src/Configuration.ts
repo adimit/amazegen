@@ -228,9 +228,9 @@ export const configurationHashSignal = (): {
         shape:
           shape === "Rectilinear"
             ? {
-                Rectilinear: [getSize() * 2, getSize() * 2],
+                Rectilinear: [clamp(getSize() * 2), clamp(getSize() * 2)],
               }
-            : { Theta: Math.floor(getSize() / 2) },
+            : { Theta: clamp(Math.floor(getSize() / 2), 50) },
       }),
     setSize: (s: number): Configuration => adjustSize(() => s),
     incrementSize: (): Configuration => adjustSize((old) => old + 1),
