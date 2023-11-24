@@ -88,15 +88,15 @@ const readFromHash = (): Configuration => {
     return undefined;
   };
 
-  const parse = [parseShape, parseBigint, parseAlgorithm];
-  const [shape, seed, algorithm] =
+  const parse = [parseShape, parseAlgorithm, parseBigint];
+  const [shape, algorithm, seed] =
     (document?.location.hash
       .substring(1)
       .split("|")
       .map((str, index) => parse[index](str)) as [
       Shape | undefined,
-      bigint | undefined,
-      Algorithm | undefined
+      Algorithm | undefined,
+      bigint | undefined
     ]) ?? [];
 
   return {
@@ -111,18 +111,14 @@ const hashShape = (shape: Shape): string => {
   if ("Rectilinear" in shape) {
     return `R${shape.Rectilinear[0]}`;
   }
-  if ("Theta" in shape) {
-    return `T${shape.Theta}`;
-  }
-  console.log("Error: unrecognized shape", shape);
-  throw new Error(`Error: unrecognized shape ${JSON.stringify(shape)}`);
+  return `T${shape.Theta}`;
 };
 
 export const computeHash = ({
   seed,
   shape,
   algorithm,
-}: Configuration): string => `${hashShape(shape)}|${seed}|${algorithm}`;
+}: Configuration): string => `${hashShape(shape)}|${algorithm}|${seed}`;
 
 export const configurationHashSignal = (): {
   configuration: Accessor<Configuration>;
