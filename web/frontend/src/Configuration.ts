@@ -53,6 +53,7 @@ const readFromHash = (): Configuration => {
   });
 
   const parseSize = (str: string | undefined): number | undefined => {
+    if (str === undefined || str === "") return undefined;
     const n = Number(str);
     return !isNaN(n) ? n : undefined;
   };
