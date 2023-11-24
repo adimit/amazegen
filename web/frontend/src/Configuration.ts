@@ -68,7 +68,7 @@ const readFromHash = (): Configuration => {
     }
     const legacy = parseSize(str);
     if (legacy !== undefined) {
-      return { Rectilinear: [legacy, legacy] };
+      return { Rectilinear: [clamp(legacy), clamp(legacy)] };
     }
     return undefined;
   };
