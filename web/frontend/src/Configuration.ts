@@ -125,9 +125,6 @@ export const computeHash = ({
   algorithm,
 }: Configuration): string => `${hashShape(shape)}|${seed}|${algorithm}`;
 
-const clamp = (n: number, max: number = 100): number =>
-  Math.max(2, Math.min(max, n));
-
 export const configurationHashSignal = (): {
   configuration: Accessor<Configuration>;
   setShape: (s: ShapeKeys) => Configuration;
@@ -236,7 +233,8 @@ export const configurationHashSignal = (): {
   };
 };
 
+const clamp = (n: number, max: number): number => Math.max(2, Math.min(max, n));
 const rect = (size: number): Shape => ({
-  Rectilinear: [clamp(size), clamp(size)],
+  Rectilinear: [clamp(size, 100), clamp(size, 100)],
 });
 const theta = (size: number): Shape => ({ Theta: clamp(size, 50) });
