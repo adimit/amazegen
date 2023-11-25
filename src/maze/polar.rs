@@ -1,5 +1,4 @@
 use std::cmp::min;
-use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 
 use svg::node::element::path::Command::{self, EllipticalArc};
@@ -206,7 +205,7 @@ struct RingMaze {
 }
 
 trait JarníkMaze {
-    type Idx: Eq + PartialEq + Copy + Clone + std::hash::Hash;
+    type Idx: Eq + PartialEq + Copy + Clone;
 
     fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx);
 
@@ -223,6 +222,10 @@ trait JarníkMaze {
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)>;
 
     fn get_all_nodes(&self) -> Vec<Self::Idx>;
+
+    fn get_indexed<T: Copy>(&self, default: T) -> Cells<T>;
+
+    fn get_index(&self, node: Self::Idx) -> usize;
 }
 
 impl JarníkMaze for RingMaze {
@@ -283,6 +286,14 @@ impl JarníkMaze for RingMaze {
     fn get_all_nodes(&self) -> Vec<Self::Idx> {
         self.cells.iter().map(|c| c.coordinates).collect()
     }
+
+    fn get_indexed<T: Copy>(&self, default: T) -> Cells<T> {
+        Cells::new(&self.ring_sizes, default)
+    }
+
+    fn get_index(&self, node: Self::Idx) -> usize {
+        node.column + self.ring_sizes[0..node.row].iter().sum::<usize>()
+    }
 }
 
 impl RingMaze {
@@ -334,54 +345,54 @@ impl RingMaze {
 fn jarník<M: JarníkMaze>(mut maze: M) -> M {
     let start = maze.get_random_node();
     let mut vertices: Vec<M::Idx> = vec![start];
-    let mut visited: Vec<M::Idx> = vec![start];
+    let mut visited = vec![false; maze.get_all_nodes().len()];
+    visited[maze.get_index(start)] = true;
 
     while !vertices.is_empty() {
         let i = vertices.len() - 1;
         let e = vertices[i];
-        let targets = maze
+        let possible_targets = maze
             .get_walls(e)
             .iter()
-            .filter(|n| !visited.contains(n))
             .cloned()
+            .filter(|n| !visited[maze.get_index(*n)])
             .collect::<Vec<_>>();
-        if !targets.is_empty() {
-            let target = targets[fastrand::usize(0..targets.len())];
+        if !possible_targets.is_empty() {
+            let target = possible_targets[fastrand::usize(0..possible_targets.len())];
             maze.carve(e, target);
+            visited[maze.get_index(target)] = true;
             vertices.push(target);
         } else {
             vertices.swap_remove(i);
         }
-        visited.push(e);
     }
 
     maze
 }
 
-struct Kruskal<M>
+struct Kruskal<'a, M>
 where
     M: JarníkMaze,
 {
+    maze: &'a mut M,
     // we need a bijection between each node's class and all the nodes in a given class
     // a class is just an integer that happens to be the same one as the node's original
     // index from get_all_nodes()
     // each node has exactly one class
-    classes: HashMap<M::Idx, usize>,
     // each class can have multiple nodes, but starts out with exactly one node
     class_members: Vec<Vec<M::Idx>>,
+    classes2: Vec<usize>,
 }
 
-impl<'a, M> Kruskal<M>
+impl<'a, M> Kruskal<'a, M>
 where
     M: JarníkMaze,
 {
-    fn new(all_nodes: &Vec<M::Idx>) -> Self {
+    fn new(maze: &'a mut M) -> Self {
+        let all_nodes = maze.get_all_nodes().iter().cloned().collect::<Vec<_>>();
         Self {
-            classes: all_nodes
-                .iter()
-                .enumerate()
-                .map(|(i, n)| (*n, i))
-                .collect::<HashMap<_, _>>(),
+            maze,
+            classes2: all_nodes.iter().enumerate().map(|(i, _)| i).collect(),
             class_members: all_nodes
                 .iter()
                 .cloned()
@@ -391,30 +402,28 @@ where
     }
 
     fn link(&mut self, a: M::Idx, b: M::Idx) {
-        let class_of_a = self.classes.get(&a).unwrap().clone();
-        let class_of_b = self.classes.get(&b).unwrap();
-        let members_of_b = self.class_members[*class_of_b]
-            .drain(..)
-            .collect::<Vec<_>>();
+        self.maze.carve(a, b);
+        let class_of_a = self.classes2[self.maze.get_index(a)];
+        let class_of_b = self.classes2[self.maze.get_index(b)];
+        let members_of_b = self.class_members[class_of_b].drain(..).collect::<Vec<_>>();
         for member_of_b in members_of_b {
-            self.classes.insert(member_of_b, class_of_a);
+            self.classes2[self.maze.get_index(member_of_b)] = class_of_a;
             self.class_members[class_of_a].push(member_of_b);
         }
     }
 
     fn classes_are_distinct(&self, a: M::Idx, b: M::Idx) -> bool {
-        self.classes.get(&a) != self.classes.get(&b)
+        self.classes2[self.maze.get_index(a)] != self.classes2[self.maze.get_index(b)]
     }
 }
 
 fn kruskal<M: JarníkMaze>(mut maze: M) -> M {
-    let mut state = Kruskal::<M>::new(&maze.get_all_nodes());
     let mut edges = maze.get_all_edges();
+    let mut state = Kruskal::<M>::new(&mut maze);
     fastrand::shuffle(&mut edges);
 
     for (a, b) in edges {
         if state.classes_are_distinct(a, b) {
-            maze.carve(a, b);
             state.link(a, b);
         }
     }
@@ -422,6 +431,7 @@ fn kruskal<M: JarníkMaze>(mut maze: M) -> M {
     maze
 }
 
+// we only need hash for one test. it's not used in the runtime code
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RingNode {
     pub row: usize,
@@ -641,7 +651,7 @@ fn make_maze(
     algorithm: &Algorithm,
 ) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
     fastrand::seed(seed);
-    let mut template = RingMaze::new(rings, column_factor);
+    let template = RingMaze::new(rings, column_factor);
     let mut maze = match algorithm {
         Algorithm::GrowingTree => jarník(template),
         Algorithm::Kruskal => kruskal(template),
@@ -970,13 +980,14 @@ impl MazeGen for RingMazeSvg {
 pub fn test_maze() -> Result<(), ()> {
     let mazegen = RingMazeSvg {
         cell_size: 40.0,
-        size: 16,
+        size: 100,
         colour: "black".into(),
         stroke_width: 4.0,
     };
     let str = mazegen.create_maze(
         fastrand::get_seed(),
         vec![
+            /*
             DrawingInstructions::StainMaze((
                 WebColour {
                     r: 255,
@@ -996,10 +1007,11 @@ pub fn test_maze() -> Result<(), ()> {
                 g: 128,
                 b: 255,
                 a: 255,
-            }),
+        }),
+            */
         ],
-        &Algorithm::GrowingTree,
+        &Algorithm::Kruskal,
     );
-    println!("{}", str);
+    // println!("{}", str);
     Ok(())
 }
