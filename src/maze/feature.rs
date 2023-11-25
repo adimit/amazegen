@@ -7,7 +7,9 @@ use crate::maze::paint::*;
 use crate::maze::regular::RectilinearMaze;
 use itertools::Itertools;
 
-use super::polar::{MazeGen, RingMazeSvg};
+use super::interface::MazeGen;
+use super::paint::theta::RingMazeSvg;
+
 const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";
 const SOLUTION: &str = "8FE080";
