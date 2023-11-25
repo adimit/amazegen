@@ -113,83 +113,15 @@ impl IndexMut<RingNode> for RingMaze {
     }
 }
 
-#[derive(Debug)]
-struct Cells<T> {
-    ring_sizes: Vec<usize>,
-    cells: Vec<T>,
-    extents: Vec<usize>,
-}
-
-impl<T> Cells<T>
-where
-    T: Copy + Clone,
-{
-    pub fn new(ring_sizes: &[usize], default: T) -> Self {
-        let extents = ring_sizes
-            .iter()
-            .scan(0, |state, &x| {
-                *state += x;
-                Some(*state)
-            })
-            .collect::<Vec<_>>();
-        Self {
-            ring_sizes: ring_sizes.to_vec(),
-            cells: vec![default; ring_sizes.iter().sum::<usize>()],
-            extents,
-        }
-    }
-
-    pub fn from_iter(ring_sizes: &[usize], iter: impl Iterator<Item = T>) -> Self {
-        let extents = ring_sizes
-            .iter()
-            .scan(0, |state, &x| {
-                *state += x;
-                Some(*state)
-            })
-            .collect::<Vec<_>>();
-        Self {
-            ring_sizes: ring_sizes.to_vec(),
-            cells: iter.collect::<Vec<_>>(),
-            extents,
-        }
-    }
-}
-
-impl<T> Index<RingNode> for Cells<T> {
-    type Output = T;
-
-    fn index(&self, index: RingNode) -> &Self::Output {
-        /*
-            assert_eq!(
-                self.ring_sizes[0..index.row].iter().sum::<usize>(),
-                self.extents[index.row]
-        );
-            */
-        &self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
-    }
-}
-
-impl<T> IndexMut<RingNode> for Cells<T> {
-    fn index_mut(&mut self, index: RingNode) -> &mut Self::Output {
-        /*
-            assert_eq!(
-                self.ring_sizes[0..index.row].iter().sum::<usize>(),
-                self.extents[index.row]
-        );
-            */
-        &mut self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
-    }
-}
-
-fn dijkstra(maze: &RingMaze, origin: RingNode) -> Cells<usize> {
-    let mut distances = Cells::new(&maze.ring_sizes, 0);
+fn dijkstra(maze: &RingMaze, origin: RingNode) -> Vec<usize> {
+    let mut distances = maze.get_all_nodes().iter().map(|_| 0).collect::<Vec<_>>();
     let mut frontier: Vec<RingNode> = vec![origin];
     while !frontier.is_empty() {
         let mut new_frontier: Vec<RingNode> = vec![];
         for cell in frontier.drain(..) {
             for new in maze.get_paths(cell) {
-                if distances[new] == 0 {
-                    distances[new] = distances[cell] + 1;
+                if distances[maze.get_index(new)] == 0 {
+                    distances[maze.get_index(new)] = distances[maze.get_index(cell)] + 1;
                     new_frontier.push(new);
                 }
             }
@@ -201,6 +133,7 @@ fn dijkstra(maze: &RingMaze, origin: RingNode) -> Cells<usize> {
 
 struct RingMaze {
     ring_sizes: Vec<usize>,
+    extents: Vec<usize>,
     cells: Vec<RingCell>,
 }
 
@@ -217,7 +150,7 @@ trait JarníkMaze {
 
     fn open(&mut self, node: Self::Idx);
 
-    fn dijkstra(&self, origin: Self::Idx) -> Cells<usize>;
+    fn dijkstra(&self, origin: Self::Idx) -> Vec<usize>;
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)>;
 
@@ -252,7 +185,7 @@ impl JarníkMaze for RingMaze {
         })
     }
 
-    fn dijkstra(&self, origin: RingNode) -> Cells<usize> {
+    fn dijkstra(&self, origin: RingNode) -> Vec<usize> {
         dijkstra(self, origin)
     }
 
@@ -286,7 +219,7 @@ impl JarníkMaze for RingMaze {
     }
 
     fn get_index(&self, node: Self::Idx) -> usize {
-        node.column + self.ring_sizes[0..node.row].iter().sum::<usize>()
+        node.column + self.extents[node.row]
     }
 }
 
@@ -322,10 +255,14 @@ impl RingMaze {
     fn new(max_rings: usize, column_factor: usize) -> RingMaze {
         let mut rings = vec![1];
         rings.extend((1..max_rings).map(|row| Self::compute_no_of_columns(row, column_factor)));
+        let extents = (0..max_rings)
+            .map(|x| rings[0..x].iter().sum::<usize>())
+            .collect::<Vec<_>>();
 
         let cells = Self::compute_cells(max_rings, &rings, column_factor);
         RingMaze {
             ring_sizes: rings,
+            extents,
             cells,
         }
     }
@@ -508,6 +445,36 @@ mod test {
             "Edge count of unique edges and total edges should be the same"
         );
     }
+
+    #[test]
+    fn indices_are_computed_correctly() {
+        let maze = RingMaze::new(5, 8);
+        assert_eq!(
+            maze.get_index(RingNode { row: 0, column: 0 }),
+            0,
+            "Index of (0, 0) should be 0"
+        );
+        assert_eq!(
+            maze.get_index(RingNode { row: 1, column: 0 }),
+            1,
+            "Index of (1, 0) should be 1"
+        );
+        assert_eq!(
+            maze.get_index(RingNode { row: 2, column: 0 }),
+            1 + 8,
+            "Index of (2, 0) should be 1 + 8"
+        );
+        assert_eq!(
+            maze.get_index(RingNode { row: 2, column: 7 }),
+            1 + 8 + 7,
+            "Index of (2, 1) should be 1 + 8 + 7"
+        );
+        assert_eq!(
+            maze.get_index(RingNode { row: 3, column: 7 }),
+            1 + 8 + 16 + 7,
+            "Index of (2, 1) should be 1 + 8 + 16 + 7"
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -629,10 +596,10 @@ fn get_node_furthest_away_from(maze: &RingMaze, start: RingNode) -> RingNode {
         row: outer_ring,
         column: (0..maze.ring_sizes[outer_ring])
             .max_by_key(|column| {
-                topo[RingNode {
+                topo[maze.get_index(RingNode {
                     column: *column,
                     row: outer_ring,
-                }]
+                })]
             })
             .unwrap(),
     }
@@ -643,7 +610,7 @@ fn make_maze(
     column_factor: usize,
     seed: u64,
     algorithm: &Algorithm,
-) -> (RingMaze, Vec<RingNode>, Cells<usize>) {
+) -> (RingMaze, Vec<RingNode>, Vec<usize>) {
     fastrand::seed(seed);
     let template = RingMaze::new(rings, column_factor);
     let mut maze = match algorithm {
@@ -680,7 +647,7 @@ fn find_shortest_path(
     maze: &RingMaze,
     start: RingNode,
     end: RingNode,
-) -> (Vec<RingNode>, Cells<usize>) {
+) -> (Vec<RingNode>, Vec<usize>) {
     let distances = maze.dijkstra(start);
     let mut cursor = end;
     let mut path = vec![cursor];
@@ -688,10 +655,10 @@ fn find_shortest_path(
         cursor = *maze
             .get_paths(cursor)
             .iter()
-            .min_by_key(|n| distances[**n])
+            .min_by_key(|n| distances[maze.get_index(**n)])
             .unwrap();
         path.push(cursor);
-        if distances[cursor] == 1 {
+        if distances[maze.get_index(cursor)] == 1 {
             break;
         }
     }
@@ -835,13 +802,14 @@ impl RingMazeSvg {
     fn stain(
         &self,
         grid: &PolarGrid,
-        distances: &Cells<usize>,
+        distances: &Vec<usize>,
         (a, b): (WebColour, WebColour),
         document: &mut Document,
     ) {
-        let max_distance = *distances.cells.iter().max().unwrap() as f64;
+        let max_distance = *distances.iter().max().unwrap() as f64;
         let get_fill = |node: RingNode| {
-            let intensity = (max_distance - distances[node] as f64) / max_distance;
+            let intensity =
+                (max_distance - distances[grid.maze.get_index(node)] as f64) / max_distance;
             let inverse = 1.0 - intensity;
             a.blend(intensity).add(&b.blend(inverse)).to_web_string()
         };
@@ -1004,7 +972,7 @@ pub fn test_maze() -> Result<(), ()> {
         }),
             */
         ],
-        &Algorithm::Kruskal,
+        &Algorithm::GrowingTree,
     );
     // println!("{}", str);
     Ok(())
