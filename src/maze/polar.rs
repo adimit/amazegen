@@ -113,11 +113,11 @@ impl IndexMut<RingNode> for RingMaze {
     }
 }
 
-fn dijkstra(maze: &RingMaze, origin: RingNode) -> Vec<usize> {
+fn dijkstra<M: JarníkMaze>(maze: &M, origin: M::Idx) -> Vec<usize> {
     let mut distances = maze.get_all_nodes().iter().map(|_| 0).collect::<Vec<_>>();
-    let mut frontier: Vec<RingNode> = vec![origin];
+    let mut frontier: Vec<M::Idx> = vec![origin];
     while !frontier.is_empty() {
-        let mut new_frontier: Vec<RingNode> = vec![];
+        let mut new_frontier: Vec<M::Idx> = vec![];
         for cell in frontier.drain(..) {
             for new in maze.get_paths(cell) {
                 if distances[maze.get_index(new)] == 0 {
@@ -150,8 +150,6 @@ trait JarníkMaze {
 
     fn open(&mut self, node: Self::Idx);
 
-    fn dijkstra(&self, origin: Self::Idx) -> Vec<usize>;
-
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)>;
 
     fn get_all_nodes(&self) -> Vec<Self::Idx>;
@@ -183,10 +181,6 @@ impl JarníkMaze for RingMaze {
             row: node.row + 1,
             column: 0,
         })
-    }
-
-    fn dijkstra(&self, origin: RingNode) -> Vec<usize> {
-        dijkstra(self, origin)
     }
 
     fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
@@ -591,7 +585,7 @@ struct CellCoordinates {
 
 fn get_node_furthest_away_from(maze: &RingMaze, start: RingNode) -> RingNode {
     let outer_ring = maze.ring_sizes.len() - 1;
-    let topo = maze.dijkstra(start);
+    let topo = dijkstra(maze, start);
     RingNode {
         row: outer_ring,
         column: (0..maze.ring_sizes[outer_ring])
@@ -648,7 +642,7 @@ fn find_shortest_path(
     start: RingNode,
     end: RingNode,
 ) -> (Vec<RingNode>, Vec<usize>) {
-    let distances = maze.dijkstra(start);
+    let distances = dijkstra(maze, start);
     let mut cursor = end;
     let mut path = vec![cursor];
     loop {
