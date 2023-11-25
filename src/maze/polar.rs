@@ -1,6 +1,10 @@
 use crate::maze::feature::Algorithm;
 
-use super::{interface::MazeGen, paint::theta::RingMazeSvg};
+use super::{
+    interface::{Maze, MazeToSvg},
+    paint::theta::RingMazePainter,
+    theta::RingMaze,
+};
 
 /*
 fn debug_maze(maze: &RingMaze) {
@@ -19,14 +23,15 @@ fn debug_maze(maze: &RingMaze) {
 */
 
 pub fn test_maze() {
-    let mazegen = RingMazeSvg {
+    let mazegen = RingMazePainter {
         cell_size: 40.0,
-        size: 100,
         colour: "black".into(),
         stroke_width: 4.0,
     };
-    let _str = mazegen.create_maze(
-        fastrand::get_seed(),
+    let template = RingMaze::new(100, 8);
+    let mut maze = Algorithm::GrowingTree.execute(template);
+    let path = maze.find_path();
+    let _str = mazegen.paint_maze(
         vec![
             /*
             DrawingInstructions::StainMaze((
@@ -51,7 +56,8 @@ pub fn test_maze() {
         }),
             */
         ],
-        &Algorithm::GrowingTree,
+        &maze,
+        &path,
     );
     // println!("{}", str);
 }

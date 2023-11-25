@@ -9,9 +9,8 @@ use svg::node::element::{
     Path,
 };
 
-use crate::maze::feature::Algorithm;
-use crate::maze::interface::{Maze, MazeGen};
-use crate::maze::theta::{make_maze, RingCell, RingMaze, RingNode};
+use crate::maze::interface::{Maze, MazePath, MazeToSvg};
+use crate::maze::theta::{RingCell, RingMaze, RingNode};
 
 use super::{DrawingInstructions, WebColour};
 
@@ -136,14 +135,13 @@ impl From<CartesianPoint> for Parameters {
     }
 }
 
-pub struct RingMazeSvg {
+pub struct RingMazePainter {
     pub stroke_width: f64,
     pub cell_size: f64,
     pub colour: String,
-    pub size: usize,
 }
 
-impl RingMazeSvg {
+impl RingMazePainter {
     fn polar(grid: &PolarGrid, node: &RingNode) -> PolarPoint {
         if node.row == 0 && node.column == 0 {
             return PolarPoint { r: 0.0, θ: 0.0 };
@@ -344,25 +342,24 @@ impl RingMazeSvg {
     }
 }
 
-impl MazeGen for RingMazeSvg {
-    fn create_maze(
+impl MazeToSvg<RingMaze> for RingMazePainter {
+    fn paint_maze(
         &self,
-        seed: u64,
         features: Vec<DrawingInstructions>,
-        algorithm: &Algorithm,
+        maze: &RingMaze,
+        path: &MazePath<RingNode>,
     ) -> String {
-        let (maze, path_to_solution, distances) = make_maze(self.size, 8, seed, algorithm);
-        let grid = PolarGrid::new(&maze, self.cell_size, self.stroke_width);
+        let grid = PolarGrid::new(maze, self.cell_size, self.stroke_width);
         let pixels = (grid.centre.x + self.stroke_width) * 2.0;
         let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
 
         for feature in features {
             match feature {
                 DrawingInstructions::ShowSolution(colour) => {
-                    document.append(self.draw_path(&grid, &path_to_solution, colour));
+                    document.append(self.draw_path(&grid, &path.path, colour));
                 }
                 DrawingInstructions::StainMaze(colours) => {
-                    self.stain(&grid, &distances, colours, &mut document);
+                    self.stain(&grid, &path.distances, colours, &mut document);
                 }
                 DrawingInstructions::DrawMaze(_) => {}
             }

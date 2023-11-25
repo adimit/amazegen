@@ -1,8 +1,7 @@
 use std::ops::{Index, IndexMut};
 
 use super::{
-    algorithms::{dijkstra, jarník, kruskal},
-    feature::Algorithm,
+    algorithms::dijkstra,
     interface::{Maze, MazePath},
 };
 
@@ -303,22 +302,6 @@ impl RingNode {
             && (self.column == other.column + 1
                 || (self.column == 0 && other.column == extents[self.row] - 1))
     }
-}
-
-pub fn make_maze(
-    rings: usize,
-    column_factor: usize,
-    seed: u64,
-    algorithm: &Algorithm,
-) -> (RingMaze, Vec<RingNode>, Vec<usize>) {
-    fastrand::seed(seed);
-    let template = RingMaze::new(rings, column_factor);
-    let mut maze = match algorithm {
-        Algorithm::GrowingTree => jarník(template),
-        Algorithm::Kruskal => kruskal(template),
-    };
-    let path = maze.find_path();
-    (maze, path.path, path.distances)
 }
 
 #[cfg(test)]

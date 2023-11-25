@@ -1,4 +1,4 @@
-use super::{feature::Algorithm, paint::DrawingInstructions};
+use super::paint::DrawingInstructions;
 
 #[derive(Debug)]
 pub struct MazePath<T> {
@@ -26,11 +26,14 @@ pub trait Maze {
     fn find_path(&mut self) -> MazePath<Self::Idx>;
 }
 
-pub trait MazeGen {
-    fn create_maze(
+pub trait MazeToSvg<M>
+where
+    M: Maze,
+{
+    fn paint_maze(
         &self,
-        seed: u64,
         features: Vec<DrawingInstructions>,
-        algorithm: &Algorithm,
+        maze: &M,
+        path: &MazePath<M::Idx>,
     ) -> String;
 }
