@@ -1,13 +1,5 @@
 #![allow(mixed_script_confusables)]
-mod maze;
-
 use std::num::ParseIntError;
-
-use crate::maze::generator::growing_tree::GrowingTreeGenerator;
-use crate::maze::generator::MazeGenerator;
-use crate::maze::paint::*;
-use crate::maze::polar::test_maze;
-use crate::maze::regular::RectilinearMaze;
 
 pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     let maze: RectilinearMaze =
@@ -24,6 +16,12 @@ pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
     str
 }
 
+use amazegen::maze::{
+    generator::{growing_tree::GrowingTreeGenerator, MazeGenerator},
+    paint::{DrawingInstructions, MazeFileWriter, PlottersSvgStringWriter, WebColour},
+    polar::test_maze,
+    regular::RectilinearMaze,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

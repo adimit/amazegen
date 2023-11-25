@@ -1,8 +1,8 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use maze::{
+use amazegen::{
     generate_seed,
     maze::feature::{Algorithm, Configuration, Shape},
 };
+use criterion::{criterion_group, criterion_main, Criterion};
 
 fn kruskal_rect(c: &mut Criterion) {
     c.bench_function("maze_synthesis", |b| {

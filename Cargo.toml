@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 crate-type = ["rlib","cdylib"]
-name = "maze"
+name = "amazegen"
 path = "src/lib.rs"
 
 [[bin]]
@@ -17,7 +17,7 @@ bench = false
 
 [dependencies]
 fastrand = "2"
-# fastrand won't work with wasm unless we also add this line. 
+# fastrand won't work with wasm unless we also add this line.
 # See here: https://github.com/smol-rs/fastrand/issues/27
 instant = {version="*", features=["wasm-bindgen"]}
 svg = "0.14"
