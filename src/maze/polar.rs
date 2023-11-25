@@ -223,8 +223,6 @@ trait JarníkMaze {
 
     fn get_all_nodes(&self) -> Vec<Self::Idx>;
 
-    fn get_indexed<T: Copy>(&self, default: T) -> Cells<T>;
-
     fn get_index(&self, node: Self::Idx) -> usize;
 }
 
@@ -285,10 +283,6 @@ impl JarníkMaze for RingMaze {
 
     fn get_all_nodes(&self) -> Vec<Self::Idx> {
         self.cells.iter().map(|c| c.coordinates).collect()
-    }
-
-    fn get_indexed<T: Copy>(&self, default: T) -> Cells<T> {
-        Cells::new(&self.ring_sizes, default)
     }
 
     fn get_index(&self, node: Self::Idx) -> usize {
