@@ -49,7 +49,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    fn generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
+    fn legacy_generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
         let extents = match shape {
             Shape::Rectilinear(x, y) => (*x, *y),
             Shape::Theta(_) => todo!(),
@@ -87,7 +87,7 @@ impl Configuration {
         let mut str = String::new();
         PlottersSvgStringWriter::new(&mut str, 40, (self.stroke_width / 2.0).floor() as usize)
             .write_maze(
-                &self.algorithm.generate(&self.shape, &self.seed),
+                &self.algorithm.legacy_generate(&self.shape, &self.seed),
                 self.features
                     .iter()
                     .map(|f| Into::<DrawingInstructions>::into(*f))
