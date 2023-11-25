@@ -78,8 +78,8 @@ fn kruskal_theta(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    // kruskal_rect,
-    // jarník_rect,
+    kruskal_rect,
+    jarník_rect,
     kruskal_theta,
     jarník_theta
 );

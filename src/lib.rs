@@ -44,7 +44,7 @@ mod test {
             stroke_width: 8.0,
         }
         .execute();
-        assert_eq!(svg.0.contains("<svg"), true)
+        assert!(svg.0.contains("<svg"))
     }
 }
 

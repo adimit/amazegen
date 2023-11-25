@@ -186,8 +186,7 @@ impl JarníkMaze for RingMaze {
     fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
         let mut frontier = vec![&self.cells[0]];
         let mut edges: Vec<(RingNode, RingNode)> = vec![];
-        while !frontier.is_empty() {
-            let node = frontier.pop().unwrap();
+        while let Some(node) = frontier.pop() {
             let new_edges = node
                 .inaccessible_neighbours
                 .iter()
@@ -229,7 +228,7 @@ impl RingMaze {
     /// Cells are stored in a flat vector. The index implementation for `RindNode`
     /// finds out how many cells are in each ring via the ring sizes.
     /// Vector index of (r, c) = sum of ring sizes up to r + c
-    fn compute_cells(max_rings: usize, rings: &Vec<usize>, column_factor: usize) -> Vec<RingCell> {
+    fn compute_cells(max_rings: usize, rings: &[usize], column_factor: usize) -> Vec<RingCell> {
         let mut cells = vec![RingCell {
             coordinates: RingNode { row: 0, column: 0 },
             inaccessible_neighbours: (0..column_factor)
@@ -314,7 +313,7 @@ where
     M: JarníkMaze,
 {
     fn new(maze: &'a mut M) -> Self {
-        let all_nodes = maze.get_all_nodes().iter().cloned().collect::<Vec<_>>();
+        let all_nodes = maze.get_all_nodes().to_vec();
         Self {
             maze,
             classes2: all_nodes.iter().enumerate().map(|(i, _)| i).collect(),
@@ -796,7 +795,7 @@ impl RingMazeSvg {
     fn stain(
         &self,
         grid: &PolarGrid,
-        distances: &Vec<usize>,
+        distances: &[usize],
         (a, b): (WebColour, WebColour),
         document: &mut Document,
     ) {
@@ -933,14 +932,14 @@ impl MazeGen for RingMazeSvg {
     }
 }
 
-pub fn test_maze() -> Result<(), ()> {
+pub fn test_maze() {
     let mazegen = RingMazeSvg {
         cell_size: 40.0,
         size: 100,
         colour: "black".into(),
         stroke_width: 4.0,
     };
-    let str = mazegen.create_maze(
+    let _str = mazegen.create_maze(
         fastrand::get_seed(),
         vec![
             /*
@@ -969,5 +968,4 @@ pub fn test_maze() -> Result<(), ()> {
         &Algorithm::GrowingTree,
     );
     // println!("{}", str);
-    Ok(())
 }
