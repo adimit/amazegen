@@ -49,6 +49,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    #[deprecated]
     fn legacy_generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
         let extents = match shape {
             Shape::Rectilinear(x, y) => (*x, *y),
@@ -83,6 +84,7 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
+    #[deprecated]
     fn legacy_maze(&self) -> Svg {
         let mut str = String::new();
         PlottersSvgStringWriter::new(&mut str, 40, (self.stroke_width / 2.0).floor() as usize)
