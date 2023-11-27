@@ -19,7 +19,7 @@ pub fn make_svg_maze(x_size: usize, y_size: usize, seed: u64) -> String {
 use amazegen::maze::{
     generator::{growing_tree::GrowingTreeGenerator, MazeGenerator},
     paint::{DrawingInstructions, MazeFileWriter, PlottersSvgStringWriter, WebColour},
-    polar::test_maze,
+    regular::test_maze,
     regular::RectilinearMaze,
 };
 use thiserror::Error;

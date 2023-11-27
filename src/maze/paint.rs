@@ -133,7 +133,7 @@ impl From<WebColour> for plotters::style::RGBAColor {
 pub struct CellSize(usize);
 pub struct BorderWidth(usize);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DrawingInstructions {
     DrawMaze(WebColour),
     ShowSolution(WebColour),

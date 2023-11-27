@@ -1,14 +1,10 @@
-use std::iter::once;
-
-use crate::maze::generator::growing_tree::GrowingTreeGenerator;
-use crate::maze::generator::kruskal::Kruskal;
-use crate::maze::generator::MazeGenerator;
 use crate::maze::paint::*;
 use crate::maze::regular::RectilinearMaze;
 use itertools::Itertools;
 
 use super::algorithms::{jarník, kruskal};
 use super::interface::{Maze, MazeToSvg};
+use super::paint::regular::RegularMazePainter;
 use super::paint::theta::RingMazePainter;
 use super::theta::RingMaze;
 
@@ -49,20 +45,6 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    #[deprecated]
-    fn legacy_generate(&self, shape: &Shape, seed: &u64) -> RectilinearMaze {
-        let extents = match shape {
-            Shape::Rectilinear(x, y) => (*x, *y),
-            Shape::Theta(_) => todo!(),
-        };
-        match self {
-            Algorithm::Kruskal => Kruskal::new(extents, *seed).generate(),
-            Algorithm::GrowingTree => {
-                GrowingTreeGenerator::<(usize, usize)>::new(extents, *seed).generate()
-            }
-        }
-    }
-
     pub fn execute<M: Maze>(&self, maze: M) -> M {
         match self {
             Algorithm::Kruskal => jarník(maze),
@@ -84,25 +66,6 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
-    #[deprecated]
-    fn legacy_maze(&self) -> Svg {
-        let mut str = String::new();
-        PlottersSvgStringWriter::new(&mut str, 40, (self.stroke_width / 2.0).floor() as usize)
-            .write_maze(
-                &self.algorithm.legacy_generate(&self.shape, &self.seed),
-                self.features
-                    .iter()
-                    .map(|f| Into::<DrawingInstructions>::into(*f))
-                    .sorted()
-                    .merge(once(DrawingInstructions::DrawMaze(
-                        WebColour::from_string(&self.colour).unwrap(),
-                    )))
-                    .collect::<Vec<_>>(),
-            )
-            .unwrap();
-        Svg(str)
-    }
-
     fn render_maze<M: Maze, P: MazeToSvg<M>>(&self, template: M, painter: P) -> Svg {
         let mut maze = self.algorithm.execute(template);
         let path = maze.find_path();
@@ -120,7 +83,15 @@ impl Configuration {
     pub fn execute(&self) -> Svg {
         fastrand::seed(self.seed);
         match self.shape {
-            Shape::Rectilinear(_, _) => self.legacy_maze(),
+            Shape::Rectilinear(x, y) => {
+                let painter = RegularMazePainter {
+                    cell_size: 40,
+                    colour: self.colour.to_string(),
+                    stroke_width: (self.stroke_width / 2.0).floor() as usize,
+                };
+                let template = RectilinearMaze::new((x, y));
+                self.render_maze(template, painter)
+            }
             Shape::Theta(size) => {
                 let mazegen = RingMazePainter {
                     cell_size: 40.0,

@@ -5,7 +5,8 @@ use std::{
 
 use itertools::Itertools;
 
-use super::{Maze, Node};
+use super::{feature::Configuration, interface::MazePath, Maze as OldMaze, Node};
+use crate::maze::{algorithms::dijkstra, interface::Maze};
 
 impl Node for (usize, usize) {
     fn get_random_node(extents: Self) -> Self {
@@ -169,7 +170,7 @@ impl RectilinearMaze {
     }
 }
 
-impl Maze for RectilinearMaze {
+impl OldMaze for RectilinearMaze {
     type NodeType = (usize, usize);
 
     fn get_extents(&self) -> (usize, usize) {
@@ -237,6 +238,91 @@ impl Maze for RectilinearMaze {
             })
             .is_some()
     }
+}
+
+impl Maze for RectilinearMaze {
+    type Idx = (usize, usize);
+
+    fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx) {
+        self.move_from_to(node, neighbour);
+    }
+
+    fn get_walls(&self, node: Self::Idx) -> Vec<Self::Idx> {
+        self.get_possible_targets(node)
+    }
+
+    fn get_paths(&self, node: Self::Idx) -> Vec<Self::Idx> {
+        self.get_walkable_edges(node).collect()
+    }
+
+    fn get_random_node(&self) -> Self::Idx {
+        <(usize, usize)>::get_random_node(self.extents)
+    }
+
+    fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
+        <(usize, usize)>::get_all_edges(self.extents)
+    }
+
+    fn get_all_nodes(&self) -> Vec<Self::Idx> {
+        <(usize, usize)>::get_all_nodes(self.extents)
+    }
+
+    fn get_index(&self, (x, y): Self::Idx) -> usize {
+        self.extents.0 * y + x
+    }
+
+    fn find_path(&mut self) -> MazePath<Self::Idx> {
+        self.set_entrance(fastrand::usize(0..self.get_extents().0));
+        let entrance_topo = dijkstra(self, self.get_entrance());
+        let y = self.get_extents().1 - 1;
+        let exit = (0..self.get_extents().0)
+            .map(|x| (x, y))
+            .max_by_key(|node| entrance_topo[self.get_index(*node)])
+            .unwrap_or((
+                fastrand::usize(0..self.get_extents().0),
+                self.get_extents().1 - 1,
+            ));
+        let exit_topo = dijkstra(self, exit);
+        let entrance = (0..self.get_extents().0)
+            .map(|x| (x, 0))
+            .max_by_key(|node| exit_topo[self.get_index(*node)])
+            .unwrap_or((fastrand::usize(0..self.get_extents().0), 0));
+        self.set_entrance(entrance.0);
+        self.set_exit(exit.0);
+
+        let mut cursor = exit;
+        let mut path = vec![cursor];
+        loop {
+            cursor = *self
+                .get_paths(cursor)
+                .iter()
+                .min_by_key(|n| exit_topo[self.get_index(**n)])
+                .unwrap();
+            path.push(cursor);
+            if exit_topo[self.get_index(cursor)] == 1 {
+                break;
+            }
+        }
+        path.push(entrance);
+        MazePath {
+            path,
+            distances: exit_topo,
+        }
+    }
+}
+
+pub fn test_maze() {
+    let svg = Configuration {
+        seed: 0,
+        shape: super::feature::Shape::Rectilinear(10, 10),
+        colour: "000000".to_string(),
+        features: [].to_vec(),
+        algorithm: crate::maze::feature::Algorithm::GrowingTree,
+        stroke_width: 4.0,
+    }
+    .execute();
+
+    println!("{}", svg.0);
 }
 
 #[cfg(test)]

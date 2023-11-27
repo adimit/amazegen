@@ -8,9 +8,10 @@ use plotters::{
 };
 
 use crate::maze::{
+    interface::{Maze, MazePath, MazeToSvg},
     regular::{Direction, Direction::*, RectilinearMaze},
     solver::Solver,
-    Maze,
+    Maze as OldMaze,
 };
 
 use super::{
@@ -248,6 +249,38 @@ fn get_wall_run(maze: &RectilinearMaze, line: usize, direction: Direction) -> Ve
                 (*run.first().unwrap(), *run.last().unwrap())
             })
             .collect::<Vec<_>>(),
+    }
+}
+
+pub struct RegularMazePainter {
+    pub stroke_width: usize,
+    pub cell_size: usize,
+    pub colour: String,
+}
+
+impl MazeToSvg<RectilinearMaze> for RegularMazePainter {
+    fn paint_maze(
+        &self,
+        features: Vec<DrawingInstructions>,
+        maze: &RectilinearMaze,
+        _path: &MazePath<<RectilinearMaze as Maze>::Idx>,
+    ) -> String {
+        let mut strbuf = String::new();
+        write_to_backend(
+            |(x, y)| SVGBackend::with_string(&mut strbuf, (x, y)).into_drawing_area(),
+            maze,
+            self.cell_size,
+            self.stroke_width,
+            [
+                features,
+                vec![DrawingInstructions::DrawMaze(
+                    WebColour::from_string(&self.colour).unwrap(),
+                )],
+            ]
+            .concat(),
+        )
+        .unwrap();
+        strbuf
     }
 }
 
