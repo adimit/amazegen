@@ -16,7 +16,7 @@ bench = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fastrand = "2"
+fastrand = {version="2", features=["js"]}
 # fastrand won't work with wasm unless we also add this line.
 # See here: https://github.com/smol-rs/fastrand/issues/27
 instant = {version="*", features=["wasm-bindgen"]}
