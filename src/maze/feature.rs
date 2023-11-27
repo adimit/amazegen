@@ -47,8 +47,8 @@ pub enum Algorithm {
 impl Algorithm {
     pub fn execute<M: Maze>(&self, maze: M) -> M {
         match self {
-            Algorithm::Kruskal => jarník(maze),
-            Algorithm::GrowingTree => kruskal(maze),
+            Algorithm::Kruskal => kruskal(maze),
+            Algorithm::GrowingTree => jarník(maze),
         }
     }
 }
