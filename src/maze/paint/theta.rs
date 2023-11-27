@@ -2,17 +2,17 @@ use std::cmp::min;
 use svg::node::element::path::Command::{self, EllipticalArc};
 use svg::node::element::path::Position::Absolute;
 use svg::node::element::Circle;
-use svg::{Document, Node};
-
 use svg::node::element::{
     path::{Data, Parameters},
     Path,
 };
+use svg::{Document, Node};
 
-use crate::maze::interface::{Maze, MazePath, MazeToSvg};
+use crate::maze::feature::Svg;
+use crate::maze::interface::{Maze, MazeRenderer, Solution};
 use crate::maze::theta::{RingCell, RingMaze, RingNode};
 
-use super::{DrawingInstructions, WebColour};
+use super::WebColour;
 
 #[allow(non_upper_case_globals)]
 const π: f64 = std::f64::consts::PI;
@@ -135,156 +135,39 @@ impl From<CartesianPoint> for Parameters {
     }
 }
 
-pub struct RingMazePainter {
-    pub stroke_width: f64,
-    pub cell_size: f64,
-    pub colour: String,
+pub struct RingMazeRenderer<'a> {
+    solution: &'a Solution<RingNode>,
+    stroke_width: f64,
+    document: Document,
+    grid: PolarGrid<'a>,
 }
 
-impl RingMazePainter {
-    fn polar(grid: &PolarGrid, node: &RingNode) -> PolarPoint {
+impl<'a> RingMazeRenderer<'a> {
+    pub fn new(
+        maze: &'a RingMaze,
+        path: &'a Solution<RingNode>,
+        stroke_width: f64,
+        cell_size: f64,
+    ) -> Self {
+        let grid = PolarGrid::new(maze, cell_size, stroke_width);
+        let pixels = (grid.centre.x + stroke_width) * 2.0;
+        let document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+
+        RingMazeRenderer {
+            solution: path,
+            stroke_width,
+            document,
+            grid,
+        }
+    }
+
+    fn polar(&self, node: &RingNode) -> PolarPoint {
         if node.row == 0 && node.column == 0 {
             return PolarPoint { r: 0.0, θ: 0.0 };
         }
         PolarPoint {
-            r: grid.inner_radius(node.row) + grid.ring_height / 2.0,
-            θ: grid.θ_east(*node) + grid.θ(node.row) / 2.0,
-        }
-    }
-
-    fn draw_path(&self, grid: &PolarGrid, path: &Vec<RingNode>, colour: WebColour) -> Path {
-        let nodes = path
-            .iter()
-            .enumerate()
-            .flat_map(|(i, node)| {
-                if path[i.saturating_sub(1)].row != node.row
-                    && path[min(path.len() - 1, i + 1)].row != node.row
-                {
-                    vec![node, node]
-                } else {
-                    vec![node]
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let split_path = nodes
-            .iter()
-            .map(|node| Self::polar(grid, node))
-            .collect::<Vec<_>>();
-
-        let points = split_path
-            .iter()
-            .enumerate()
-            .map(|(i, node)| {
-                let prev = split_path[i.saturating_sub(1)];
-                let next = split_path[min(split_path.len() - 1, i + 1)];
-                if node.r < prev.r {
-                    PolarPoint {
-                        θ: prev.θ,
-                        r: node.r,
-                    }
-                } else if node.r < next.r {
-                    PolarPoint {
-                        θ: next.θ,
-                        r: node.r,
-                    }
-                } else {
-                    *node
-                }
-            })
-            .map(|p| p.to_cartesian(grid.centre))
-            .collect::<Vec<_>>();
-
-        let r_out = grid.outer_radius(path[0].row) + self.stroke_width / 2.0;
-        let mut data = Data::new().move_to(
-            (PolarPoint {
-                r: r_out,
-                θ: split_path[0].θ,
-            })
-            .to_cartesian(grid.centre),
-        );
-        points.iter().enumerate().for_each(|(i, point)| {
-            if split_path[i.saturating_sub(1)].r == split_path[i].r {
-                let sweep =
-                    if nodes[i.saturating_sub(1)].is_west_of(*nodes[i], &grid.maze.ring_sizes) {
-                        0
-                    } else {
-                        1
-                    };
-                data.append(Command::EllipticalArc(
-                    Absolute,
-                    (
-                        split_path[i].r,
-                        split_path[i].r,
-                        0,
-                        0,
-                        sweep,
-                        point.x,
-                        point.y,
-                    )
-                        .into(),
-                ));
-            } else {
-                data.append(Command::Line(Absolute, (point.x, point.y).into()));
-            }
-        });
-        {
-            let exit = (PolarPoint {
-                r: r_out,
-                θ: split_path.last().unwrap().θ,
-            })
-            .to_cartesian(grid.centre);
-            data.append(Command::Line(Absolute, (exit.x, exit.y).into()));
-        };
-
-        Path::new()
-            .set("stroke", colour.to_web_string())
-            .set("fill", "none")
-            .set("stroke-linejoin", "round")
-            .set("d", data)
-            .set("stroke-width", 1.5 * self.stroke_width)
-    }
-
-    fn stain(
-        &self,
-        grid: &PolarGrid,
-        distances: &[usize],
-        (a, b): (WebColour, WebColour),
-        document: &mut Document,
-    ) {
-        let max_distance = *distances.iter().max().unwrap() as f64;
-        let get_fill = |node: RingNode| {
-            let intensity =
-                (max_distance - distances[grid.maze.get_index(node)] as f64) / max_distance;
-            let inverse = 1.0 - intensity;
-            a.blend(intensity).add(&b.blend(inverse)).to_web_string()
-        };
-        {
-            document.append(
-                Circle::new()
-                    .set("cx", grid.centre.x)
-                    .set("cy", grid.centre.y)
-                    .set("r", grid.ring_height + 1.0)
-                    .set("stroke", "none")
-                    .set("fill", get_fill(RingNode { column: 0, row: 0 })),
-            );
-        };
-
-        for node in grid.maze.cells.iter().skip(1) {
-            let outer = grid.outer_radius(node.coordinates.row);
-            let inner = grid.inner_radius(node.coordinates.row);
-            let c = grid.compute_cell_with_fudge(node.coordinates);
-            let data = Data::new()
-                .move_to((c.ax, c.ay))
-                .line_to((c.bx, c.by))
-                .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
-                .line_to((c.cx, c.cy))
-                .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay));
-            let path = Path::new()
-                .set("stroke", "none")
-                .set("fill", get_fill(node.coordinates))
-                .set("d", data);
-            document.append(path);
+            r: self.grid.inner_radius(node.row) + self.grid.ring_height / 2.0,
+            θ: self.grid.θ_east(*node) + self.grid.θ(node.row) / 2.0,
         }
     }
 
@@ -342,46 +225,161 @@ impl RingMazePainter {
     }
 }
 
-impl MazeToSvg<RingMaze> for RingMazePainter {
-    fn paint_maze(
-        &self,
-        features: Vec<DrawingInstructions>,
-        maze: &RingMaze,
-        path: &MazePath<RingNode>,
-    ) -> String {
-        let grid = PolarGrid::new(maze, self.cell_size, self.stroke_width);
-        let pixels = (grid.centre.x + self.stroke_width) * 2.0;
-        let mut document = Document::new().set("viewBox", (0, 0, pixels, pixels));
-
-        for feature in features {
-            match feature {
-                DrawingInstructions::ShowSolution(colour) => {
-                    document.append(self.draw_path(&grid, &path.path, colour));
-                }
-                DrawingInstructions::StainMaze(colours) => {
-                    self.stain(&grid, &path.distances, colours, &mut document);
-                }
-                DrawingInstructions::DrawMaze(_) => {}
-            }
-        }
-
+impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
+    fn stain(&mut self, (a, b): (WebColour, WebColour)) {
+        let max_distance = *self.solution.distances.iter().max().unwrap() as f64;
+        let get_fill = |node: RingNode| {
+            let intensity = (max_distance
+                - self.solution.distances[self.grid.maze.get_index(node)] as f64)
+                / max_distance;
+            let inverse = 1.0 - intensity;
+            a.blend(intensity).add(&b.blend(inverse)).to_web_string()
+        };
         {
-            let mut data = Data::new();
-            for node in maze.cells.iter() {
-                Self::render_cell(&mut data, &grid, node);
-            }
+            self.document.append(
+                Circle::new()
+                    .set("cx", self.grid.centre.x)
+                    .set("cy", self.grid.centre.y)
+                    .set("r", self.grid.ring_height + 1.0)
+                    .set("stroke", "none")
+                    .set("fill", get_fill(RingNode { column: 0, row: 0 })),
+            );
+        };
 
+        for node in self.grid.maze.cells.iter().skip(1) {
+            let outer = self.grid.outer_radius(node.coordinates.row);
+            let inner = self.grid.inner_radius(node.coordinates.row);
+            let c = self.grid.compute_cell_with_fudge(node.coordinates);
+            let data = Data::new()
+                .move_to((c.ax, c.ay))
+                .line_to((c.bx, c.by))
+                .elliptical_arc_to((outer, outer, 0, 0, 0, c.dx, c.dy))
+                .line_to((c.cx, c.cy))
+                .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay));
             let path = Path::new()
-                .set("stroke", self.colour.as_str())
-                .set("fill", "none")
-                .set("stroke-linecap", "round")
-                .set("d", data)
-                .set("stroke-width", self.stroke_width);
-            document.append(path);
+                .set("stroke", "none")
+                .set("fill", get_fill(node.coordinates))
+                .set("d", data);
+            self.document.append(path);
+        }
+    }
+
+    fn solve(&mut self, stroke_colour: WebColour) {
+        let nodes = self
+            .solution
+            .path
+            .iter()
+            .enumerate()
+            .flat_map(|(i, node)| {
+                if self.solution.path[i.saturating_sub(1)].row != node.row
+                    && self.solution.path[min(self.solution.path.len() - 1, i + 1)].row != node.row
+                {
+                    vec![node, node]
+                } else {
+                    vec![node]
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let split_path = nodes
+            .iter()
+            .map(|node| self.polar(node))
+            .collect::<Vec<_>>();
+
+        let points = split_path
+            .iter()
+            .enumerate()
+            .map(|(i, node)| {
+                let prev = split_path[i.saturating_sub(1)];
+                let next = split_path[min(split_path.len() - 1, i + 1)];
+                if node.r < prev.r {
+                    PolarPoint {
+                        θ: prev.θ,
+                        r: node.r,
+                    }
+                } else if node.r < next.r {
+                    PolarPoint {
+                        θ: next.θ,
+                        r: node.r,
+                    }
+                } else {
+                    *node
+                }
+            })
+            .map(|p| p.to_cartesian(self.grid.centre))
+            .collect::<Vec<_>>();
+
+        let r_out = self.grid.outer_radius(self.solution.path[0].row) + self.stroke_width / 2.0;
+        let mut data = Data::new().move_to(
+            (PolarPoint {
+                r: r_out,
+                θ: split_path[0].θ,
+            })
+            .to_cartesian(self.grid.centre),
+        );
+        points.iter().enumerate().for_each(|(i, point)| {
+            if split_path[i.saturating_sub(1)].r == split_path[i].r {
+                let sweep = if nodes[i.saturating_sub(1)]
+                    .is_west_of(*nodes[i], &self.grid.maze.ring_sizes)
+                {
+                    0
+                } else {
+                    1
+                };
+                data.append(Command::EllipticalArc(
+                    Absolute,
+                    (
+                        split_path[i].r,
+                        split_path[i].r,
+                        0,
+                        0,
+                        sweep,
+                        point.x,
+                        point.y,
+                    )
+                        .into(),
+                ));
+            } else {
+                data.append(Command::Line(Absolute, (point.x, point.y).into()));
+            }
+        });
+        {
+            let exit = (PolarPoint {
+                r: r_out,
+                θ: split_path.last().unwrap().θ,
+            })
+            .to_cartesian(self.grid.centre);
+            data.append(Command::Line(Absolute, (exit.x, exit.y).into()));
+        };
+
+        let p = Path::new()
+            .set("stroke", stroke_colour.to_web_string())
+            .set("fill", "none")
+            .set("stroke-linejoin", "round")
+            .set("d", data)
+            .set("stroke-width", 1.5 * self.stroke_width);
+
+        self.document.append(p);
+    }
+
+    fn paint(&mut self, border: WebColour) {
+        let mut data = Data::new();
+        for node in self.grid.maze.cells.iter() {
+            Self::render_cell(&mut data, &self.grid, node);
         }
 
+        let path = Path::new()
+            .set("stroke", border.to_web_string())
+            .set("fill", "none")
+            .set("stroke-linecap", "round")
+            .set("d", data)
+            .set("stroke-width", self.stroke_width);
+        self.document.append(path);
+    }
+
+    fn render(&self) -> Svg {
         let mut strbuf: Vec<u8> = Vec::new();
-        svg::write(&mut strbuf, &document).unwrap();
-        String::from_utf8(strbuf).unwrap()
+        svg::write(&mut strbuf, &self.document).unwrap();
+        Svg(String::from_utf8(strbuf).unwrap())
     }
 }

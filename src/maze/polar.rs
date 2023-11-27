@@ -1,11 +1,3 @@
-use crate::maze::feature::Algorithm;
-
-use super::{
-    interface::{Maze, MazeToSvg},
-    paint::theta::RingMazePainter,
-    theta::RingMaze,
-};
-
 /*
 fn debug_maze(maze: &RingMaze) {
     for cell in maze.cells.iter() {
@@ -23,6 +15,7 @@ fn debug_maze(maze: &RingMaze) {
 */
 
 pub fn test_maze() {
+    /*
     let mazegen = RingMazePainter {
         cell_size: 40.0,
         colour: "black".into(),
@@ -33,7 +26,6 @@ pub fn test_maze() {
     let path = maze.find_path();
     let _str = mazegen.paint_maze(
         vec![
-            /*
             DrawingInstructions::StainMaze((
                 WebColour {
                     r: 255,
@@ -54,10 +46,11 @@ pub fn test_maze() {
                 b: 255,
                 a: 255,
         }),
-            */
         ],
         &maze,
         &path,
-    );
+        );
+                        */
+
     // println!("{}", str);
 }

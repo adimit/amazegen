@@ -5,7 +5,7 @@ use std::{
 
 use itertools::Itertools;
 
-use super::{feature::Configuration, interface::MazePath, Maze as OldMaze, Node};
+use super::{feature::Configuration, interface::Solution, Maze as OldMaze, Node};
 use crate::maze::{algorithms::dijkstra, interface::Maze};
 
 impl Node for (usize, usize) {
@@ -271,40 +271,51 @@ impl Maze for RectilinearMaze {
         self.extents.0 * y + x
     }
 
-    fn find_path(&mut self) -> MazePath<Self::Idx> {
-        self.set_entrance(fastrand::usize(0..self.get_extents().0));
-        let entrance_topo = dijkstra(self, self.get_entrance());
-        let y = self.get_extents().1 - 1;
-        let exit = (0..self.get_extents().0)
-            .map(|x| (x, y))
-            .max_by_key(|node| entrance_topo[self.get_index(*node)])
-            .unwrap_or((
-                fastrand::usize(0..self.get_extents().0),
-                self.get_extents().1 - 1,
-            ));
+    fn find_path(&mut self) -> Solution<Self::Idx> {
+        let entrance_topo = {
+            let start = (fastrand::usize(0..self.get_extents().0), 0);
+            dijkstra(self, start)
+        };
+        let exit = {
+            let y = self.get_extents().1 - 1;
+            (0..self.get_extents().0)
+                .map(|x| (x, y))
+                .max_by_key(|node| entrance_topo[self.get_index(*node)])
+                .unwrap_or((
+                    fastrand::usize(0..self.get_extents().0),
+                    self.get_extents().1 - 1,
+                ))
+        };
+
         let exit_topo = dijkstra(self, exit);
         let entrance = (0..self.get_extents().0)
             .map(|x| (x, 0))
             .max_by_key(|node| exit_topo[self.get_index(*node)])
             .unwrap_or((fastrand::usize(0..self.get_extents().0), 0));
+
         self.set_entrance(entrance.0);
         self.set_exit(exit.0);
 
-        let mut cursor = exit;
-        let mut path = vec![cursor];
-        loop {
-            cursor = *self
-                .get_paths(cursor)
-                .iter()
-                .min_by_key(|n| exit_topo[self.get_index(**n)])
-                .unwrap();
-            path.push(cursor);
-            if exit_topo[self.get_index(cursor)] == 1 {
-                break;
+        let path = {
+            let mut cursor = entrance;
+            let mut path = vec![cursor];
+            loop {
+                cursor = *self
+                    .get_paths(cursor)
+                    .iter()
+                    .min_by_key(|n| exit_topo[self.get_index(**n)])
+                    .unwrap();
+                path.push(cursor);
+                if exit_topo[self.get_index(cursor)] == 1 {
+                    break;
+                }
             }
-        }
-        path.push(entrance);
-        MazePath {
+            path.push(exit);
+            path.reverse();
+            path
+        };
+
+        Solution {
             path,
             distances: exit_topo,
         }

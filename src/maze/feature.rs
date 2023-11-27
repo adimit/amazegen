@@ -1,11 +1,13 @@
-use crate::maze::paint::*;
-use crate::maze::regular::RectilinearMaze;
 use itertools::Itertools;
 
+use crate::maze::interface::MazeRenderer;
+use crate::maze::paint::theta::RingMazeRenderer;
+use crate::maze::paint::*;
+use crate::maze::regular::RectilinearMaze;
+
 use super::algorithms::{jarník, kruskal};
-use super::interface::{Maze, MazeToSvg};
-use super::paint::regular::RegularMazePainter;
-use super::paint::theta::RingMazePainter;
+use super::interface::{Maze, Solution};
+use super::paint::regular::RectilinearRenderer;
 use super::theta::RingMaze;
 
 const STAIN_A: &str = "FFDC80";
@@ -18,10 +20,28 @@ pub enum Shape {
     Theta(usize),
 }
 
-#[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub enum Feature {
     Stain,
     Solve,
+}
+
+impl PartialOrd for Feature {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Feature {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering::*;
+        use Feature::*;
+        match (self, other) {
+            (Stain, Solve) => Less,
+            (Solve, Stain) => Greater,
+            _ => Equal,
+        }
+    }
 }
 
 impl From<Feature> for DrawingInstructions {
@@ -66,40 +86,40 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
-    fn render_maze<M: Maze, P: MazeToSvg<M>>(&self, template: M, painter: P) -> Svg {
+    fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
         let mut maze = self.algorithm.execute(template);
-        let path = maze.find_path();
-        Svg(painter.paint_maze(
-            self.features
-                .iter()
-                .map(|f| Into::<DrawingInstructions>::into(*f))
-                .sorted()
-                .collect::<Vec<_>>(),
-            &maze,
-            &path,
-        ))
+        let solution = maze.find_path();
+        (maze, solution)
+    }
+
+    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R) -> Svg {
+        for i in self.features.iter().sorted() {
+            Into::<DrawingInstructions>::into(*i).run(&mut renderer)
+        }
+        renderer.paint(WebColour::from_string(&self.colour).unwrap());
+        renderer.render()
     }
 
     pub fn execute(&self) -> Svg {
         fastrand::seed(self.seed);
         match self.shape {
             Shape::Rectilinear(x, y) => {
-                let painter = RegularMazePainter {
-                    cell_size: 40,
-                    colour: self.colour.to_string(),
-                    stroke_width: (self.stroke_width / 2.0).floor() as usize,
-                };
-                let template = RectilinearMaze::new((x, y));
-                self.render_maze(template, painter)
+                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
+                self.render(RectilinearRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width / 2.0,
+                    40.0,
+                ))
             }
             Shape::Theta(size) => {
-                let mazegen = RingMazePainter {
-                    cell_size: 40.0,
-                    colour: format!("#{}", self.colour.clone()),
-                    stroke_width: self.stroke_width,
-                };
-                let template = RingMaze::new(size, 8);
-                self.render_maze(template, mazegen)
+                let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
+                self.render(RingMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width,
+                    40.0,
+                ))
             }
         }
     }

@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use itertools::Itertools;
 use plotters::{
     coord::Shift,
@@ -8,212 +6,13 @@ use plotters::{
 };
 
 use crate::maze::{
-    interface::{Maze, MazePath, MazeToSvg},
+    feature::Svg,
+    interface::{Maze, MazeRenderer, Solution},
     regular::{Direction, Direction::*, RectilinearMaze},
-    solver::Solver,
     Maze as OldMaze,
 };
 
-use super::{
-    BorderWidth, CellSize, DrawingInstructions, MazeFileWriter, MazePaintError,
-    PlottersSvgFileWriter, PlottersSvgStringWriter, Visuals, WebColour,
-};
-
-impl<'a> Visuals<'a, RectilinearMaze> {
-    pub fn render_maze(&self, colour: &WebColour) -> Result<(), MazePaintError> {
-        let cell_size = self.cell_size.0 as i32;
-        let border = self.border_width.0 as i32;
-
-        let mut h = get_wall_runs(self.maze, Up);
-        h.push(get_wall_run(self.maze, self.maze.get_extents().0 - 1, Down));
-        let mut v = get_wall_runs(self.maze, Left);
-        v.push(get_wall_run(
-            self.maze,
-            self.maze.get_extents().1 - 1,
-            Right,
-        ));
-        let style = {
-            let svg_colour: RGBAColor = (*colour).into();
-            svg_colour.stroke_width((border * 2).try_into().unwrap())
-        };
-
-        for (y, xs) in h.iter().enumerate() {
-            let y_offset: i32 = y as i32 * cell_size;
-            for (start, end) in xs {
-                let x0: i32 = *start as i32 * cell_size;
-                let xe: i32 = (*end as i32 + 1) * cell_size;
-                self.pic
-                    .draw(&PathElement::new(
-                        [
-                            (x0, y_offset + border),
-                            (xe + 2 * border, y_offset + border),
-                        ],
-                        style,
-                    ))
-                    .unwrap();
-            }
-        }
-
-        for (x, ys) in v.iter().enumerate() {
-            let x_offset: i32 = x as i32 * cell_size;
-            for (start, end) in ys {
-                let y0: i32 = *start as i32 * cell_size;
-                let ye: i32 = (*end as i32 + 1) * cell_size;
-                self.pic
-                    .draw(&PathElement::new(
-                        [
-                            (x_offset + border, (y0)),
-                            (x_offset + border, (ye + 2 * border)),
-                        ],
-                        style,
-                    ))
-                    .unwrap();
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn stain_maze(&self, colours: (WebColour, WebColour)) -> Result<(), MazePaintError> {
-        let cell_size = self.cell_size.0 as i32;
-        let border = self.border_width.0 as i32;
-        let solver = self.get_solver();
-        let distances = solver.get_distances_from_origin();
-        let max_distance: usize = *distances
-            .iter()
-            .map(move |dim| dim.iter().max().unwrap_or(&0))
-            .max()
-            .unwrap_or(&0);
-
-        fn get_colour(absolute: u8, fraction: f64) -> u8 {
-            (absolute as f64 * fraction) as u8
-        }
-
-        for (x, y) in (0..self.maze.get_extents().0).cartesian_product(0..self.maze.get_extents().1)
-        {
-            let x0: i32 = cell_size * x as i32 + border;
-            let y0: i32 = cell_size * y as i32 + border;
-            let x1: i32 = x0 + cell_size;
-            let y1: i32 = y0 + cell_size;
-            let intensity = (max_distance - distances[x][y]) as f64 / max_distance as f64;
-            let inverse = 1.0 - intensity;
-            let style = RGBColor(
-                get_colour(colours.0.r, intensity) + get_colour(colours.1.r, inverse),
-                get_colour(colours.0.g, intensity) + get_colour(colours.1.g, inverse),
-                get_colour(colours.0.b, intensity) + get_colour(colours.1.b, inverse),
-            )
-            .filled();
-            self.pic
-                .draw(&Rectangle::new([(x0 - 2, y0 - 2), (x1 + 2, y1 + 2)], style))
-                .unwrap();
-        }
-        Ok(())
-    }
-
-    fn get_solver(&self) -> Solver<'a, RectilinearMaze> {
-        self.solver
-            .borrow_mut()
-            .get_or_insert_with(|| Solver::new(self.maze, self.maze.get_entrance()))
-            .clone()
-    }
-
-    pub fn solve_maze(&self, colour: WebColour) -> Result<(), MazePaintError> {
-        {
-            let border = self.border_width.0 as i32;
-            let cell_size = self.cell_size.0 as i32;
-            let path_offset = border + (cell_size / 2);
-            let to_coord = |a| cell_size * a as i32 + path_offset;
-            let mut solution: Vec<(i32, i32)> = {
-                let exit = self.maze.get_exit();
-                vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)]
-            };
-            let solver = self.get_solver();
-            solution.extend(solver.solve_maze().iter().map(|(x, y)| {
-                let x0: i32 = to_coord(*x);
-                let y0: i32 = to_coord(*y);
-                (x0, y0)
-            }));
-            solution.push((to_coord(self.maze.get_entrance().0), 0));
-            self.pic
-                .draw(&PathElement::new(
-                    solution,
-                    Into::<RGBAColor>::into(colour).stroke_width(border as u32 * 4),
-                ))
-                .unwrap();
-            Ok(())
-        }
-    }
-}
-
-impl MazeFileWriter<(usize, usize), RectilinearMaze> for PlottersSvgFileWriter {
-    fn write_maze<I>(
-        &mut self,
-        maze: &RectilinearMaze,
-        instructions: I,
-    ) -> Result<(), MazePaintError>
-    where
-        I: IntoIterator<Item = DrawingInstructions>,
-    {
-        write_to_backend(
-            |(x, y)| SVGBackend::new(&self.file_name, (x, y)).into_drawing_area(),
-            maze,
-            self.cell_size,
-            self.border_size,
-            instructions,
-        )
-    }
-}
-
-impl<'a> MazeFileWriter<(usize, usize), RectilinearMaze> for PlottersSvgStringWriter<'a> {
-    fn write_maze<I>(
-        &mut self,
-        maze: &RectilinearMaze,
-        instructions: I,
-    ) -> Result<(), MazePaintError>
-    where
-        I: IntoIterator<Item = DrawingInstructions>,
-    {
-        write_to_backend(
-            |(x, y)| SVGBackend::with_string(self.into_string, (x, y)).into_drawing_area(),
-            maze,
-            self.cell_size,
-            self.border_size,
-            instructions,
-        )
-    }
-}
-
-fn write_to_backend<'a, F, I>(
-    make_drawing_area: F,
-    maze: &'a RectilinearMaze,
-    cell_size: usize,
-    border_size: usize,
-    instructions: I,
-) -> Result<(), MazePaintError>
-where
-    F: FnOnce((u32, u32)) -> DrawingArea<SVGBackend<'a>, Shift>,
-    I: IntoIterator<Item = DrawingInstructions>,
-{
-    let border = border_size as u32;
-    let x = cell_size as u32 * maze.get_extents().0 as u32 + border * 2;
-    let y = cell_size as u32 * maze.get_extents().1 as u32 + border * 2;
-
-    let visual = Visuals {
-        border_width: BorderWidth(border as usize),
-        cell_size: CellSize(cell_size),
-        pic: make_drawing_area((x, y)),
-        maze,
-        solver: RefCell::new(None),
-    };
-
-    for instruction in instructions {
-        instruction.execute(&visual).unwrap();
-    }
-
-    visual.pic.present().unwrap();
-
-    Ok(())
-}
+use super::{BorderWidth, CellSize, WebColour};
 
 fn get_wall_runs(maze: &RectilinearMaze, direction: Direction) -> Vec<Vec<(usize, usize)>> {
     match direction {
@@ -252,35 +51,176 @@ fn get_wall_run(maze: &RectilinearMaze, line: usize, direction: Direction) -> Ve
     }
 }
 
-pub struct RegularMazePainter {
-    pub stroke_width: usize,
-    pub cell_size: usize,
-    pub colour: String,
+// because of Plotters' somewhat impractical API, we need to execute all drawing to the SVG file
+// in one function. So we can't just bulid up the picture with calls to the renderer, but need to
+// collect all instructions first, then execute them all in one place.
+enum PlottersWorkaround {
+    Stain(WebColour, WebColour),
+    Solve(WebColour),
+    Paint(WebColour),
 }
 
-impl MazeToSvg<RectilinearMaze> for RegularMazePainter {
-    fn paint_maze(
-        &self,
-        features: Vec<DrawingInstructions>,
-        maze: &RectilinearMaze,
-        _path: &MazePath<<RectilinearMaze as Maze>::Idx>,
-    ) -> String {
-        let mut strbuf = String::new();
-        write_to_backend(
-            |(x, y)| SVGBackend::with_string(&mut strbuf, (x, y)).into_drawing_area(),
+pub struct RectilinearRenderer<'a> {
+    instructions: Vec<PlottersWorkaround>,
+    size: (u32, u32),
+    maze: &'a RectilinearMaze,
+    cell_size: CellSize,
+    solution: &'a Solution<(usize, usize)>,
+    border_width: BorderWidth,
+}
+
+impl<'a> RectilinearRenderer<'a> {
+    pub fn new(
+        maze: &'a RectilinearMaze,
+        solution: &'a Solution<(usize, usize)>,
+        stroke_width: f64,
+        cell_size: f64,
+    ) -> Self {
+        let x = cell_size as u32 * maze.get_extents().0 as u32 + stroke_width as u32 * 2;
+        let y = cell_size as u32 * maze.get_extents().1 as u32 + stroke_width as u32 * 2;
+        Self {
+            instructions: Vec::new(),
+            size: (x, y),
             maze,
-            self.cell_size,
-            self.stroke_width,
-            [
-                features,
-                vec![DrawingInstructions::DrawMaze(
-                    WebColour::from_string(&self.colour).unwrap(),
-                )],
-            ]
-            .concat(),
-        )
+            cell_size: CellSize(cell_size as usize),
+            solution,
+            border_width: BorderWidth(stroke_width as usize),
+        }
+    }
+
+    fn render_maze(&self, pic: &DrawingArea<SVGBackend, Shift>, colour: &WebColour) {
+        let cell_size = self.cell_size.0 as i32;
+        let border = self.border_width.0 as i32;
+
+        let mut h = get_wall_runs(self.maze, Up);
+        h.push(get_wall_run(self.maze, self.maze.get_extents().0 - 1, Down));
+        let mut v = get_wall_runs(self.maze, Left);
+        v.push(get_wall_run(
+            self.maze,
+            self.maze.get_extents().1 - 1,
+            Right,
+        ));
+        let style = {
+            let svg_colour: RGBAColor = (*colour).into();
+            svg_colour.stroke_width((border * 2).try_into().unwrap())
+        };
+
+        for (y, xs) in h.iter().enumerate() {
+            let y_offset: i32 = y as i32 * cell_size;
+            for (start, end) in xs {
+                let x0: i32 = *start as i32 * cell_size;
+                let xe: i32 = (*end as i32 + 1) * cell_size;
+                pic.draw(&PathElement::new(
+                    [
+                        (x0, y_offset + border),
+                        (xe + 2 * border, y_offset + border),
+                    ],
+                    style,
+                ))
+                .unwrap();
+            }
+        }
+
+        for (x, ys) in v.iter().enumerate() {
+            let x_offset: i32 = x as i32 * cell_size;
+            for (start, end) in ys {
+                let y0: i32 = *start as i32 * cell_size;
+                let ye: i32 = (*end as i32 + 1) * cell_size;
+                pic.draw(&PathElement::new(
+                    [
+                        (x_offset + border, (y0)),
+                        (x_offset + border, (ye + 2 * border)),
+                    ],
+                    style,
+                ))
+                .unwrap();
+            }
+        }
+    }
+
+    fn stain_maze(&self, pic: &DrawingArea<SVGBackend, Shift>, colours: (WebColour, WebColour)) {
+        let cell_size = self.cell_size.0 as i32;
+        let border = self.border_width.0 as i32;
+        let max_distance: usize = *self.solution.distances.iter().max().unwrap_or(&0);
+
+        fn get_colour(absolute: u8, fraction: f64) -> u8 {
+            (absolute as f64 * fraction) as u8
+        }
+
+        for (x, y) in (0..self.maze.get_extents().0).cartesian_product(0..self.maze.get_extents().1)
+        {
+            let x0: i32 = cell_size * x as i32 + border;
+            let y0: i32 = cell_size * y as i32 + border;
+            let x1: i32 = x0 + cell_size;
+            let y1: i32 = y0 + cell_size;
+            let intensity = (max_distance - self.solution.distances[self.maze.get_index((x, y))])
+                as f64
+                / max_distance as f64;
+            let inverse = 1.0 - intensity;
+            let style = RGBColor(
+                get_colour(colours.0.r, intensity) + get_colour(colours.1.r, inverse),
+                get_colour(colours.0.g, intensity) + get_colour(colours.1.g, inverse),
+                get_colour(colours.0.b, intensity) + get_colour(colours.1.b, inverse),
+            )
+            .filled();
+            pic.draw(&Rectangle::new([(x0 - 2, y0 - 2), (x1 + 2, y1 + 2)], style))
+                .unwrap();
+        }
+    }
+
+    pub fn solve_maze(&self, pic: &DrawingArea<SVGBackend, Shift>, colour: WebColour) {
+        let border = self.border_width.0 as i32;
+        let cell_size = self.cell_size.0 as i32;
+        let path_offset = border + (cell_size / 2);
+        let to_coord = |a| cell_size * a as i32 + path_offset;
+        let mut path: Vec<(i32, i32)> = {
+            let exit = self.maze.get_exit();
+            vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)]
+        };
+        path.extend(self.solution.path.iter().map(|(x, y)| {
+            let x0: i32 = to_coord(*x);
+            let y0: i32 = to_coord(*y);
+            (x0, y0)
+        }));
+        path.push((to_coord(self.maze.get_entrance().0), 0));
+        pic.draw(&PathElement::new(
+            path,
+            Into::<RGBAColor>::into(colour).stroke_width(border as u32 * 4),
+        ))
         .unwrap();
-        strbuf
+    }
+}
+
+impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
+    fn stain(&mut self, gradient: (WebColour, WebColour)) {
+        self.instructions
+            .push(PlottersWorkaround::Stain(gradient.0, gradient.1));
+    }
+
+    fn solve(&mut self, stroke_colour: WebColour) {
+        self.instructions
+            .push(PlottersWorkaround::Solve(stroke_colour));
+    }
+
+    fn paint(&mut self, border: WebColour) {
+        self.instructions.push(PlottersWorkaround::Paint(border));
+    }
+
+    fn render(&self) -> Svg {
+        let mut str = String::new();
+        {
+            let pic = SVGBackend::with_string(&mut str, self.size).into_drawing_area();
+            for instruction in &self.instructions {
+                match instruction {
+                    PlottersWorkaround::Stain(a, b) => self.stain_maze(&pic, (*b, *a)),
+                    PlottersWorkaround::Solve(colour) => self.solve_maze(&pic, *colour),
+                    PlottersWorkaround::Paint(colour) => self.render_maze(&pic, colour),
+                }
+            }
+            pic.present().unwrap()
+        }
+
+        Svg(str)
     }
 }
 

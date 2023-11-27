@@ -1,7 +1,10 @@
-use super::paint::DrawingInstructions;
+use super::{
+    feature::Svg,
+    paint::{DrawingInstructions, WebColour},
+};
 
 #[derive(Debug)]
-pub struct MazePath<T> {
+pub struct Solution<T> {
     pub path: Vec<T>,
     pub distances: Vec<usize>,
 }
@@ -23,7 +26,7 @@ pub trait Maze {
 
     fn get_index(&self, node: Self::Idx) -> usize;
 
-    fn find_path(&mut self) -> MazePath<Self::Idx>;
+    fn find_path(&mut self) -> Solution<Self::Idx>;
 }
 
 pub trait MazeToSvg<M>
@@ -34,6 +37,14 @@ where
         &self,
         features: Vec<DrawingInstructions>,
         maze: &M,
-        path: &MazePath<M::Idx>,
+        path: &Solution<M::Idx>,
     ) -> String;
+}
+
+pub trait MazeRenderer<M: Maze> {
+    fn stain(&mut self, gradient: (WebColour, WebColour));
+    fn solve(&mut self, stroke_colour: WebColour);
+    fn paint(&mut self, border: WebColour);
+
+    fn render(&self) -> Svg;
 }

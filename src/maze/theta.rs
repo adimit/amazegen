@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use super::{
     algorithms::dijkstra,
-    interface::{Maze, MazePath},
+    interface::{Maze, Solution},
 };
 
 #[derive(Clone, Debug)]
@@ -161,7 +161,7 @@ impl Maze for RingMaze {
         node.column + self.extents[node.row]
     }
 
-    fn find_path(&mut self) -> MazePath<RingNode> {
+    fn find_path(&mut self) -> Solution<RingNode> {
         let start = self.get_random_cell_on_the_outside();
         let exit = self.get_node_furthest_away_from(start);
         let entrance = self.get_node_furthest_away_from(exit);
@@ -169,7 +169,7 @@ impl Maze for RingMaze {
         self.open(entrance);
         self.open(exit);
 
-        MazePath {
+        Solution {
             path: path_to_solution,
             distances,
         }
