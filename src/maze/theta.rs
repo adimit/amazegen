@@ -161,7 +161,7 @@ impl Maze for RingMaze {
         node.column + self.extents[node.row]
     }
 
-    fn find_path(&mut self) -> Solution<RingNode> {
+    fn make_solution(&mut self) -> Solution<RingNode> {
         let start = self.get_random_cell_on_the_outside();
         let exit = self.get_node_furthest_away_from(start);
         let entrance = self.get_node_furthest_away_from(exit);

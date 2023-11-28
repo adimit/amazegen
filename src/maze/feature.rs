@@ -88,7 +88,7 @@ pub struct Svg(pub String);
 impl Configuration {
     fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
         let mut maze = self.algorithm.execute(template);
-        let solution = maze.find_path();
+        let solution = maze.make_solution();
         (maze, solution)
     }
 

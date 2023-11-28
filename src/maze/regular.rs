@@ -194,7 +194,7 @@ impl Maze for RectilinearMaze {
         self.extents.0 * y + x
     }
 
-    fn find_path(&mut self) -> Solution<Self::Idx> {
+    fn make_solution(&mut self) -> Solution<Self::Idx> {
         let entrance_topo = {
             let start = (fastrand::usize(0..self.get_extents().0), 0);
             dijkstra(self, start)
