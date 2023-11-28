@@ -9,7 +9,6 @@ use crate::maze::{
     feature::Svg,
     interface::{Maze, MazeRenderer, Solution},
     regular::{Direction, Direction::*, RectilinearMaze},
-    Maze as OldMaze,
 };
 
 use super::{BorderWidth, CellSize, WebColour};

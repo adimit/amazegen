@@ -1,34 +1,7 @@
-use std::{
-    fmt::Display,
-    ops::{Index, IndexMut},
-};
-
 use itertools::Itertools;
 
-use super::{feature::Configuration, interface::Solution, Maze as OldMaze, Node};
+use super::{feature::Configuration, interface::Solution};
 use crate::maze::{algorithms::dijkstra, interface::Maze};
-
-impl Node for (usize, usize) {
-    fn get_random_node(extents: Self) -> Self {
-        (fastrand::usize(0..extents.0), fastrand::usize(0..extents.1))
-    }
-
-    fn get_all_nodes((ex, ey): Self) -> Vec<Self> {
-        (0..(ey))
-            .flat_map(|y| (0..(ex)).map(move |x| (x, y)))
-            .collect()
-    }
-
-    fn get_all_edges((ex, ey): Self) -> Vec<(Self, Self)> {
-        (0..(ey - 1))
-            .flat_map(|y| {
-                (0..(ex - 1)).flat_map(move |x| [((x, y), (x + 1, y)), ((x, y), (x, y + 1))])
-            })
-            .merge((0..ey - 1).map(|y| ((ex - 1, y), (ex - 1, y + 1))))
-            .merge((0..ex - 1).map(|x| ((x, ey - 1), (x + 1, ey - 1))))
-            .collect()
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct RectilinearMaze {
@@ -38,58 +11,12 @@ pub struct RectilinearMaze {
     pub extents: (usize, usize),
 }
 
-pub struct Rectilinear2DMap<T> {
-    storage: Vec<Vec<T>>,
-}
-
-impl<T> Index<(usize, usize)> for Rectilinear2DMap<T> {
-    type Output = T;
-
-    fn index(&self, (x, y): (usize, usize)) -> &Self::Output {
-        &self.storage[y][x]
-    }
-}
-
-impl<T> IndexMut<(usize, usize)> for Rectilinear2DMap<T> {
-    fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut Self::Output {
-        &mut self.storage[y][x]
-    }
-}
-
-impl<T> Rectilinear2DMap<T> {
-    pub fn new<F>((ex, ey): (usize, usize), f: F) -> Self
-    where
-        F: Fn((usize, usize)) -> T,
-    {
-        Self {
-            storage: (0..(ey))
-                .map(|y| (0..ex).map(|x| f((x, y))).collect())
-                .collect(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Up,
     Right,
     Down,
     Left,
-}
-
-impl Display for Direction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Direction::Up => "Up",
-                Direction::Right => "Right",
-                Direction::Down => "Down",
-                Direction::Left => "Left",
-            }
-        )
-    }
 }
 
 impl Direction {
@@ -155,10 +82,6 @@ impl RectilinearMaze {
         self.fields[x][y] |= direction.bitmask()
     }
 
-    fn coordinates_in_extents(&self, (x, y): (usize, usize)) -> bool {
-        x < self.extents.0 && y < self.extents.1
-    }
-
     fn translate(&self, (x, y): (usize, usize), direction: Direction) -> Option<(usize, usize)> {
         match direction {
             Direction::Left if x > 0 => Some((x - 1, y)),
@@ -168,35 +91,22 @@ impl RectilinearMaze {
             _ => None,
         }
     }
-}
-
-impl OldMaze for RectilinearMaze {
-    type NodeType = (usize, usize);
-
-    fn get_extents(&self) -> (usize, usize) {
+    pub fn get_extents(&self) -> (usize, usize) {
         self.extents
     }
 
-    fn get_entrance(&self) -> (usize, usize) {
+    pub fn get_entrance(&self) -> (usize, usize) {
         (self.entrance, 0)
     }
 
-    fn get_exit(&self) -> (usize, usize) {
+    pub fn get_exit(&self) -> (usize, usize) {
         (self.exit, self.extents.1 - 1)
-    }
-
-    fn visit(&mut self, (x, y): (usize, usize)) {
-        if self.coordinates_in_extents((x, y)) {
-            self.fields[x][y] |= VISIT
-        } else {
-            panic!("Can't visit coordinates ({x}, {y})")
-        }
     }
 
     fn get_walkable_edges(
         &self,
-        (x, y): Self::NodeType,
-    ) -> Box<dyn Iterator<Item = Self::NodeType> + '_> {
+        (x, y): (usize, usize),
+    ) -> Box<dyn Iterator<Item = (usize, usize)> + '_> {
         Box::new(
             Direction::iterator()
                 .filter(move |direction| self.fields[x][y] & direction.bitmask() != 0)
@@ -204,7 +114,7 @@ impl OldMaze for RectilinearMaze {
         )
     }
 
-    fn get_possible_targets(&self, (x, y): Self::NodeType) -> Vec<Self::NodeType> {
+    fn get_possible_targets(&self, (x, y): (usize, usize)) -> Vec<(usize, usize)> {
         Direction::iterator()
             .filter_map(|direction| match self.translate((x, y), direction) {
                 Some((tx, ty))
@@ -218,7 +128,7 @@ impl OldMaze for RectilinearMaze {
             .collect()
     }
 
-    fn move_from_to(&mut self, (fx, fy): Self::NodeType, (tx, ty): Self::NodeType) -> bool {
+    pub fn move_from_to(&mut self, (fx, fy): (usize, usize), (tx, ty): (usize, usize)) -> bool {
         use Direction::*;
         // assert!(
         //     (tx < self.extents.0) && (ty < self.extents.1),
@@ -256,15 +166,28 @@ impl Maze for RectilinearMaze {
     }
 
     fn get_random_node(&self) -> Self::Idx {
-        <(usize, usize)>::get_random_node(self.extents)
+        (
+            fastrand::usize(0..self.extents.0),
+            fastrand::usize(0..self.extents.1),
+        )
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
-        <(usize, usize)>::get_all_edges(self.extents)
+        let (ex, ey) = self.extents;
+        (0..(ey - 1))
+            .flat_map(|y| {
+                (0..(ex - 1)).flat_map(move |x| [((x, y), (x + 1, y)), ((x, y), (x, y + 1))])
+            })
+            .merge((0..ey - 1).map(|y| ((ex - 1, y), (ex - 1, y + 1))))
+            .merge((0..ex - 1).map(|x| ((x, ey - 1), (x + 1, ey - 1))))
+            .collect()
     }
 
     fn get_all_nodes(&self) -> Vec<Self::Idx> {
-        <(usize, usize)>::get_all_nodes(self.extents)
+        let (ex, ey) = self.extents;
+        (0..(ey))
+            .flat_map(|y| (0..(ex)).map(move |x| (x, y)))
+            .collect()
     }
 
     fn get_index(&self, (x, y): Self::Idx) -> usize {
@@ -340,16 +263,6 @@ pub fn test_maze() {
 mod test {
     use super::Direction::*;
     use crate::maze::regular::{RectilinearMaze, DOWN, LEFT, RIGHT, UP};
-    use crate::maze::Maze;
-
-    #[test]
-    fn visit_is_idempotent() {
-        let mut m = RectilinearMaze::new((12, 12));
-        m.visit((5, 5));
-        assert_eq!(m.fields[5][5], 1);
-        m.visit((5, 5));
-        assert_eq!(m.fields[5][5], 1);
-    }
 
     #[test]
     fn move_tears_down_the_walls_on_both_sides() {
