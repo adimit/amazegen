@@ -10,7 +10,7 @@ use svg::{Document, Node};
 
 use crate::maze::feature::Svg;
 use crate::maze::interface::{Maze, MazeRenderer, Solution};
-use crate::maze::theta::{RingCell, RingMaze, RingNode};
+use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
 use super::WebColour;
 

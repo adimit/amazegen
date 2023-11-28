@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
-use super::{feature::Configuration, interface::Solution};
+use crate::maze::feature::Configuration;
+use crate::maze::interface::Solution;
 use crate::maze::{algorithms::dijkstra, interface::Maze};
 
 #[derive(Debug, Clone)]
@@ -248,7 +249,7 @@ impl Maze for RectilinearMaze {
 pub fn test_maze() {
     let svg = Configuration {
         seed: 0,
-        shape: super::feature::Shape::Rectilinear(10, 10),
+        shape: crate::maze::feature::Shape::Rectilinear(10, 10),
         colour: "000000".to_string(),
         features: [].to_vec(),
         algorithm: crate::maze::feature::Algorithm::GrowingTree,
@@ -262,7 +263,7 @@ pub fn test_maze() {
 #[cfg(test)]
 mod test {
     use super::Direction::*;
-    use crate::maze::regular::{RectilinearMaze, DOWN, LEFT, RIGHT, UP};
+    use crate::maze::shape::regular::{RectilinearMaze, DOWN, LEFT, RIGHT, UP};
 
     #[test]
     fn move_tears_down_the_walls_on_both_sides() {

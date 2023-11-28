@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use super::{
+use crate::maze::{
     algorithms::dijkstra,
     interface::{Maze, Solution},
 };

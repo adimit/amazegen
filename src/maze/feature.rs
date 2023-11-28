@@ -3,12 +3,12 @@ use itertools::Itertools;
 use crate::maze::interface::MazeRenderer;
 use crate::maze::paint::theta::RingMazeRenderer;
 use crate::maze::paint::*;
-use crate::maze::regular::RectilinearMaze;
+use crate::maze::shape::regular::RectilinearMaze;
 
 use super::algorithms::{jarník, kruskal};
 use super::interface::{Maze, Solution};
 use super::paint::regular::RectilinearRenderer;
-use super::theta::RingMaze;
+use super::shape::theta::RingMaze;
 
 const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";

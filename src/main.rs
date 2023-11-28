@@ -1,7 +1,7 @@
 #![allow(mixed_script_confusables)]
 use std::num::ParseIntError;
 
-use amazegen::maze::regular::test_maze;
+use amazegen::maze::shape::regular::test_maze;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

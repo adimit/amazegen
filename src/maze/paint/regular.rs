@@ -8,7 +8,7 @@ use plotters::{
 use crate::maze::{
     feature::Svg,
     interface::{Maze, MazeRenderer, Solution},
-    regular::{Direction, Direction::*, RectilinearMaze},
+    shape::regular::{Direction, Direction::*, RectilinearMaze},
 };
 
 use super::{BorderWidth, CellSize, WebColour};
@@ -225,7 +225,7 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::maze::regular::RectilinearMaze;
+    use crate::maze::shape::regular::RectilinearMaze;
 
     use super::*;
 
