@@ -94,13 +94,14 @@ impl Index<RingNode> for RingMaze {
     type Output = RingCell;
 
     fn index(&self, index: RingNode) -> &Self::Output {
-        &self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+        &self.cells[self.get_index(index)]
     }
 }
 
 impl IndexMut<RingNode> for RingMaze {
     fn index_mut(&mut self, index: RingNode) -> &mut Self::Output {
-        &mut self.cells[index.column + self.ring_sizes[0..index.row].iter().sum::<usize>()]
+        let i = self.get_index(index);
+        &mut self.cells[i]
     }
 }
 
