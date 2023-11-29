@@ -185,7 +185,7 @@ impl RingMaze {
         2_usize.pow(row.ilog2()) * column_factor
     }
 
-    /// Cells are stored in a flat vector. The index implementation for `RindNode`
+    /// Cells are stored in a flat vector. The index implementation for `RingNode`
     /// finds out how many cells are in each ring via the ring sizes.
     /// Vector index of (r, c) = sum of ring sizes up to r + c
     fn compute_cells(max_rings: usize, rings: &[usize], column_factor: usize) -> Vec<RingCell> {
@@ -292,15 +292,11 @@ impl RingNode {
     }
 
     pub fn is_east_of(&self, other: RingNode, extents: &[usize]) -> bool {
-        self.row == other.row
-            && (self.column + 1 == other.column
-                || (other.column == 0 && self.column == extents[self.row] - 1))
+        self.row == other.row && (self.column + 1) % extents[self.row] == other.column
     }
 
     pub fn is_west_of(&self, other: RingNode, extents: &[usize]) -> bool {
-        self.row == other.row
-            && (self.column == other.column + 1
-                || (self.column == 0 && other.column == extents[self.row] - 1))
+        self.row == other.row && self.column == (other.column + 1 % extents[self.row])
     }
 }
 
