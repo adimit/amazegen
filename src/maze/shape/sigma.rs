@@ -28,6 +28,14 @@ impl Cartesian {
             y: fastrand::usize(..self.y),
         }
     }
+
+    pub fn x(&self) -> usize {
+        self.x
+    }
+
+    pub fn y(&self) -> usize {
+        self.y
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
