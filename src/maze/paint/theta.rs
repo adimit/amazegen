@@ -187,21 +187,12 @@ impl<'a> RingMazeRenderer<'a> {
             data.append(Command::Line(Absolute, (c.dx, c.dy).into()));
         }
 
-        // west wall
-        if cell
-            .inaccessible_neighbours
-            .iter()
-            .any(|it| it.is_west_of(node, &grid.maze.ring_sizes))
-        {
-            data.append(Command::Move(Absolute, (c.ax, c.ay).into()));
-            data.append(Command::Line(Absolute, (c.bx, c.by).into()));
-        }
-
-        // north wall
-        if !cell
-            .accessible_neighbours
-            .iter()
-            .any(|it| it.is_north_of(node))
+        // north wall (only if we're on the outer ring)
+        if cell.coordinates.row == grid.maze.ring_sizes.len() - 1
+            && !cell
+                .accessible_neighbours
+                .iter()
+                .any(|it| it.is_north_of(node))
         {
             data.append(Command::Move(Absolute, (c.bx, c.by).into()));
             data.append(EllipticalArc(
