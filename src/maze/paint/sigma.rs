@@ -5,7 +5,7 @@ use svg::{
 
 use crate::maze::{
     interface::{Maze, MazeRenderer, Solution},
-    shape::sigma::{Cartesian, SigmaMaze},
+    shape::sigma::{Cartesian, Direction, SigmaMaze},
 };
 
 use super::{svg::write_document, WebColour};
@@ -113,27 +113,22 @@ impl<'a> SigmaMazeRenderer<'a> {
         let y = cell_height * cell.y() as f64
             + if cell.x() % 2 == 0 { b } else { 2.0 * b }
             + self.stroke_width;
-        let ln = Command::Line;
-        let mv = Command::Move;
 
-        // side 1
-        data.append(mv(Absolute, (x, y).into()));
-        data.append(ln(Relative, (a, -b).into()));
+        data.append(Command::Move(Absolute, (x, y).into()));
 
-        // side 2
+        let c = |d: Direction| {
+            if self.maze.has_path(&cell, d) {
+                Command::Move
+            } else {
+                Command::Line
+            }
+        };
 
-        data.append(ln(Relative, (2.0 * a, 0).into()));
-
-        // side 3
-        data.append(ln(Relative, (a, b).into()));
-
-        // side 4
-        data.append(ln(Relative, (-a, b).into()));
-
-        // side 5
-        data.append(ln(Relative, (2.0 * -a, 0).into()));
-
-        // side 6
-        data.append(ln(Relative, (-a, -b).into()));
+        data.append(c(Direction::NorthWest)(Relative, (a, -b).into()));
+        data.append(c(Direction::North)(Relative, (2.0 * a, 0).into()));
+        data.append(c(Direction::NorthEast)(Relative, (a, b).into()));
+        data.append(c(Direction::SouthEast)(Relative, (-a, b).into()));
+        data.append(c(Direction::South)(Relative, (2.0 * -a, 0).into()));
+        data.append(c(Direction::SouthWest)(Relative, (-a, -b).into()));
     }
 }

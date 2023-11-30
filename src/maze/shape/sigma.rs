@@ -39,7 +39,7 @@ impl Cartesian {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Direction {
+pub enum Direction {
     North,
     South,
     NorthEast,
@@ -174,6 +174,10 @@ impl SigmaMaze {
             &Direction::North
         };
         self.cells[index].accessible[*d] = Some((x, y).into());
+    }
+
+    pub fn has_path(&self, a: &Cartesian, d: Direction) -> bool {
+        self.cells[self.get_index(*a)].accessible[d].is_some()
     }
 
     pub fn size(&self) -> usize {
