@@ -1,4 +1,5 @@
 pub mod regular;
+pub mod svg;
 pub mod theta;
 
 use std::cmp::max;

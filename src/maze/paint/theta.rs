@@ -12,6 +12,7 @@ use crate::maze::feature::Svg;
 use crate::maze::interface::{Maze, MazeRenderer, Solution};
 use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
+use super::svg::write_document;
 use super::WebColour;
 
 #[allow(non_upper_case_globals)]
@@ -369,8 +370,6 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
     }
 
     fn render(&self) -> Svg {
-        let mut strbuf: Vec<u8> = Vec::new();
-        svg::write(&mut strbuf, &self.document).unwrap();
-        Svg(String::from_utf8(strbuf).unwrap())
+        write_document(&self.document)
     }
 }
