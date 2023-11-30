@@ -37,6 +37,8 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
             .set("fill", "none")
             .set("stroke", border.to_web_string())
             .set("stroke-width", self.stroke_width)
+            .set("stroke-linecap", "round")
+            .set("stroke-linejoin", "round")
             .set("d", data);
         self.document.append(path);
     }
