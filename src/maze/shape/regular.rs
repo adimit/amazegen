@@ -1,5 +1,6 @@
 use itertools::Itertools;
 
+use crate::maze::algorithms::find_path;
 use crate::maze::feature::Configuration;
 use crate::maze::interface::Solution;
 use crate::maze::{algorithms::dijkstra, interface::Maze};
@@ -220,24 +221,7 @@ impl Maze for RectilinearMaze {
         self.set_entrance(entrance.0);
         self.set_exit(exit.0);
 
-        let path = {
-            let mut cursor = entrance;
-            let mut path = vec![cursor];
-            loop {
-                cursor = *self
-                    .get_paths(cursor)
-                    .iter()
-                    .min_by_key(|n| exit_topo[self.get_index(**n)])
-                    .unwrap();
-                path.push(cursor);
-                if exit_topo[self.get_index(cursor)] == 1 {
-                    break;
-                }
-            }
-            path.push(exit);
-            path.reverse();
-            path
-        };
+        let path = find_path(self, &exit_topo, entrance, exit);
 
         Solution {
             path,

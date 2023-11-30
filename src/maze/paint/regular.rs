@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use itertools::Itertools;
 use plotters::{
     coord::Shift,
@@ -172,16 +174,23 @@ impl<'a> RectilinearRenderer<'a> {
         let cell_size = self.cell_size.0 as i32;
         let path_offset = border + (cell_size / 2);
         let to_coord = |a| cell_size * a as i32 + path_offset;
-        let mut path: Vec<(i32, i32)> = {
-            let exit = self.maze.get_exit();
-            vec![(to_coord(exit.0), to_coord(exit.1) + path_offset)]
+        let offset_entrance = {
+            let (x, _y) = self.maze.get_entrance();
+            (to_coord(x), 0)
         };
-        path.extend(self.solution.path.iter().map(|(x, y)| {
-            let x0: i32 = to_coord(*x);
-            let y0: i32 = to_coord(*y);
-            (x0, y0)
-        }));
-        path.push((to_coord(self.maze.get_entrance().0), 0));
+        let offset_exit = {
+            let (x, y) = self.maze.get_exit();
+            (to_coord(x), to_coord(y) + path_offset)
+        };
+        let path: Vec<_> = once(offset_entrance)
+            .chain(
+                self.solution
+                    .path
+                    .iter()
+                    .map(|&(x, y)| (to_coord(x), to_coord(y))),
+            )
+            .chain(once(offset_exit))
+            .collect();
         pic.draw(&PathElement::new(
             path,
             Into::<RGBAColor>::into(colour).stroke_width(border as u32 * 4),

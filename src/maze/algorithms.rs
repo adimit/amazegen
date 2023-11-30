@@ -106,3 +106,24 @@ pub fn dijkstra<M: Maze>(maze: &M, origin: M::Idx) -> Vec<usize> {
     }
     distances
 }
+
+/// Find the shortest path from `entrance` to `exit` using `topo`, which is
+/// the *exit topology* of `maze`, i.e. the result of `dijkstra` run with
+/// `exit` as the origin.
+pub fn find_path<M: Maze>(maze: &M, topo: &[usize], entrance: M::Idx, exit: M::Idx) -> Vec<M::Idx> {
+    let mut cursor: M::Idx = entrance;
+    let mut path = vec![cursor];
+    loop {
+        cursor = *maze
+            .get_paths(cursor)
+            .iter()
+            .min_by_key(|n| topo[maze.get_index(**n)])
+            .unwrap();
+        path.push(cursor);
+        if topo[maze.get_index(cursor)] == 1 {
+            break;
+        }
+    }
+    path.push(exit);
+    path
+}
