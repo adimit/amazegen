@@ -9,11 +9,11 @@ use svg::node::element::{
 use svg::{Document, Node};
 
 use crate::maze::feature::Svg;
-use crate::maze::interface::{Maze, MazeRenderer, Solution};
+use crate::maze::interface::{MazeRenderer, Solution};
 use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
 use super::svg::write_document;
-use super::WebColour;
+use super::{Gradient, WebColour};
 
 #[allow(non_upper_case_globals)]
 const π: f64 = std::f64::consts::PI;
@@ -218,15 +218,8 @@ impl<'a> RingMazeRenderer<'a> {
 }
 
 impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
-    fn stain(&mut self, (a, b): (WebColour, WebColour)) {
-        let max_distance = *self.solution.distances.iter().max().unwrap() as f64;
-        let get_fill = |node: RingNode| {
-            let intensity = (max_distance
-                - self.solution.distances[self.grid.maze.get_index(node)] as f64)
-                / max_distance;
-            let inverse = 1.0 - intensity;
-            a.blend(intensity).add(&b.blend(inverse)).to_web_string()
-        };
+    fn stain(&mut self, gradient: (WebColour, WebColour)) {
+        let gradient = Gradient::new(gradient, self.grid.maze, self.solution);
         {
             self.document.append(
                 Circle::new()
@@ -234,7 +227,12 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
                     .set("cy", self.grid.centre.y)
                     .set("r", self.grid.ring_height + 1.0)
                     .set("stroke", "none")
-                    .set("fill", get_fill(RingNode { column: 0, row: 0 })),
+                    .set(
+                        "fill",
+                        gradient
+                            .compute(&RingNode { column: 0, row: 0 })
+                            .to_web_string(),
+                    ),
             );
         };
 
@@ -250,7 +248,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
                 .elliptical_arc_to((inner, inner, 0, 0, 1, c.ax, c.ay));
             let path = Path::new()
                 .set("stroke", "none")
-                .set("fill", get_fill(node.coordinates))
+                .set("fill", gradient.compute(&node.coordinates).to_web_string())
                 .set("d", data);
             self.document.append(path);
         }

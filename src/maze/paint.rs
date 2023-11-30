@@ -4,7 +4,7 @@ pub mod theta;
 
 use std::cmp::max;
 
-use super::interface::MazeRenderer;
+use super::interface::{Maze, MazeRenderer, Solution};
 
 use thiserror::Error;
 
@@ -101,5 +101,33 @@ impl DrawingInstructions {
             ShowSolution(colour) => renderer.solve(*colour),
             StainMaze(gradient) => renderer.stain(*gradient),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Gradient<'a, M: Maze> {
+    max_distance: usize,
+    distances: &'a [usize],
+    maze: &'a M,
+    a: WebColour,
+    b: WebColour,
+}
+
+impl<'a, M: Maze> Gradient<'a, M> {
+    fn new((a, b): (WebColour, WebColour), maze: &'a M, solution: &'a Solution<M::Idx>) -> Self {
+        Self {
+            a,
+            b,
+            maze,
+            distances: &solution.distances,
+            max_distance: *solution.distances.iter().max().unwrap(),
+        }
+    }
+
+    fn compute(&self, index: &M::Idx) -> WebColour {
+        let intensity = (self.max_distance - self.distances[self.maze.get_index(*index)]) as f64
+            / self.max_distance as f64;
+        let inverse = 1.0 - intensity;
+        self.a.blend(intensity).add(&self.b.blend(inverse))
     }
 }

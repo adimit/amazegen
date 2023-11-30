@@ -9,7 +9,8 @@ use plotters::{
 
 use crate::maze::{
     feature::Svg,
-    interface::{Maze, MazeRenderer, Solution},
+    interface::{MazeRenderer, Solution},
+    paint::Gradient,
     shape::regular::{Direction, Direction::*, RectilinearMaze},
 };
 
@@ -142,11 +143,7 @@ impl<'a> RectilinearRenderer<'a> {
     fn stain_maze(&self, pic: &DrawingArea<SVGBackend, Shift>, colours: (WebColour, WebColour)) {
         let cell_size = self.cell_size.0 as i32;
         let border = self.border_width.0 as i32;
-        let max_distance: usize = *self.solution.distances.iter().max().unwrap_or(&0);
-
-        fn get_colour(absolute: u8, fraction: f64) -> u8 {
-            (absolute as f64 * fraction) as u8
-        }
+        let gradient = Gradient::new(colours, self.maze, self.solution);
 
         for (x, y) in (0..self.maze.get_extents().0).cartesian_product(0..self.maze.get_extents().1)
         {
@@ -154,16 +151,8 @@ impl<'a> RectilinearRenderer<'a> {
             let y0: i32 = cell_size * y as i32 + border;
             let x1: i32 = x0 + cell_size;
             let y1: i32 = y0 + cell_size;
-            let intensity = (max_distance - self.solution.distances[self.maze.get_index((x, y))])
-                as f64
-                / max_distance as f64;
-            let inverse = 1.0 - intensity;
-            let style = RGBColor(
-                get_colour(colours.0.r, intensity) + get_colour(colours.1.r, inverse),
-                get_colour(colours.0.g, intensity) + get_colour(colours.1.g, inverse),
-                get_colour(colours.0.b, intensity) + get_colour(colours.1.b, inverse),
-            )
-            .filled();
+            let shade = gradient.compute(&(x, y));
+            let style = RGBColor(shade.r, shade.g, shade.b).filled();
             pic.draw(&Rectangle::new([(x0 - 2, y0 - 2), (x1 + 2, y1 + 2)], style))
                 .unwrap();
         }
