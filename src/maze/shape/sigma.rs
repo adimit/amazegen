@@ -167,6 +167,10 @@ impl SigmaMaze {
         };
         self.cells[index].accessible[*d] = Some((x, y).into());
     }
+
+    pub fn size(&self) -> usize {
+        self.size
+    }
 }
 
 impl Maze for SigmaMaze {
