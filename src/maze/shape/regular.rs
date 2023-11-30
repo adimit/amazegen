@@ -1,7 +1,6 @@
 use itertools::Itertools;
 
 use crate::maze::algorithms::find_path;
-use crate::maze::feature::Configuration;
 use crate::maze::interface::Solution;
 use crate::maze::{algorithms::dijkstra, interface::Maze};
 
@@ -228,20 +227,6 @@ impl Maze for RectilinearMaze {
             distances: exit_topo,
         }
     }
-}
-
-pub fn test_maze() {
-    let svg = Configuration {
-        seed: 0,
-        shape: crate::maze::feature::Shape::Rectilinear(10, 10),
-        colour: "000000".to_string(),
-        features: [].to_vec(),
-        algorithm: crate::maze::feature::Algorithm::GrowingTree,
-        stroke_width: 4.0,
-    }
-    .execute();
-
-    println!("{}", svg.0);
 }
 
 #[cfg(test)]

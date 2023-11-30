@@ -1,16 +1,15 @@
 #![allow(mixed_script_confusables)]
-use std::num::ParseIntError;
 
-use amazegen::maze::shape::regular::test_maze;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-enum MazeError {
-    #[error("Not a number.")]
-    NotANumber(#[from] ParseIntError),
-}
+use amazegen::maze::{algorithms::jarník, interface::Maze, shape::sigma::SigmaMaze};
 
 fn main() -> Result<(), ()> {
-    test_maze();
+    let template = SigmaMaze::new(10);
+    let (maze, solution) = {
+        let mut maze = jarník(template);
+        let solution = maze.make_solution();
+        (maze, solution)
+    };
+    dbg!(maze);
+    dbg!(solution);
     Ok(())
 }
