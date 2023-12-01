@@ -266,7 +266,8 @@ export const configurationHashSignal = (): {
   };
 };
 
-const clamp = (n: number, max: number): number => Math.max(2, Math.min(max, n));
+const clamp = (n: number, max: number): number =>
+  Math.floor(Math.max(2, Math.min(max, n)));
 const rect = (size: number): Shape => ({
   Rectilinear: [clamp(size, 100), clamp(size, 100)],
 });
