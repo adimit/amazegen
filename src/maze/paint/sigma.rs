@@ -66,7 +66,7 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
 
         let exit = {
             let last = self.solution.path.last().unwrap();
-            let (x, y) = self.compute_centre(&last);
+            let (x, y) = self.compute_centre(last);
             let neighbours = self.maze.cells[self.maze.get_index(*last)]
                 .accessible
                 .clone();
@@ -130,7 +130,6 @@ struct Dimensions {
     a: f64,
     b: f64,
     cell_height: f64,
-    cell_width: f64,
 }
 
 impl Dimensions {
@@ -140,12 +139,7 @@ impl Dimensions {
         let b = s * 3.0_f64.sqrt() / 2.0;
         let cell_height = b * 2.0;
 
-        Self {
-            a,
-            b,
-            cell_height,
-            cell_width,
-        }
+        Self { a, b, cell_height }
     }
 }
 

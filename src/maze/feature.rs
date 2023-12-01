@@ -8,6 +8,8 @@ use crate::maze::shape::regular::RectilinearMaze;
 use super::algorithms::{jarník, kruskal};
 use super::interface::{Maze, Solution};
 use super::paint::regular::RectilinearRenderer;
+use super::paint::sigma::SigmaMazeRenderer;
+use super::shape::sigma::SigmaMaze;
 use super::shape::theta::RingMaze;
 
 const STAIN_A: &str = "FFDC80";
@@ -18,6 +20,7 @@ const SOLUTION: &str = "8FE080";
 pub enum Shape {
     Rectilinear(usize, usize),
     Theta(usize),
+    Sigma(usize),
 }
 
 #[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -115,6 +118,15 @@ impl Configuration {
             Shape::Theta(size) => {
                 let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
                 self.render(RingMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width,
+                    40.0,
+                ))
+            }
+            Shape::Sigma(size) => {
+                let (maze, solution) = self.create_maze(SigmaMaze::new(size));
+                self.render(SigmaMazeRenderer::new(
                     &maze,
                     &solution,
                     self.stroke_width,
