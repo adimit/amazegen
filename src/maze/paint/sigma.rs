@@ -56,7 +56,6 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
 /// rectangle are (2s, 2b). Note that 2a = s.
 #[derive(Debug)]
 struct Dimensions {
-    s: f64,
     a: f64,
     b: f64,
     cell_height: f64,
@@ -71,7 +70,6 @@ impl Dimensions {
         let cell_height = b * 2.0;
 
         Self {
-            s,
             a,
             b,
             cell_height,
@@ -90,8 +88,8 @@ impl<'a> SigmaMazeRenderer<'a> {
         let dim = Dimensions::new(cell_width);
         let maze_size = maze.size() as f64;
         let (x, y) = (
-            maze_size * cell_width + stroke_width,
-            maze_size * dim.cell_height + dim.cell_height / 2.0 + stroke_width * 2.0,
+            maze_size * (3.0 * dim.a) + dim.a + stroke_width,
+            maze_size * dim.cell_height + dim.b + stroke_width,
         );
 
         Self {
@@ -103,18 +101,22 @@ impl<'a> SigmaMazeRenderer<'a> {
         }
     }
 
-    fn render_cell(&self, data: &mut Data, cell: Cartesian) {
+    fn compute_centre(&self, cell: Cartesian) -> (f64, f64) {
         let Dimensions {
-            a,
-            b,
-            cell_height,
-            cell_width,
-            ..
+            a, b, cell_height, ..
         } = self.dimensions;
-        let x = cell_width * cell.x() as f64 - cell.x() as f64 * a + self.stroke_width;
+
+        let x = 3.0 * a * cell.x() as f64 + (self.stroke_width / 2.0);
         let y = cell_height * cell.y() as f64
             + if cell.x() % 2 == 0 { b } else { 2.0 * b }
-            + self.stroke_width;
+            + (self.stroke_width / 2.0);
+
+        (x, y)
+    }
+
+    fn render_cell(&self, data: &mut Data, cell: Cartesian) {
+        let Dimensions { a, b, .. } = self.dimensions;
+        let (x, y) = self.compute_centre(cell);
 
         data.append(Command::Move(Absolute, (x, y).into()));
 
@@ -129,8 +131,10 @@ impl<'a> SigmaMazeRenderer<'a> {
         data.append(c(Direction::NorthWest)(Relative, (a, -b).into()));
         data.append(c(Direction::North)(Relative, (2.0 * a, 0).into()));
         data.append(c(Direction::NorthEast)(Relative, (a, b).into()));
-        data.append(c(Direction::SouthEast)(Relative, (-a, b).into()));
-        data.append(c(Direction::South)(Relative, (2.0 * -a, 0).into()));
-        data.append(c(Direction::SouthWest)(Relative, (-a, -b).into()));
+        if cell.x() == 0 || cell.y() == self.maze.size() - 1 || cell.x() == self.maze.size() - 1 {
+            data.append(c(Direction::SouthEast)(Relative, (-a, b).into()));
+            data.append(c(Direction::South)(Relative, (-2.0 * a, 0).into()));
+            data.append(c(Direction::SouthWest)(Relative, (-a, -b).into()));
+        }
     }
 }
