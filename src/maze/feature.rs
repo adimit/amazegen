@@ -129,7 +129,7 @@ impl Configuration {
                 self.render(SigmaMazeRenderer::new(
                     &maze,
                     &solution,
-                    self.stroke_width,
+                    self.stroke_width * 0.75,
                     40.0,
                 ))
             }

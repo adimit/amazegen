@@ -80,16 +80,20 @@ const prettyPrintAlgorithm = (algorithm: Algorithm): string => {
 const getShapeName = (s: Shape): string => {
   if ("Rectilinear" in s) {
     return `square-${s.Rectilinear[0]}`;
-  } else {
+  } else if ("Theta" in s) {
     return `circle-${s.Theta}`;
+  } else {
+    return `hexagon-${s.Sigma}`;
   }
 };
 
 const getSizeInformation = (s: Shape): string => {
   if ("Rectilinear" in s) {
     return `${s.Rectilinear[0]}×${s.Rectilinear[1]}`;
-  } else {
+  } else if ("Theta" in s) {
     return `${s.Theta}`;
+  } else {
+    return `${s.Sigma}`;
   }
 };
 

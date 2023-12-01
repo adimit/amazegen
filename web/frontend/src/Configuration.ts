@@ -19,9 +19,13 @@ export interface ShapeTheta {
   Theta: number;
 }
 
+export interface ShapeSigma {
+  Sigma: number;
+}
+
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type ShapeKeys = KeysOfUnion<Shape>;
-export type Shape = ShapeRectilinear | ShapeTheta;
+export type Shape = ShapeRectilinear | ShapeTheta | ShapeSigma;
 
 export interface Configuration {
   algorithm: Algorithm;
@@ -64,6 +68,9 @@ const readFromHash = (): Configuration => {
     }
     if (size !== undefined && str.startsWith("T")) {
       return theta(size);
+    }
+    if (size !== undefined && str.startsWith("S")) {
+      return sigma(size);
     }
     const legacy = parseSize(str);
     if (legacy !== undefined) {
@@ -110,6 +117,9 @@ const readFromHash = (): Configuration => {
 const hashShape = (shape: Shape): string => {
   if ("Rectilinear" in shape) {
     return `R${shape.Rectilinear[0]}`;
+  }
+  if ("Sigma" in shape) {
+    return `S${shape.Sigma}`;
   }
   return `T${shape.Theta}`;
 };
@@ -188,10 +198,15 @@ export const configurationHashSignal = (): {
         ...configuration(),
         shape: rect(by(shape.Rectilinear[0])),
       });
-    } else {
+    } else if ("Theta" in shape) {
       return setConfiguration({
         ...configuration(),
         shape: theta(by(shape.Theta)),
+      });
+    } else {
+      return setConfiguration({
+        ...configuration(),
+        shape: sigma(by(shape.Sigma)),
       });
     }
   };
@@ -200,8 +215,32 @@ export const configurationHashSignal = (): {
     const { shape } = configuration();
     if ("Rectilinear" in shape) {
       return shape.Rectilinear[0];
-    } else {
+    } else if ("Theta" in shape) {
       return shape.Theta;
+    } else {
+      return shape.Sigma;
+    }
+  };
+
+  const adjustSizeToNewShape = (newShape: ShapeKeys) => {
+    const currentShape = configuration().shape;
+    if ("Theta" in currentShape && newShape !== "Theta") {
+      return getSize() * 2;
+    }
+    if (newShape === "Theta") {
+      return Math.floor(getSize() / 2);
+    }
+    return getSize();
+  };
+  const setShape = (shape: ShapeKeys): Shape => {
+    const size = adjustSizeToNewShape(shape);
+    switch (shape) {
+      case "Rectilinear":
+        return rect(size);
+      case "Theta":
+        return theta(size);
+      case "Sigma":
+        return sigma(size);
     }
   };
 
@@ -210,8 +249,7 @@ export const configurationHashSignal = (): {
     setShape: (shape: ShapeKeys): Configuration =>
       setConfiguration({
         ...configuration(),
-        shape:
-          shape === "Rectilinear" ? rect(getSize() * 2) : theta(getSize() / 2),
+        shape: setShape(shape),
       }),
     setSize: (s: number): Configuration => adjustSize(() => s),
     incrementSize: (): Configuration => adjustSize((old) => old + 1),
@@ -233,3 +271,4 @@ const rect = (size: number): Shape => ({
   Rectilinear: [clamp(size, 100), clamp(size, 100)],
 });
 const theta = (size: number): Shape => ({ Theta: clamp(size, 50) });
+const sigma = (size: number): Shape => ({ Sigma: clamp(size, 100) });
