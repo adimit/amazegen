@@ -1,10 +1,14 @@
 use svg::{
-    node::element::path::{Command, Data, Position::Absolute, Position::Relative},
+    node::element::{
+        path::{Command, Data, Position::Absolute, Position::Relative},
+        Path,
+    },
     Node,
 };
 
 use crate::maze::{
     interface::{Maze, MazeRenderer, Solution},
+    paint::Gradient,
     shape::sigma::{Cartesian, Direction, SigmaMaze},
 };
 
@@ -19,12 +23,79 @@ pub struct SigmaMazeRenderer<'a> {
 }
 
 impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
-    fn stain(&mut self, gradient: (WebColour, WebColour)) {
-        todo!()
+    fn stain(&mut self, colours: (WebColour, WebColour)) {
+        let gradient = Gradient::new(colours, self.maze, self.solution);
+        self.maze.get_all_nodes().iter().for_each(|cell| {
+            let (x, y) = self.compute_centre(cell);
+            let af = self.dimensions.a + 1.0;
+            let bf = self.dimensions.b + 1.0;
+            let data = Data::new()
+                .move_to((x - 2.0 * af, y))
+                .line_by((af, -bf))
+                .line_by((2.0 * af, 0))
+                .line_by((af, bf))
+                .line_by((-af, bf))
+                .line_by((-2.0 * af, 0))
+                .line_by((-af, -bf));
+            let hex = Path::new()
+                .set("fill", gradient.compute(cell).to_web_string())
+                .set("stroke", "none")
+                .set("d", data);
+            self.document.append(hex);
+        });
     }
 
     fn solve(&mut self, stroke_colour: WebColour) {
-        todo!()
+        let mut data = Data::new();
+        let entrance = {
+            let (x, y) = self.compute_centre(&self.solution.path[0]);
+            let neighbours = self.maze.cells[self.maze.get_index(self.solution.path[0])]
+                .accessible
+                .clone();
+            let Dimensions { a, b, .. } = self.dimensions;
+            if neighbours[Direction::NorthWest].is_some() && self.solution.path[0].x() % 2 == 0 {
+                (x - (a * 1.5), y - (b / 2.0))
+            } else if neighbours[Direction::NorthEast].is_some()
+                && self.solution.path[0].x() % 2 == 0
+            {
+                (x + (a * 1.5), y - (b / 2.0))
+            } else {
+                (x, y - b + self.stroke_width / 2.0)
+            }
+        };
+
+        let exit = {
+            let last = self.solution.path.last().unwrap();
+            let (x, y) = self.compute_centre(&last);
+            let neighbours = self.maze.cells[self.maze.get_index(*last)]
+                .accessible
+                .clone();
+            let Dimensions { a, b, .. } = self.dimensions;
+            if neighbours[Direction::SouthWest].is_some() && last.x() % 2 == 1 {
+                (x - (a * 1.5), y + (b / 2.0))
+            } else if neighbours[Direction::SouthEast].is_some() && last.x() % 2 == 1 {
+                (x + (a * 1.5), y + (b / 2.0))
+            } else {
+                (x, y + b - self.stroke_width / 2.0)
+            }
+        };
+
+        data.append(Command::Move(Absolute, entrance.into()));
+        self.solution
+            .path
+            .iter()
+            .map(|node| self.compute_centre(node))
+            .for_each(|coords| data.append(Command::Line(Absolute, coords.into())));
+        data.append(Command::Line(Absolute, exit.into()));
+
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", stroke_colour.to_web_string())
+            .set("stroke-width", self.stroke_width * 2.0)
+            .set("stroke-linecap", "round")
+            .set("stroke-linejoin", "round")
+            .set("d", data);
+        self.document.append(path);
     }
 
     fn paint(&mut self, border: WebColour) {
@@ -33,7 +104,7 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
             .get_all_nodes()
             .iter()
             .for_each(|cell| self.render_cell(&mut data, *cell));
-        let path = svg::node::element::Path::new()
+        let path = Path::new()
             .set("fill", "none")
             .set("stroke", border.to_web_string())
             .set("stroke-width", self.stroke_width)
@@ -101,12 +172,12 @@ impl<'a> SigmaMazeRenderer<'a> {
         }
     }
 
-    fn compute_centre(&self, cell: Cartesian) -> (f64, f64) {
+    fn compute_centre(&self, cell: &Cartesian) -> (f64, f64) {
         let Dimensions {
             a, b, cell_height, ..
         } = self.dimensions;
 
-        let x = 3.0 * a * cell.x() as f64 + (self.stroke_width / 2.0);
+        let x = 3.0 * a * cell.x() as f64 + 2.0 * a + (self.stroke_width / 2.0);
         let y = cell_height * cell.y() as f64
             + if cell.x() % 2 == 0 { b } else { 2.0 * b }
             + (self.stroke_width / 2.0);
@@ -116,9 +187,9 @@ impl<'a> SigmaMazeRenderer<'a> {
 
     fn render_cell(&self, data: &mut Data, cell: Cartesian) {
         let Dimensions { a, b, .. } = self.dimensions;
-        let (x, y) = self.compute_centre(cell);
+        let (x, y) = self.compute_centre(&cell);
 
-        data.append(Command::Move(Absolute, (x, y).into()));
+        data.append(Command::Move(Absolute, (x - 2.0 * a, y).into()));
 
         let c = |d: Direction| {
             if self.maze.has_path(&cell, d) {

@@ -63,7 +63,7 @@ impl IndexMut<Direction> for Neighbours {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Neighbours(Vec<Option<Cartesian>>);
+pub struct Neighbours(Vec<Option<Cartesian>>);
 
 impl Neighbours {
     fn new() -> Self {
@@ -74,7 +74,7 @@ impl Neighbours {
 #[derive(Debug)]
 pub struct SigmaCell {
     coordinates: Cartesian,
-    accessible: Neighbours,
+    pub accessible: Neighbours,
     inaccessible: Neighbours,
 }
 
@@ -140,7 +140,7 @@ impl SigmaCell {
 #[derive(Debug)]
 pub struct SigmaMaze {
     size: usize,
-    cells: Vec<SigmaCell>,
+    pub cells: Vec<SigmaCell>,
 }
 
 impl SigmaMaze {
