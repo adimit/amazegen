@@ -293,11 +293,12 @@ impl RingNode {
     }
 
     pub fn is_east_of(&self, other: RingNode, extents: &[usize]) -> bool {
-        self.row == other.row && (self.column + 1) % extents[self.row] == other.column
+        self.row == other.row && (other.column + 1) % extents[self.row] == self.column
     }
 
     pub fn is_west_of(&self, other: RingNode, extents: &[usize]) -> bool {
-        self.row == other.row && self.column == (other.column + 1 % extents[self.row])
+        println!("west_of {} {} {}", self.row, other.row, extents[self.row]);
+        self.row == other.row && (self.column + 1) % extents[self.row] == other.column
     }
 }
 
@@ -310,15 +311,21 @@ mod test {
     #[test]
     fn east_west_of_wraps_around_properly() {
         let rings = RingMaze::new(6, 8).ring_sizes;
-        let node = RingNode { row: 1, column: 0 };
-        assert!(RingNode { row: 1, column: 1 }.is_west_of(node, &rings));
-        assert!(
-            !RingNode { row: 1, column: 7 }.is_west_of(node, &rings),
-            "Should not be directly west of a node that wrapped around the eastern end"
-        );
+        let column = |column| RingNode { row: 1, column };
 
-        assert!(!RingNode { row: 1, column: 1 }.is_east_of(node, &rings));
-        assert!(RingNode { row: 1, column: 7 }.is_east_of(node, &rings));
+        // out is north, in is south, so
+        assert!(column(1).is_east_of(column(0), &rings));
+        assert!(column(0).is_west_of(column(1), &rings));
+
+        assert!(column(7).is_west_of(column(0), &rings));
+        assert!(column(0).is_east_of(column(7), &rings));
+
+        // reciprocal negations
+        assert!(!column(1).is_west_of(column(0), &rings));
+        assert!(!column(0).is_east_of(column(1), &rings));
+
+        assert!(!column(7).is_east_of(column(0), &rings));
+        assert!(!column(0).is_west_of(column(7), &rings));
     }
 
     #[test]

@@ -178,17 +178,17 @@ impl<'a> RingMazeRenderer<'a> {
         let outer = grid.outer_radius(node.row);
         let inner = grid.inner_radius(node.row);
 
-        // east wall
+        // western wall
         if cell
             .inaccessible_neighbours
             .iter()
-            .any(|it| it.is_east_of(node, &grid.maze.ring_sizes))
+            .any(|it| it.is_west_of(node, &grid.maze.ring_sizes))
         {
             data.append(Command::Move(Absolute, (c.cx, c.cy).into()));
             data.append(Command::Line(Absolute, (c.dx, c.dy).into()));
         }
 
-        // north wall (only if we're on the outer ring)
+        // northern wall (only if we're on the outer ring)
         if cell.coordinates.row == grid.maze.ring_sizes.len() - 1
             && !cell
                 .accessible_neighbours
@@ -202,7 +202,7 @@ impl<'a> RingMazeRenderer<'a> {
             ));
         }
 
-        // south wall
+        // southern wall
         if cell
             .inaccessible_neighbours
             .iter()
@@ -310,7 +310,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         points.iter().enumerate().for_each(|(i, point)| {
             if split_path[i.saturating_sub(1)].r == split_path[i].r {
                 let sweep = if nodes[i.saturating_sub(1)]
-                    .is_west_of(*nodes[i], &self.grid.maze.ring_sizes)
+                    .is_east_of(*nodes[i], &self.grid.maze.ring_sizes)
                 {
                     0
                 } else {
