@@ -11,6 +11,7 @@ export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
 export const features = ["Stain", "Solve"] as const;
 export type Feature = (typeof features)[number];
+
 export interface ShapeRectilinear {
   Rectilinear: [number, number];
 }
@@ -157,6 +158,9 @@ export const configurationHashSignal = (): {
     }
     if ("Theta" in a && "Theta" in b) {
       return a.Theta === b.Theta;
+    }
+    if ("Sigma" in a && "Sigma" in b) {
+      return a.Sigma === b.Sigma;
     }
     return false;
   };
