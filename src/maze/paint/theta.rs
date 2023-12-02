@@ -302,7 +302,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         let r_out = self.grid.outer_radius(self.solution.path[0].row) + self.stroke_width / 2.0;
         let mut data = Data::new().move_to(
             (PolarPoint {
-                r: r_out,
+                r: r_out - self.stroke_width / 3.0,
                 θ: split_path[0].θ,
             })
             .to_cartesian(self.grid.centre),
@@ -335,7 +335,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         });
         {
             let exit = (PolarPoint {
-                r: r_out,
+                r: r_out - self.stroke_width / 3.0,
                 θ: split_path.last().unwrap().θ,
             })
             .to_cartesian(self.grid.centre);
