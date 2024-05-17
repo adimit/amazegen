@@ -44,7 +44,7 @@
     "sass": "^1.77",
     "solid-js": "^1.8",
     "svg-to-pdfkit": "^0.1.8",
-    "vite-plugin-node-polyfills": "^0.21",
+    "vite-plugin-node-polyfills": "0.7.0",
     "vite-plugin-wasm": "^3.3"
   }
 }
