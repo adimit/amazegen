@@ -45,9 +45,7 @@ To build it for a certain subdirectory of a page, use e.g. ~--base=/maze~ on the
 
 [fn:2] ~npm~ or comparable programs should work fine, too.
 
-
 ** Desiderata
-
 *** A nicer UI
 
 The current UI is bare-bones.
@@ -64,6 +62,11 @@ Braid mazes as well as quasi-3D mazes with "bridges" and "tunnels".
 
 Circular, elliptic, triangular and hexagonal mazes look neat and might be fun to implement. Mazes could probably be drawn along Penrose tilings and [[https://aatishb.com/patterncollider/?symmetry=19&pattern=0.88&rotate=180][similar irregular tilings]].
 
+** Bugs
+- [ ] The last segment of the solution path of theta mazes (the extra one tacked on to the end so the path doesn't end in the middle of the cell) is an elliptical arc segment, but should be a line. It's a bit squiggly, visually.
+- [ ] Sigma mazes are stained from the exit, instead of from the entrance, like all other mazes (so the exit is yellow, and the entrance can be in a medium peachy segment)
+- [ ] Rectilinear mazes seem to just be stained from the origin. Why?
+- [ ] Sigma mazes are printed with a narrower width than other mazes. My guess is they're too tall to fit in the box, since sigma mazes are taller than they are wide.
 
 * License
 
