@@ -7,7 +7,7 @@
     "start": "vite",
     "pdfkit": "browserify --standalone PDFDocument node_modules/pdfkit/js/pdfkit.js > pdfkit.js",
     "dev": "vite",
-    "prebuild": "yarn pdfkit",
+    "prebuild": "bun run pdfkit",
     "build": "vite build",
     "serve": "vite preview"
   },
