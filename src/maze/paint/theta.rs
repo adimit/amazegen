@@ -215,6 +215,23 @@ impl<'a> RingMazeRenderer<'a> {
             ));
         }
     }
+
+    fn split_nodes_traversing_north(&self) -> Vec<&RingNode> {
+        self.solution
+            .path
+            .iter()
+            .enumerate()
+            .flat_map(|(i, node)| {
+                if self.solution.path[i.saturating_sub(1)].row != node.row
+                    && self.solution.path[min(self.solution.path.len() - 1, i + 1)].row != node.row
+                {
+                    vec![node, node]
+                } else {
+                    vec![node]
+                }
+            })
+            .collect::<Vec<_>>()
+    }
 }
 
 impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
@@ -255,88 +272,82 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
     }
 
     fn solve(&mut self, stroke_colour: WebColour) {
-        let nodes = self
-            .solution
-            .path
-            .iter()
-            .enumerate()
-            .flat_map(|(i, node)| {
-                if self.solution.path[i.saturating_sub(1)].row != node.row
-                    && self.solution.path[min(self.solution.path.len() - 1, i + 1)].row != node.row
-                {
-                    vec![node, node]
-                } else {
-                    vec![node]
-                }
-            })
-            .collect::<Vec<_>>();
+        let nodes = self.split_nodes_traversing_north();
 
-        let split_path = nodes
-            .iter()
-            .map(|node| self.polar(node))
-            .collect::<Vec<_>>();
-
-        let points = split_path
+        let polar_points = nodes
             .iter()
             .enumerate()
             .map(|(i, node)| {
-                let prev = split_path[i.saturating_sub(1)];
-                let next = split_path[min(split_path.len() - 1, i + 1)];
-                if node.r < prev.r {
+                let path_prev = nodes[i.saturating_sub(1)];
+                let path_next = nodes[min(nodes.len() - 1, i + 1)];
+                if node.row < path_prev.row {
                     PolarPoint {
-                        θ: prev.θ,
-                        r: node.r,
+                        r: self.grid.inner_radius(node.row) + self.grid.ring_height / 2.0,
+                        θ: self.grid.θ_east(*path_prev) + self.grid.θ(path_prev.row) / 2.0,
                     }
-                } else if node.r < next.r {
+                } else if node.row < path_next.row {
                     PolarPoint {
-                        θ: next.θ,
-                        r: node.r,
+                        r: self.grid.inner_radius(node.row) + self.grid.ring_height / 2.0,
+                        θ: self.grid.θ_east(*path_next) + self.grid.θ(path_next.row) / 2.0,
                     }
                 } else {
-                    *node
+                    self.polar(node)
                 }
             })
+            .collect::<Vec<_>>();
+
+        let cartesian_points = polar_points
+            .iter()
             .map(|p| p.to_cartesian(self.grid.centre))
             .collect::<Vec<_>>();
 
         let r_out = self.grid.outer_radius(self.solution.path[0].row) + self.stroke_width / 2.0;
-        let mut data = Data::new().move_to(
-            (PolarPoint {
-                r: r_out - self.stroke_width / 3.0,
-                θ: split_path[0].θ,
-            })
-            .to_cartesian(self.grid.centre),
-        );
-        points.iter().enumerate().for_each(|(i, point)| {
-            if split_path[i.saturating_sub(1)].r == split_path[i].r {
-                let sweep = if nodes[i.saturating_sub(1)]
-                    .is_east_of(*nodes[i], &self.grid.maze.ring_sizes)
-                {
-                    0
+        let mut data = Data::new()
+            .move_to(
+                (PolarPoint {
+                    r: r_out - self.stroke_width / 3.0,
+                    θ: polar_points[0].θ,
+                })
+                .to_cartesian(self.grid.centre),
+            )
+            .line_to::<CartesianPoint>(cartesian_points[0].into());
+
+        cartesian_points
+            .into_iter()
+            .enumerate()
+            // we already drew the line from the outside to the first node when creating data
+            .skip(1)
+            .for_each(|(i, point)| {
+                let prev_i = i.saturating_sub(1);
+                if nodes[prev_i].row == nodes[i].row {
+                    let sweep = if (polar_points[prev_i].θ > polar_points[i].θ)
+                        || (nodes[prev_i].column == 0 && nodes[i].column > 2)
+                    {
+                        0
+                    } else {
+                        1
+                    };
+                    data.append(Command::EllipticalArc(
+                        Absolute,
+                        (
+                            polar_points[i].r,
+                            polar_points[i].r,
+                            0,
+                            0,
+                            sweep,
+                            point.x,
+                            point.y,
+                        )
+                            .into(),
+                    ));
                 } else {
-                    1
-                };
-                data.append(Command::EllipticalArc(
-                    Absolute,
-                    (
-                        split_path[i].r,
-                        split_path[i].r,
-                        0,
-                        0,
-                        sweep,
-                        point.x,
-                        point.y,
-                    )
-                        .into(),
-                ));
-            } else {
-                data.append(Command::Line(Absolute, (point.x, point.y).into()));
-            }
-        });
+                    data.append(Command::Line(Absolute, point.into()));
+                }
+            });
         {
             let exit = (PolarPoint {
                 r: r_out - self.stroke_width / 3.0,
-                θ: split_path.last().unwrap().θ,
+                θ: polar_points.last().unwrap().θ,
             })
             .to_cartesian(self.grid.centre);
             data.append(Command::Line(Absolute, (exit.x, exit.y).into()));
