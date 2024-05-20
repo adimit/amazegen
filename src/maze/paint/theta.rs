@@ -320,7 +320,8 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
             .for_each(|(i, point)| {
                 let prev_i = i.saturating_sub(1);
                 if nodes[prev_i].row == nodes[i].row {
-                    let sweep = if (polar_points[prev_i].θ > polar_points[i].θ)
+                    let sweep = if (polar_points[prev_i].θ > polar_points[i].θ
+                        && !(nodes[prev_i].column > 2 && nodes[i].column == 0))
                         || (nodes[prev_i].column == 0 && nodes[i].column > 2)
                     {
                         0
