@@ -92,6 +92,8 @@ pub fn jarník<M: Maze>(mut maze: M) -> M {
 pub fn dijkstra<M: Maze>(maze: &M, origin: M::Idx) -> Vec<usize> {
     let mut distances = maze.get_all_nodes().iter().map(|_| 0).collect::<Vec<_>>();
     let mut frontier: Vec<M::Idx> = vec![origin];
+    distances[maze.get_index(origin)] = 1;
+
     while !frontier.is_empty() {
         let mut new_frontier: Vec<M::Idx> = vec![];
         for cell in frontier.drain(..) {
