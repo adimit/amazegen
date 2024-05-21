@@ -196,7 +196,7 @@ impl Maze for RectilinearMaze {
     }
 
     fn make_solution(&mut self) -> Solution<Self::Idx> {
-        let entrance_topo = {
+        let seed_topo = {
             let start = (fastrand::usize(0..self.get_extents().0), 0);
             dijkstra(self, start)
         };
@@ -204,7 +204,7 @@ impl Maze for RectilinearMaze {
             let y = self.get_extents().1 - 1;
             (0..self.get_extents().0)
                 .map(|x| (x, y))
-                .max_by_key(|node| entrance_topo[self.get_index(*node)])
+                .max_by_key(|node| seed_topo[self.get_index(*node)])
                 .unwrap_or((
                     fastrand::usize(0..self.get_extents().0),
                     self.get_extents().1 - 1,
@@ -216,6 +216,7 @@ impl Maze for RectilinearMaze {
             .map(|x| (x, 0))
             .max_by_key(|node| exit_topo[self.get_index(*node)])
             .unwrap_or((fastrand::usize(0..self.get_extents().0), 0));
+        let entrance_topo = dijkstra(self, entrance);
 
         self.set_entrance(entrance.0);
         self.set_exit(exit.0);
@@ -224,7 +225,7 @@ impl Maze for RectilinearMaze {
 
         Solution {
             path,
-            distances: exit_topo,
+            distances: entrance_topo,
         }
     }
 }

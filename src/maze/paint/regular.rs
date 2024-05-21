@@ -209,7 +209,7 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
             let pic = SVGBackend::with_string(&mut str, self.size).into_drawing_area();
             for instruction in &self.instructions {
                 match instruction {
-                    PlottersWorkaround::Stain(a, b) => self.stain_maze(&pic, (*b, *a)),
+                    PlottersWorkaround::Stain(a, b) => self.stain_maze(&pic, (*a, *b)),
                     PlottersWorkaround::Solve(colour) => self.solve_maze(&pic, *colour),
                     PlottersWorkaround::Paint(colour) => self.render_maze(&pic, colour),
                 }

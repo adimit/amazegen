@@ -244,29 +244,32 @@ impl Maze for SigmaMaze {
     }
 
     fn make_solution(&mut self) -> Solution<Self::Idx> {
-        let entrance_topo = dijkstra(self, (fastrand::usize(..self.size), 0).into());
+        let seed_topo = dijkstra(self, (fastrand::usize(..self.size), 0).into());
+
         let exit: Cartesian = {
             let y = self.size - 1;
             (0..self.size)
                 .map(|x| (x, y))
-                .max_by_key(|&c| entrance_topo.get(self.get_index(c.into())))
+                .max_by_key(|&c| seed_topo.get(self.get_index(c.into())))
                 .unwrap_or((fastrand::usize(..self.size), y))
         }
         .into();
+
         let exit_topo = dijkstra(self, exit);
         let entrance: Cartesian = (0..self.size)
             .map(|x| (x, 0))
             .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
             .unwrap_or((fastrand::usize(0..self.size), 0))
             .into();
+
+        let entrance_topo = dijkstra(self, entrance);
         self.set_entrance(entrance.x);
         self.set_exit(exit.x);
-
         let path = find_path(self, &exit_topo, entrance, exit);
 
         Solution {
             path,
-            distances: exit_topo,
+            distances: entrance_topo,
         }
     }
 }
