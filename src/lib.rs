@@ -1,4 +1,5 @@
 #![allow(mixed_script_confusables)]
+pub mod configuration;
 pub mod maze;
 
 use maze::feature::{Algorithm, Configuration, Feature, Shape};

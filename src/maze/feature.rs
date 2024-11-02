@@ -16,11 +16,17 @@ const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";
 const SOLUTION: &str = "8FE080";
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
 pub enum Shape {
     Rectilinear(usize, usize),
     Theta(usize),
     Sigma(usize),
+}
+
+impl Default for Shape {
+    fn default() -> Self {
+        Shape::Rectilinear(10, 10)
+    }
 }
 
 #[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -61,7 +67,7 @@ impl From<Feature> for DrawingInstructions {
     }
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone, PartialEq)]
 pub enum Algorithm {
     Kruskal,
     GrowingTree,
