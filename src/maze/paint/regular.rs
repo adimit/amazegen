@@ -33,7 +33,7 @@ fn get_wall_run(maze: &RectilinearMaze, line: usize, direction: Direction) -> Ve
     // but I'm not aware of it.
     match direction {
         Up | Down => (0..maze.get_extents().0)
-            .group_by(move |x| maze.has_wall((*x, line), direction))
+            .chunk_by(move |x| maze.has_wall((*x, line), direction))
             .into_iter()
             .filter(|(key, _)| *key)
             .map(|(_, group)| {
@@ -42,7 +42,7 @@ fn get_wall_run(maze: &RectilinearMaze, line: usize, direction: Direction) -> Ve
             })
             .collect::<Vec<_>>(),
         Left | Right => (0..maze.get_extents().1)
-            .group_by(move |y| maze.has_wall((line, *y), direction))
+            .chunk_by(move |y| maze.has_wall((line, *y), direction))
             .into_iter()
             .filter(|(key, _)| *key)
             .map(|(_, group)| {

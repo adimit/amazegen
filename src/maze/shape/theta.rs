@@ -53,7 +53,6 @@ impl RingCell {
             },
             ..coordinates
         });
-
         neighbours.push(RingNode {
             column: if coordinates.row - 1 == 0 {
                 0

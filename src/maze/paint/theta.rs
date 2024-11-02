@@ -310,7 +310,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
                 })
                 .to_cartesian(self.grid.centre),
             )
-            .line_to::<CartesianPoint>(cartesian_points[0].into());
+            .line_to::<CartesianPoint>(cartesian_points[0]);
 
         cartesian_points
             .into_iter()

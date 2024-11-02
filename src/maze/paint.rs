@@ -33,7 +33,7 @@ impl WebColour {
                 r: u8v[0],
                 g: u8v[1],
                 b: u8v[2],
-                a: u8::max_value(),
+                a: u8::MAX,
             }),
             4 => Ok(WebColour {
                 r: u8v[0],

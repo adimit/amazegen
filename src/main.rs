@@ -15,6 +15,7 @@ fn main() -> Result<(), ()> {
         (maze, solution)
     };
     let mut renderer = SigmaMazeRenderer::new(&maze, &solution, 4.0, 40.0);
+
     renderer.stain((
         WebColour {
             r: 230,
