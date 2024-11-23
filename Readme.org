@@ -62,11 +62,23 @@ Braid mazes as well as quasi-3D mazes with "bridges" and "tunnels".
 
 Circular, elliptic, triangular and hexagonal mazes look neat and might be fun to implement. Mazes could probably be drawn along Penrose tilings and [[https://aatishb.com/patterncollider/?symmetry=19&pattern=0.88&rotate=180][similar irregular tilings]].
 
+*** Rust-side PDF generation
+
+PDFjs is clunky, big and slow. Generating PDFs rust-side also offers the possibility to run maze generation server-side for some applications.
+
+**** Pass all information that is used for PDF generation client-side to the server
+
+- [ ] Colour should continue to live on the client side (possible themes?) for now.
+- [ ] Thickness is a factor of whether we're doing PDF or SVG, and hence can be decided by the "backend".
+- [ ] Seed should be optional, and the backend infers it
+- [ ] Move URL serialisation to Rust (needs to be on the PDF for HTTP API)
+- [ ] Generated SVG payload to UI should also contain the Seed
+
 ** Bugs
 - [X] The last segment of the solution path of theta mazes (the extra one tacked on to the end so the path doesn't end in the middle of the cell) is an elliptical arc segment, but should be a line. It's a bit squiggly, visually.
 - [X] Sigma mazes are stained from the exit, instead of from the entrance, like all other mazes (so the exit is yellow, and the entrance can be in a medium peachy segment)
 - [X] Rectilinear mazes seem to just be stained from the origin. Why? Sample: =#R24|GrowingTree|4078526631170035261=
-- [ ] Sigma mazes are printed with a narrower width than other mazes. My guess is they're too tall to fit in the box, since sigma mazes are taller than they are wide.
+- [ ] +Sigma mazes are printed with a narrower width than other mazes. My guess is they're too tall to fit in the box, since sigma mazes are taller than they are wide.+ I'll ignore it for now, because I'll be switching away from JS-side PDF generation
 
 * License
 
