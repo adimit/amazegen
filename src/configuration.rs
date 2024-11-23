@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Seed(u64);
+pub struct Seed(pub u64);
 
 impl Default for Seed {
     fn default() -> Self {
@@ -16,41 +16,31 @@ impl Default for Seed {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct WebConfiguration {
+pub struct UrlParameters {
     pub seed: Seed,
     pub shape: Shape,
     pub algorithm: Algorithm,
 }
 
-pub fn get_default_configuration() -> WebConfiguration {
-    WebConfiguration {
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisualConfiguration {
+    pub colour: WebColour,
+    pub features: Vec<Feature>,
+}
+
+pub fn get_default_configuration() -> UrlParameters {
+    UrlParameters {
         algorithm: Algorithm::GrowingTree,
         seed: Seed(1),
         shape: Shape::Rectilinear(10, 10),
     }
 }
 
-impl WebConfiguration {
-    pub fn to_configuration(
-        &self,
-        colour: WebColour,
-        features: Vec<Feature>,
-        stroke_width: f64,
-    ) -> crate::maze::feature::Configuration {
-        crate::maze::feature::Configuration {
-            seed: self.seed.0,
-            shape: self.shape.clone(),
-            algorithm: self.algorithm.clone(),
-            colour: colour.to_web_string(), // FIXME
-            features,
-            stroke_width,
-        }
-    }
-
-    pub fn parse_configuration_from_string(str: String) -> Self {
+impl UrlParameters {
+    pub fn parse_from_string(str: String) -> Self {
         let parts = str.split('|').collect::<Vec<_>>();
         let default = get_default_configuration();
-        WebConfiguration {
+        UrlParameters {
             shape: parts
                 .get(0)
                 .and_then(|s| {
@@ -106,13 +96,13 @@ mod tests {
 
     #[test]
     fn test_parse_configuration_from_string() {
-        let config = WebConfiguration::parse_configuration_from_string("".into());
+        let config = UrlParameters::parse_from_string("".into());
         assert_eq!(config, get_default_configuration());
     }
 
     #[test]
     fn parses_just_a_seed() {
-        let config = WebConfiguration::parse_configuration_from_string("||1234".into());
+        let config = UrlParameters::parse_from_string("||1234".into());
         let mut default = get_default_configuration().clone();
         default.seed = Seed(1234);
         assert_eq!(config, default);
@@ -120,31 +110,31 @@ mod tests {
 
     #[test]
     fn parses_just_a_size() {
-        let config = WebConfiguration::parse_configuration_from_string("12".into());
+        let config = UrlParameters::parse_from_string("12".into());
         assert_eq!(config.shape, Shape::Rectilinear(12, 12));
     }
 
     #[test]
     fn parses_just_a_shape_spec_hex() {
-        let config = WebConfiguration::parse_configuration_from_string("S12".into());
+        let config = UrlParameters::parse_from_string("S12".into());
         assert_eq!(config.shape, Shape::Sigma(12));
     }
 
     #[test]
     fn parses_just_a_shape_spec_circle() {
-        let config = WebConfiguration::parse_configuration_from_string("T7".into());
+        let config = UrlParameters::parse_from_string("T7".into());
         assert_eq!(config.shape, Shape::Theta(7));
     }
 
     #[test]
     fn parses_just_an_algorithm() {
-        let config = WebConfiguration::parse_configuration_from_string("|Kruskal".into());
+        let config = UrlParameters::parse_from_string("|Kruskal".into());
         assert_eq!(config.algorithm, Algorithm::Kruskal);
     }
 
     #[test]
     fn parses_everything_together() {
-        let config = WebConfiguration::parse_configuration_from_string("T7|Kruskal|1234".into());
+        let config = UrlParameters::parse_from_string("T7|Kruskal|1234".into());
         assert_eq!(config.shape, Shape::Theta(7));
         assert_eq!(config.algorithm, Algorithm::Kruskal);
         assert_eq!(config.seed, Seed(1234));
@@ -152,7 +142,7 @@ mod tests {
 
     #[test]
     fn serialises_configuration_to_hash_string() {
-        let config = WebConfiguration {
+        let config = UrlParameters {
             shape: Shape::Theta(7),
             algorithm: Algorithm::Kruskal,
             seed: Seed(1234),

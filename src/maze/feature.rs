@@ -1,5 +1,6 @@
 use itertools::Itertools;
 
+use crate::configuration::{UrlParameters, VisualConfiguration};
 use crate::maze::interface::MazeRenderer;
 use crate::maze::paint::theta::RingMazeRenderer;
 use crate::maze::paint::*;
@@ -95,6 +96,21 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
+    pub fn from_parameters(
+        base: UrlParameters,
+        visuals: VisualConfiguration,
+        stroke_width: f64,
+    ) -> crate::maze::feature::Configuration {
+        crate::maze::feature::Configuration {
+            seed: base.seed.0,
+            shape: base.shape.clone(),
+            algorithm: base.algorithm.clone(),
+            colour: visuals.colour.to_web_string(),
+            features: visuals.features,
+            stroke_width,
+        }
+    }
+
     fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
         let mut maze = self.algorithm.execute(template);
         let solution = maze.make_solution();
