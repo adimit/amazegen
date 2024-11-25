@@ -2,7 +2,7 @@
 pub mod configuration;
 pub mod maze;
 
-use maze::feature::{Algorithm, Configuration, Feature, Shape};
+use maze::feature::{Algorithm, Feature, Parameters, Shape};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -13,13 +13,13 @@ extern "C" {
 
 #[wasm_bindgen]
 pub fn generate_maze(js: JsValue) -> String {
-    let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
+    let configuration: Parameters = serde_wasm_bindgen::from_value(js).unwrap();
     configuration.execute().0
 }
 
 #[wasm_bindgen]
 pub fn test_config() -> JsValue {
-    let configuration = Configuration {
+    let configuration = Parameters {
         seed: 1,
         shape: Shape::Theta(11),
         colour: "#FF00FF".into(),
@@ -32,11 +32,11 @@ pub fn test_config() -> JsValue {
 
 #[cfg(test)]
 mod test {
-    use crate::maze::feature::Configuration;
+    use crate::maze::feature::Parameters;
 
     #[test]
     fn mkae_svg_maze_should_return_svg_when_params_are_valid() {
-        let svg = Configuration {
+        let svg = Parameters {
             algorithm: crate::maze::feature::Algorithm::GrowingTree,
             colour: "000000".into(),
             features: vec![],

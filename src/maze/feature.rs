@@ -84,7 +84,7 @@ impl Algorithm {
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
-pub struct Configuration {
+pub struct Parameters {
     pub seed: u64,
     pub shape: Shape,
     pub colour: String,
@@ -95,13 +95,13 @@ pub struct Configuration {
 
 pub struct Svg(pub String);
 
-impl Configuration {
+impl Parameters {
     pub fn from_parameters(
         base: UrlParameters,
         visuals: VisualConfiguration,
         stroke_width: f64,
-    ) -> crate::maze::feature::Configuration {
-        crate::maze::feature::Configuration {
+    ) -> crate::maze::feature::Parameters {
+        crate::maze::feature::Parameters {
             seed: base.seed.0,
             shape: base.shape.clone(),
             algorithm: base.algorithm.clone(),

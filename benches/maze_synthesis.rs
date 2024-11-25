@@ -1,13 +1,13 @@
 use amazegen::{
     generate_seed,
-    maze::feature::{Algorithm, Configuration, Shape},
+    maze::feature::{Algorithm, Parameters, Shape},
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn kruskal_rect(c: &mut Criterion) {
     c.bench_function("maze_synthesis", |b| {
         b.iter(|| {
-            Configuration {
+            Parameters {
                 algorithm: Algorithm::Kruskal,
                 colour: "000000".into(),
                 features: vec![],
@@ -23,7 +23,7 @@ fn kruskal_rect(c: &mut Criterion) {
 fn jarník_rect(c: &mut Criterion) {
     c.bench_function("maze_synthesis", |b| {
         b.iter(|| {
-            Configuration {
+            Parameters {
                 algorithm: Algorithm::GrowingTree,
                 colour: "000000".into(),
                 features: vec![],
@@ -42,7 +42,7 @@ fn jarník_theta(c: &mut Criterion) {
     group.measurement_time(std::time::Duration::from_secs(10));
     group.bench_function("maze_synthesis", |b| {
         b.iter(|| {
-            Configuration {
+            Parameters {
                 algorithm: Algorithm::GrowingTree,
                 colour: "000000".into(),
                 features: vec![],
@@ -62,7 +62,7 @@ fn kruskal_theta(c: &mut Criterion) {
     group.measurement_time(std::time::Duration::from_secs(10));
     group.bench_function("maze_synthesis", |b| {
         b.iter(|| {
-            Configuration {
+            Parameters {
                 algorithm: Algorithm::Kruskal,
                 colour: "000000".into(),
                 features: vec![],
