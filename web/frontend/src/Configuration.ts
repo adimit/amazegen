@@ -1,11 +1,12 @@
 import {
   Accessor,
   createEffect,
+  createMemo,
   createSignal,
   onCleanup,
   onMount,
 } from "solid-js";
-import { generate_maze, generate_seed } from "./pkg";
+import { generate_maze, generate_seed, run_configuration } from "./pkg";
 
 export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
@@ -104,7 +105,7 @@ const readFromHash = (): Configuration => {
       .map((str, index) => parse[index](str)) as [
       Shape | undefined,
       Algorithm | undefined,
-      bigint | undefined
+      bigint | undefined,
     ]) ?? [];
 
   return {
@@ -143,12 +144,20 @@ export const configurationHashSignal = (): {
   addFeature: (f: Feature) => Configuration;
   removeFeature: (f: Feature) => Configuration;
   toggleFeature: (f: Feature) => Configuration;
+  svg: Accessor<SVG>;
 } => {
   const [configuration, setConfiguration] = createSignal(readFromHash());
+  const result = createMemo(() => {
+    const r: { svg: string; hash: string } | null =
+      run_configuration(configuration());
+    if (r !== null) {
+      return r;
+    }
+  });
 
   createEffect(() => {
     if (document.location !== undefined) {
-      document.location.hash = computeHash(configuration());
+      document.location.hash = result()?.hash ?? "";
     }
   });
 
@@ -236,6 +245,7 @@ export const configurationHashSignal = (): {
     }
     return getSize();
   };
+
   const setShape = (shape: ShapeKeys): Shape => {
     const size = adjustSizeToNewShape(shape);
     switch (shape) {
@@ -267,6 +277,7 @@ export const configurationHashSignal = (): {
     removeFeature,
     toggleFeature: (f): Configuration =>
       configuration().features.includes(f) ? removeFeature(f) : addFeature(f),
+    svg: () => result()?.svg ?? "",
   };
 };
 

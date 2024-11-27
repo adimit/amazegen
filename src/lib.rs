@@ -2,6 +2,8 @@
 pub mod maze;
 
 use maze::feature::{Algorithm, Configuration, Feature, Shape};
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -14,6 +16,37 @@ extern "C" {
 pub fn generate_maze(js: JsValue) -> String {
     let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
     configuration.execute().0
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+struct WebResponse {
+    svg: String,
+    hash: String,
+}
+
+#[wasm_bindgen]
+pub fn run_configuration(js: JsValue) -> JsValue {
+    let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap_or_else(|err| {
+        log(&format!("Error: {:?}", err));
+        Configuration {
+            algorithm: Algorithm::GrowingTree,
+            colour: "#FFFFFF".into(),
+            features: vec![],
+            seed: generate_seed(),
+            shape: Shape::Rectilinear(10, 10),
+            stroke_width: 8.0,
+        }
+    });
+
+    WebResponse {
+        svg: configuration.execute().0,
+        hash: configuration.get_location_hash(),
+    }
+    .serialize(&Serializer::new())
+    .unwrap_or_else(|err| {
+        log(&format!("Error while writing response: {:?}", err));
+        JsValue::NULL
+    })
 }
 
 #[wasm_bindgen]

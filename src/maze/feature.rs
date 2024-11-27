@@ -103,6 +103,19 @@ impl Configuration {
         renderer.render()
     }
 
+    pub fn get_location_hash(&self) -> String {
+        let shape = match self.shape {
+            Shape::Rectilinear(width, _) => format!("R{}", width),
+            Shape::Sigma(size) => format!("S{}", size),
+            Shape::Theta(size) => format!("T{}", size),
+        };
+        let algorithm = match self.algorithm {
+            Algorithm::Kruskal => "Kruskal",
+            Algorithm::GrowingTree => "GrowingTree",
+        };
+        format!("{}|{}|{}", shape, algorithm, self.seed)
+    }
+
     pub fn execute(&self) -> Svg {
         fastrand::seed(self.seed);
         match self.shape {
