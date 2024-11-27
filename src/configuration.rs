@@ -6,7 +6,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Seed(pub u64);
 
 impl Default for Seed {
@@ -37,7 +37,7 @@ pub fn get_default_configuration() -> UrlParameters {
 }
 
 impl UrlParameters {
-    pub fn parse_from_string(str: String) -> Self {
+    pub fn parse_from_string(str: &str) -> Self {
         let parts = str.split('|').collect::<Vec<_>>();
         let default = get_default_configuration();
         UrlParameters {

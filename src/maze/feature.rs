@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::configuration::{UrlParameters, VisualConfiguration};
+use crate::configuration::Seed;
 use crate::maze::interface::MazeRenderer;
 use crate::maze::paint::theta::RingMazeRenderer;
 use crate::maze::paint::*;
@@ -93,24 +93,28 @@ pub struct Parameters {
     pub stroke_width: f64,
 }
 
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct Parameters2 {
+    pub seed: Seed,
+    pub shape: Shape,
+    pub colour: String,
+    pub features: Vec<Feature>,
+    pub algorithm: Algorithm,
+    pub stroke_width: StrokeWidth,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct StrokeWidth(pub f64);
+
+impl Default for StrokeWidth {
+    fn default() -> Self {
+        StrokeWidth(4.0)
+    }
+}
+
 pub struct Svg(pub String);
 
 impl Parameters {
-    pub fn from_parameters(
-        base: UrlParameters,
-        visuals: VisualConfiguration,
-        stroke_width: f64,
-    ) -> crate::maze::feature::Parameters {
-        crate::maze::feature::Parameters {
-            seed: base.seed.0,
-            shape: base.shape.clone(),
-            algorithm: base.algorithm.clone(),
-            colour: visuals.colour.to_web_string(),
-            features: visuals.features,
-            stroke_width,
-        }
-    }
-
     fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
         let mut maze = self.algorithm.execute(template);
         let solution = maze.make_solution();
@@ -152,6 +156,55 @@ impl Parameters {
                     &maze,
                     &solution,
                     self.stroke_width * 0.75,
+                    40.0,
+                ))
+            }
+        }
+    }
+}
+
+impl Parameters2 {
+    fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
+        let mut maze = self.algorithm.execute(template);
+        let solution = maze.make_solution();
+        (maze, solution)
+    }
+
+    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R) -> Svg {
+        for i in self.features.iter().sorted() {
+            Into::<DrawingInstructions>::into(*i).run(&mut renderer)
+        }
+        renderer.paint(WebColour::from_string(&self.colour).unwrap());
+        renderer.render()
+    }
+
+    pub fn execute(&self) -> Svg {
+        fastrand::seed(self.seed.0);
+        match self.shape {
+            Shape::Rectilinear(x, y) => {
+                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
+                self.render(RectilinearRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width.0 / 2.0,
+                    40.0,
+                ))
+            }
+            Shape::Theta(size) => {
+                let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
+                self.render(RingMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width.0,
+                    40.0,
+                ))
+            }
+            Shape::Sigma(size) => {
+                let (maze, solution) = self.create_maze(SigmaMaze::new(size));
+                self.render(SigmaMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width.0 * 0.75,
                     40.0,
                 ))
             }

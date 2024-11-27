@@ -2,7 +2,10 @@
 pub mod configuration;
 pub mod maze;
 
-use maze::feature::{Algorithm, Feature, Parameters, Shape};
+use configuration::{Seed, UrlParameters};
+use maze::feature::{Algorithm, Feature, Parameters, Parameters2, Shape, StrokeWidth};
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -13,21 +16,87 @@ extern "C" {
 
 #[wasm_bindgen]
 pub fn generate_maze(js: JsValue) -> String {
-    let configuration: Parameters = serde_wasm_bindgen::from_value(js).unwrap();
+    let configuration: Parameters = serde_wasm_bindgen::from_value(js).unwrap_or_else(|err| {
+        log(&format!("Error: {:?}", err));
+        Parameters {
+            algorithm: Algorithm::GrowingTree,
+            colour: "#000000".into(),
+            features: vec![],
+            seed: generate_seed(),
+            shape: Shape::Theta(11),
+            stroke_width: 8.0,
+        }
+    });
     configuration.execute().0
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct WebMazeRequest {
+    hash: String,
+    colour: String,
+    features: Vec<Feature>,
+}
+
+impl WebMazeRequest {
+    pub fn to_configuration(&self) -> Parameters2 {
+        let params: UrlParameters = UrlParameters::parse_from_string(&self.hash);
+        Parameters2 {
+            seed: params.seed,
+            shape: params.shape,
+            algorithm: params.algorithm,
+            colour: self.colour.clone(),
+            features: self.features.clone(),
+            stroke_width: StrokeWidth(8.0),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct WebMazeResponse {
+    svg: String,
+    configuration: Parameters2,
+}
+
+#[wasm_bindgen]
+pub fn generate_maze_from_hash(arg: JsValue) -> JsValue {
+    let params = serde_wasm_bindgen::from_value(arg)
+        .unwrap_or_else(|err| {
+            log(&format!("Error: {:?}", err));
+            WebMazeRequest {
+                hash: "".into(),
+                colour: "#FFFFFF".into(),
+                features: vec![],
+            }
+        })
+        .to_configuration();
+
+    WebMazeResponse {
+        svg: params.execute().0,
+        configuration: params,
+    }
+    .serialize(&Serializer::new().serialize_large_number_types_as_bigints(true))
+    .unwrap_or_else(|err| {
+        log(&format!("Error: {:?}", err));
+        JsValue::NULL
+    })
 }
 
 #[wasm_bindgen]
 pub fn test_config() -> JsValue {
-    let configuration = Parameters {
-        seed: 1,
+    let configuration = Parameters2 {
+        seed: Seed::default(),
         shape: Shape::Theta(11),
         colour: "#FF00FF".into(),
         features: vec![Feature::Stain],
         algorithm: Algorithm::Kruskal,
-        stroke_width: 8.0,
+        stroke_width: StrokeWidth::default(),
     };
-    serde_wasm_bindgen::to_value(&configuration).unwrap()
+    log(&format!("Configuration: {:?}", configuration));
+    let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+    configuration.serialize(&serializer).unwrap_or_else(|err| {
+        log(&format!("Error: {:?}", err));
+        JsValue::NULL
+    })
 }
 
 #[cfg(test)]

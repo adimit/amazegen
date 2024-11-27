@@ -1,5 +1,9 @@
 import { JSX, createSignal, createEffect } from "solid-js";
-import { configurationHashSignal, generateMaze } from "./Configuration";
+import {
+  configurationHashSignal as mazeSignal,
+  generateMaze,
+  generateMazeFromHash,
+} from "./Configuration";
 import { generatePdf } from "./pdfkit";
 
 export default function Maze(): JSX.Element {
@@ -17,12 +21,13 @@ export default function Maze(): JSX.Element {
     incrementSize,
     decrementSize,
     getSize,
-  } = configurationHashSignal();
-  const [numberOfMazes, setNumberOfMazes] = createSignal(4);
+    svg,
+  } = mazeSignal();
+  const [numberOfMazes, setNumberOfMazes] = createSignal(2);
 
   createEffect(() => {
     if (svgRef !== undefined) {
-      svgRef.innerHTML = generateMaze(configuration());
+      svgRef.innerHTML = svg();
     }
   });
 
@@ -107,7 +112,7 @@ export default function Maze(): JSX.Element {
           <button
             onClick={() => {
               generatePdf(configuration(), numberOfMazes()).catch(
-                console.error
+                console.error,
               );
             }}
           >

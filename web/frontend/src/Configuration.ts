@@ -6,6 +6,7 @@ import {
   onMount,
 } from "solid-js";
 import { generate_maze, generate_seed } from "./pkg";
+import { generate_maze_from_hash } from "./pkg/amazegen";
 
 export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
@@ -42,6 +43,17 @@ export type SVG = string;
 // there's no type for the Rust import, so we make one here
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const generateMaze: (config: Configuration) => SVG = generate_maze;
+
+export const generateMazeFromHash: (request: WebRequest) => {
+  svg: SVG;
+  configuration: Configuration;
+} = (request) => {
+  const result = generate_maze_from_hash(request);
+  if (result) {
+    return result;
+  }
+  throw new Error("Failed to generate maze from hash, check console.");
+};
 
 export const DEFAULT_MAZE_SIZE = 10;
 
@@ -104,7 +116,7 @@ const readFromHash = (): Configuration => {
       .map((str, index) => parse[index](str)) as [
       Shape | undefined,
       Algorithm | undefined,
-      bigint | undefined
+      bigint | undefined,
     ]) ?? [];
 
   return {
@@ -131,6 +143,17 @@ export const computeHash = ({
   algorithm,
 }: Configuration): string => `${hashShape(shape)}|${algorithm}|${seed}`;
 
+interface WebRequest {
+  hash: string;
+  colour: string;
+  features: Feature[];
+}
+const getInitialParameters = (): WebRequest => ({
+  hash: window.location.hash.substring(1),
+  colour: "EEEEEE",
+  features: [],
+});
+
 export const configurationHashSignal = (): {
   configuration: Accessor<Configuration>;
   setShape: (s: ShapeKeys) => Configuration;
@@ -139,42 +162,27 @@ export const configurationHashSignal = (): {
   decrementSize: () => Configuration;
   newSeed: () => Configuration;
   getSize: () => number;
-  setAlgorithm: (a: Algorithm) => Configuration;
-  addFeature: (f: Feature) => Configuration;
-  removeFeature: (f: Feature) => Configuration;
-  toggleFeature: (f: Feature) => Configuration;
+  setAlgorithm: (a: Algorithm) => WebRequest;
+  addFeature: (f: Feature) => WebRequest;
+  removeFeature: (f: Feature) => WebRequest;
+  toggleFeature: (f: Feature) => WebRequest;
+  svg: SVG;
 } => {
-  const [configuration, setConfiguration] = createSignal(readFromHash());
+  const [configuration2, setConfiguration] = createSignal(readFromHash());
+  const [params, setParams] = createSignal(getInitialParameters());
+  const { configuration, svg } = generateMazeFromHash(params());
 
   createEffect(() => {
     if (document.location !== undefined) {
-      document.location.hash = computeHash(configuration());
+      document.location.replace(`#${computeHash(configuration)}`);
     }
   });
 
-  const shapeEquals = (a: Shape, b: Shape): boolean => {
-    if ("Rectilinear" in a && "Rectilinear" in b) {
-      return a.Rectilinear[0] === b.Rectilinear[0];
-    }
-    if ("Theta" in a && "Theta" in b) {
-      return a.Theta === b.Theta;
-    }
-    if ("Sigma" in a && "Sigma" in b) {
-      return a.Sigma === b.Sigma;
-    }
-    return false;
-  };
-
   const onHashChange = (_e: HashChangeEvent): void => {
-    const current = configuration();
-    const hash = readFromHash();
-    if (
-      current.seed !== hash.seed ||
-      current.algorithm !== hash.algorithm ||
-      !shapeEquals(current.shape, hash.shape)
-    ) {
-      setConfiguration(readFromHash());
-    }
+    setParams({
+      ...params(),
+      hash: window.location.hash.substring(1),
+    });
   };
 
   onMount(() => {
@@ -184,39 +192,39 @@ export const configurationHashSignal = (): {
     window.removeEventListener("hashchange", onHashChange);
   });
 
-  const removeFeature = (f: Feature): Configuration =>
-    setConfiguration({
-      ...configuration(),
-      features: configuration().features.filter((of) => of !== f),
+  const removeFeature = (f: Feature): WebRequest =>
+    setParams({
+      ...params(),
+      features: params().features.filter((of) => of !== f),
     });
-  const addFeature = (f: Feature): Configuration =>
-    setConfiguration({
-      ...configuration(),
-      features: [...new Set([...configuration().features, f])],
+  const addFeature = (f: Feature): WebRequest =>
+    setParams({
+      ...params(),
+      features: [...new Set([...params().features, f])],
     });
 
   const adjustSize = (by: (old: number) => number): Configuration => {
-    const { shape } = configuration();
+    const { shape } = configuration2();
     if ("Rectilinear" in shape) {
       return setConfiguration({
-        ...configuration(),
+        ...configuration2(),
         shape: rect(by(shape.Rectilinear[0])),
       });
     } else if ("Theta" in shape) {
       return setConfiguration({
-        ...configuration(),
+        ...configuration2(),
         shape: theta(by(shape.Theta)),
       });
     } else {
       return setConfiguration({
-        ...configuration(),
+        ...configuration2(),
         shape: sigma(by(shape.Sigma)),
       });
     }
   };
 
   const getSize = (): number => {
-    const { shape } = configuration();
+    const { shape } = configuration2();
     if ("Rectilinear" in shape) {
       return shape.Rectilinear[0];
     } else if ("Theta" in shape) {
@@ -227,7 +235,7 @@ export const configurationHashSignal = (): {
   };
 
   const adjustSizeToNewShape = (newShape: ShapeKeys) => {
-    const currentShape = configuration().shape;
+    const currentShape = configuration2().shape;
     if ("Theta" in currentShape && newShape !== "Theta") {
       return getSize() * 2;
     }
@@ -249,24 +257,25 @@ export const configurationHashSignal = (): {
   };
 
   return {
-    configuration,
+    configuration: configuration2,
     setShape: (shape: ShapeKeys): Configuration =>
       setConfiguration({
-        ...configuration(),
+        ...configuration2(),
         shape: setShape(shape),
       }),
     setSize: (s: number): Configuration => adjustSize(() => s),
     incrementSize: (): Configuration => adjustSize((old) => old + 1),
     decrementSize: (): Configuration => adjustSize((old) => old - 1),
     newSeed: (): Configuration =>
-      setConfiguration({ ...configuration(), seed: generate_seed() }),
+      setConfiguration({ ...configuration2(), seed: generate_seed() }),
     setAlgorithm: (algorithm: Algorithm): Configuration =>
-      setConfiguration({ ...configuration(), algorithm }),
+      setConfiguration({ ...configuration2(), algorithm }),
     getSize,
     addFeature,
     removeFeature,
-    toggleFeature: (f): Configuration =>
-      configuration().features.includes(f) ? removeFeature(f) : addFeature(f),
+    toggleFeature: (f): WebRequest =>
+      params().features.includes(f) ? removeFeature(f) : addFeature(f),
+    svg,
   };
 };
 
