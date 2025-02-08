@@ -20,8 +20,8 @@ pub fn generate_maze(js: JsValue) -> String {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct WebResponse {
-    svg: String,
-    hash: String,
+    pub svg: String,
+    pub hash: String,
 }
 
 #[wasm_bindgen]
