@@ -4,6 +4,7 @@ use crate::maze::interface::MazeRenderer;
 use crate::maze::paint::theta::RingMazeRenderer;
 use crate::maze::paint::*;
 use crate::maze::shape::regular::RectilinearMaze;
+use crate::WebResponse;
 
 use super::algorithms::{jarník, kruskal};
 use super::interface::{Maze, Solution};
@@ -89,6 +90,13 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
+    pub fn run(&self) -> WebResponse {
+        WebResponse {
+            svg: self.display_maze().0,
+            hash: self.get_location_hash(),
+        }
+    }
+
     fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
         let mut maze = self.algorithm.execute(template);
         let solution = maze.make_solution();
@@ -103,7 +111,7 @@ impl Configuration {
         renderer.render()
     }
 
-    pub fn get_location_hash(&self) -> String {
+    fn get_location_hash(&self) -> String {
         let shape = match self.shape {
             Shape::Rectilinear(width, _) => format!("R{}", width),
             Shape::Sigma(size) => format!("S{}", size),
@@ -116,7 +124,7 @@ impl Configuration {
         format!("{}|{}|{}", shape, algorithm, self.seed)
     }
 
-    pub fn execute(&self) -> Svg {
+    fn display_maze(&self) -> Svg {
         fastrand::seed(self.seed);
         match self.shape {
             Shape::Rectilinear(x, y) => {

@@ -15,7 +15,7 @@ fn kruskal_rect(c: &mut Criterion) {
                 shape: Shape::Rectilinear(10, 10),
                 stroke_width: 4.0,
             }
-            .execute()
+            .display_maze()
         })
     });
 }
@@ -31,7 +31,7 @@ fn jarník_rect(c: &mut Criterion) {
                 shape: Shape::Rectilinear(10, 10),
                 stroke_width: 4.0,
             }
-            .execute()
+            .display_maze()
         })
     });
 }
@@ -50,7 +50,7 @@ fn jarník_theta(c: &mut Criterion) {
                 shape: Shape::Theta(10),
                 stroke_width: 4.0,
             }
-            .execute()
+            .display_maze()
         })
     });
     group.finish();
@@ -70,7 +70,7 @@ fn kruskal_theta(c: &mut Criterion) {
                 shape: Shape::Theta(10),
                 stroke_width: 4.0,
             }
-            .execute()
+            .display_maze()
         })
     });
     group.finish();

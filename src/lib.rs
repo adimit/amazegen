@@ -15,11 +15,11 @@ extern "C" {
 #[wasm_bindgen]
 pub fn generate_maze(js: JsValue) -> String {
     let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
-    configuration.execute().0
+    configuration.run().svg
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
-struct WebResponse {
+pub struct WebResponse {
     svg: String,
     hash: String,
 }
@@ -27,7 +27,10 @@ struct WebResponse {
 #[wasm_bindgen]
 pub fn run_configuration(js: JsValue) -> JsValue {
     let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap_or_else(|err| {
-        log(&format!("Error: {:?}", err));
+        log(&format!(
+            "Error parsing configuration. Using default. {:?}",
+            err
+        ));
         Configuration {
             algorithm: Algorithm::GrowingTree,
             colour: "#FFFFFF".into(),
@@ -38,15 +41,13 @@ pub fn run_configuration(js: JsValue) -> JsValue {
         }
     });
 
-    WebResponse {
-        svg: configuration.execute().0,
-        hash: configuration.get_location_hash(),
-    }
-    .serialize(&Serializer::new())
-    .unwrap_or_else(|err| {
-        log(&format!("Error while writing response: {:?}", err));
-        JsValue::NULL
-    })
+    configuration
+        .run()
+        .serialize(&Serializer::new())
+        .unwrap_or_else(|err| {
+            log(&format!("Error while writing response: {:?}", err));
+            JsValue::NULL
+        })
 }
 
 #[wasm_bindgen]
@@ -76,8 +77,9 @@ mod test {
             shape: crate::maze::feature::Shape::Rectilinear(10, 10),
             stroke_width: 8.0,
         }
-        .execute();
-        assert!(svg.0.contains("<svg"))
+        .run()
+        .svg;
+        assert!(svg.contains("<svg"))
     }
 }
 
