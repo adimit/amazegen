@@ -1,0 +1,105 @@
+use svg::{
+    node::element::{
+        path::{
+            Command, Data,
+            Position::{Absolute, Relative},
+        },
+        Path,
+    },
+    Node,
+};
+
+use crate::maze::{
+    interface::{Maze, MazeRenderer, Solution},
+    shape::regular::{Direction, RectilinearMaze},
+};
+
+use super::{svg::write_document, CellSize};
+
+pub struct RectilinearRenderer<'a> {
+    maze: &'a RectilinearMaze,
+    solution: &'a Solution<(usize, usize)>,
+    stroke_width: f64,
+    document: svg::Document,
+    cell_size: CellSize,
+}
+
+impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
+    fn stain(&mut self, gradient: (super::WebColour, super::WebColour)) {
+        todo!()
+    }
+
+    fn solve(&mut self, stroke_colour: super::WebColour) {
+        let mut data = Data::new();
+        todo!()
+    }
+
+    fn paint(&mut self, border: super::WebColour) {
+        let mut data = Data::new();
+        self.maze
+            .get_all_nodes()
+            .iter()
+            .for_each(|cell| self.render_cell(&mut data, *cell));
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", border.to_web_string())
+            .set("stroke-width", self.stroke_width)
+            .set("stroke-linecap", "round")
+            .set("stroke-linejoin", "round")
+            .set("d", data);
+        self.document.append(path);
+    }
+
+    fn render(&self) -> crate::maze::feature::Svg {
+        write_document(&self.document)
+    }
+}
+
+impl<'a> RectilinearRenderer<'a> {
+    pub fn new(
+        maze: &'a RectilinearMaze,
+        solution: &'a Solution<(usize, usize)>,
+        stroke_width: f64,
+        cell_width: usize,
+    ) -> Self {
+        let (x, y) = (
+            (maze.extents.0 * cell_width) as f64 + 1.0 * stroke_width,
+            (maze.extents.1 * cell_width) as f64 + 1.0 * stroke_width,
+        );
+        let document = svg::Document::new().set("viewBox", (0, 0, x, y));
+
+        Self {
+            maze,
+            solution,
+            stroke_width,
+            document,
+            cell_size: CellSize(cell_width),
+        }
+    }
+
+    fn render_cell(&self, data: &mut Data, (x, y): (usize, usize)) {
+        let s = self.cell_size.0 as i32;
+
+        let c = |d: Direction| {
+            if self.maze.has_wall((x, y), d) {
+                Command::Line
+            } else {
+                Command::Move
+            }
+        };
+
+        data.append(Command::Move(
+            Absolute,
+            (
+                x as f64 * s as f64 + self.stroke_width / 2.0,
+                y as f64 * s as f64 + self.stroke_width / 2.0,
+            )
+                .into(),
+        ));
+
+        data.append(c(Direction::Up)(Relative, (s, 0).into()));
+        data.append(c(Direction::Right)(Relative, (0, s).into()));
+        data.append(c(Direction::Down)(Relative, (-s, 0).into()));
+        data.append(c(Direction::Left)(Relative, (0, -s).into()));
+    }
+}
