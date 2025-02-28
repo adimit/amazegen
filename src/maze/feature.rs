@@ -8,7 +8,7 @@ use crate::WebResponse;
 
 use super::algorithms::{jarník, kruskal};
 use super::interface::{Maze, Solution};
-use super::paint::regular::RectilinearRenderer;
+use super::paint::rect::RectilinearRenderer;
 use super::paint::sigma::SigmaMazeRenderer;
 use super::shape::sigma::SigmaMaze;
 use super::shape::theta::RingMaze;
@@ -133,7 +133,7 @@ impl Configuration {
                     &maze,
                     &solution,
                     self.stroke_width / 2.0,
-                    40.0,
+                    40,
                 ))
             }
             Shape::Theta(size) => {
