@@ -1,6 +1,6 @@
 #![allow(mixed_script_confusables)]
 
-use amazegen::maze::feature::{Algorithm, Configuration, Shape};
+use amazegen::maze::feature::{Algorithm, Configuration, Feature, Shape};
 use svg2pdf::{ConversionOptions, PageOptions};
 
 fn main() -> Result<(), ()> {
@@ -8,7 +8,7 @@ fn main() -> Result<(), ()> {
         seed: 1,
         shape: Shape::Rectilinear(20, 20),
         colour: "000000".to_string(),
-        features: vec![],
+        features: vec![Feature::Solve],
         algorithm: Algorithm::GrowingTree,
         stroke_width: 8.0,
     }

@@ -31,7 +31,31 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
 
     fn solve(&mut self, stroke_colour: super::WebColour) {
         let mut data = Data::new();
-        todo!()
+        let s = self.cell_size.0;
+        let stroke: usize = self.stroke_width.floor() as usize;
+        data.append(Command::Move(
+            Absolute,
+            (
+                self.solution.path.first().unwrap_or(&(0, 0)).0 * s + s / 2 + stroke,
+                0,
+            )
+                .into(),
+        ));
+        self.solution.path.iter().for_each(|(x, y)| {
+            data.append(Command::Line(
+                Absolute,
+                (x * s + s / 2 + stroke, *y * s + s / 2 + stroke).into(),
+            ))
+        });
+        data.append(Command::Line(Relative, (0, s / 2).into()));
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", stroke_colour.to_web_string())
+            .set("stroke-width", self.stroke_width * 2.0)
+            .set("stroke-linecap", "round")
+            .set("stroke-linejoin", "round")
+            .set("d", data);
+        self.document.append(path);
     }
 
     fn paint(&mut self, border: super::WebColour) {
@@ -43,7 +67,7 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
         let path = Path::new()
             .set("fill", "none")
             .set("stroke", border.to_web_string())
-            .set("stroke-width", self.stroke_width)
+            .set("stroke-width", self.stroke_width * 2.0)
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round")
             .set("d", data);
@@ -63,8 +87,8 @@ impl<'a> RectilinearRenderer<'a> {
         cell_width: usize,
     ) -> Self {
         let (x, y) = (
-            (maze.extents.0 * cell_width) as f64 + 1.0 * stroke_width,
-            (maze.extents.1 * cell_width) as f64 + 1.0 * stroke_width,
+            (maze.extents.0 * cell_width) as f64 + 2.0 * stroke_width,
+            (maze.extents.1 * cell_width) as f64 + 2.0 * stroke_width,
         );
         let document = svg::Document::new().set("viewBox", (0, 0, x, y));
 
@@ -91,8 +115,8 @@ impl<'a> RectilinearRenderer<'a> {
         data.append(Command::Move(
             Absolute,
             (
-                x as f64 * s as f64 + self.stroke_width / 2.0,
-                y as f64 * s as f64 + self.stroke_width / 2.0,
+                x as f64 * s as f64 + self.stroke_width,
+                y as f64 * s as f64 + self.stroke_width,
             )
                 .into(),
         ));
