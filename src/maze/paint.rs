@@ -1,4 +1,3 @@
-pub mod regular;
 pub mod rect;
 pub mod sigma;
 pub mod svg;
@@ -75,14 +74,7 @@ impl WebColour {
     }
 }
 
-impl From<WebColour> for plotters::style::RGBAColor {
-    fn from(val: WebColour) -> Self {
-        plotters::style::RGBAColor(val.r, val.g, val.b, val.a as f64 / 255.0)
-    }
-}
-
 pub struct CellSize(usize);
-pub struct BorderWidth(usize);
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DrawingInstructions {

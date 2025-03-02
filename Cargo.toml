@@ -23,10 +23,6 @@ instant = {version="*", features=["wasm-bindgen"]}
 svg = "0.18"
 hex = "0.4"
 itertools = "0.13"
-# Just here because of a bug. Remove when we get rid of plotters.
-# See: https://github.com/plotters-rs/plotters/issues/554
-plotters = "0.3"
-pathfinder_simd = { version = "0.5.3", optional = true }
 rand_chacha = "0.3"
 thiserror = "1"
 serde = { version = "1", features = ["derive"] }
