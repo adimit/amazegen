@@ -11,6 +11,7 @@ use svg::{
 
 use crate::maze::{
     interface::{Maze, MazeRenderer, Solution},
+    paint::Gradient,
     shape::regular::{Direction, RectilinearMaze},
 };
 
@@ -26,7 +27,18 @@ pub struct RectilinearRenderer<'a> {
 
 impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
     fn stain(&mut self, gradient: (super::WebColour, super::WebColour)) {
-        todo!()
+        let gradient = Gradient::new(gradient, self.maze, self.solution);
+        let s = self.cell_size.0;
+        let b = self.stroke_width.floor() as usize;
+        for (x, y) in self.maze.get_all_nodes() {
+            let rect = svg::node::element::Rectangle::new()
+                .set("x", x * s + b)
+                .set("y", y * s + b)
+                .set("width", s)
+                .set("height", s)
+                .set("fill", gradient.compute(&(x, y)).to_web_string());
+            self.document.append(rect);
+        }
     }
 
     fn solve(&mut self, stroke_colour: super::WebColour) {

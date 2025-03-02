@@ -8,7 +8,7 @@ fn main() -> Result<(), ()> {
         seed: 1,
         shape: Shape::Rectilinear(20, 20),
         colour: "000000".to_string(),
-        features: vec![Feature::Solve],
+        features: vec![Feature::Solve, Feature::Stain],
         algorithm: Algorithm::GrowingTree,
         stroke_width: 8.0,
     }
