@@ -296,7 +296,6 @@ impl RingNode {
     }
 
     pub fn is_west_of(&self, other: RingNode, extents: &[usize]) -> bool {
-        println!("west_of {} {} {}", self.row, other.row, extents[self.row]);
         self.row == other.row && (self.column + 1) % extents[self.row] == other.column
     }
 }
