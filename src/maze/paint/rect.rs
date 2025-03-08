@@ -15,7 +15,7 @@ use crate::maze::{
     shape::regular::{Direction, RectilinearMaze},
 };
 
-use super::{svg::write_document, CellSize};
+use super::{svg::write_document, CellSize, RenderedMaze};
 
 pub struct RectilinearRenderer<'a> {
     maze: &'a RectilinearMaze,
@@ -86,17 +86,8 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
-        metadata.append_to_svg_document(
-            &mut self.document,
-            (
-                10,
-                ((self.maze.extents.1 * self.cell_size.0) as f64 + 2.0 * self.stroke_width).floor()
-                    as u32
-                    + 20,
-            ),
-        );
-        write_document(&self.document)
+    fn render(&self) -> RenderedMaze {
+        RenderedMaze::new(self.document.clone())
     }
 }
 
@@ -111,7 +102,7 @@ impl<'a> RectilinearRenderer<'a> {
             (maze.extents.0 * cell_width) as f64 + 2.0 * stroke_width,
             (maze.extents.1 * cell_width) as f64 + 2.0 * stroke_width,
         );
-        let document = svg::Document::new().set("viewBox", (0, 0, x, y + 30.0));
+        let document = svg::Document::new().set("viewBox", (0, 0, x, y));
 
         Self {
             maze,

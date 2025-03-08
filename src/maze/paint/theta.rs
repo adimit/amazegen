@@ -12,7 +12,7 @@ use crate::maze::interface::{MazeRenderer, Metadata, Solution};
 use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
 use super::svg::write_document;
-use super::{Gradient, WebColour};
+use super::{Gradient, RenderedMaze, WebColour};
 
 #[allow(non_upper_case_globals)]
 const π: f64 = std::f64::consts::PI;
@@ -151,7 +151,7 @@ impl<'a> RingMazeRenderer<'a> {
     ) -> Self {
         let grid = PolarGrid::new(maze, cell_size, stroke_width);
         let pixels = (grid.centre.x + stroke_width) * 2.0;
-        let document = Document::new().set("viewBox", (0, 0, pixels, pixels + 20.0));
+        let document = Document::new().set("viewBox", (0, 0, pixels, pixels));
 
         RingMazeRenderer {
             solution: path,
@@ -378,14 +378,7 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
-        metadata.append_to_svg_document(
-            &mut self.document,
-            (
-                10,
-                ((self.grid.centre.y + self.stroke_width) * 2.0).floor() as u32,
-            ),
-        );
-        write_document(&self.document)
+    fn render(&self) -> RenderedMaze {
+        RenderedMaze::new(self.document.clone())
     }
 }

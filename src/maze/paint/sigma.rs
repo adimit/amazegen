@@ -12,7 +12,7 @@ use crate::maze::{
     shape::sigma::{Cartesian, Direction, SigmaMaze},
 };
 
-use super::{svg::write_document, WebColour};
+use super::{svg::write_document, RenderedMaze, WebColour};
 
 pub struct SigmaMazeRenderer<'a> {
     maze: &'a SigmaMaze,
@@ -114,12 +114,8 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
-        let y = self.maze.size as f64 * self.dimensions.cell_height
-            + self.dimensions.b
-            + self.stroke_width;
-        metadata.append_to_svg_document(&mut self.document, (10, y.floor() as u32));
-        write_document(&self.document)
+    fn render(&self) -> RenderedMaze {
+        RenderedMaze::new(self.document.clone())
     }
 }
 

@@ -2,7 +2,7 @@ use svg::Node;
 
 use super::{
     feature::{Algorithm, Shape, Svg},
-    paint::WebColour,
+    paint::{RenderedMaze, WebColour},
 };
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ pub trait MazeRenderer<M: Maze> {
     fn stain(&mut self, gradient: (WebColour, WebColour));
     fn solve(&mut self, stroke_colour: WebColour);
     fn paint(&mut self, border: WebColour);
-    fn render(&mut self, metadata: &Metadata) -> Svg;
+    fn render(&self) -> RenderedMaze;
 }
 
 pub struct Metadata {

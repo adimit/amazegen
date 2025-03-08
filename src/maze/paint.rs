@@ -136,7 +136,13 @@ impl RenderedMaze {
         Self { document }
     }
 
-    pub fn append_metadata(&mut self, metadata: &Metadata) {}
+    pub fn append_metadata(&mut self, metadata: &Metadata) {
+        // get view box
+
+        // append enough space for metadata
+
+        // apend metadata
+    }
 
     pub fn to_string(&self) -> String {
         let mut strbuf: Vec<u8> = Vec::new();
