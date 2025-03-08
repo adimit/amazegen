@@ -8,8 +8,7 @@ use svg::node::element::{
 };
 use svg::{Document, Node};
 
-use crate::maze::feature::Svg;
-use crate::maze::interface::{MazeRenderer, Solution};
+use crate::maze::interface::{MazeRenderer, Metadata, Solution};
 use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
 use super::svg::write_document;
@@ -379,7 +378,8 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&self) -> Svg {
+    fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
+        metadata.append_to_svg_document(&mut self.document);
         write_document(&self.document)
     }
 }

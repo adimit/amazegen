@@ -7,7 +7,7 @@ use crate::maze::shape::regular::RectilinearMaze;
 use crate::WebResponse;
 
 use super::algorithms::{jarník, kruskal};
-use super::interface::{Maze, Solution};
+use super::interface::{Maze, Metadata, Solution};
 use super::paint::rect::RectilinearRenderer;
 use super::paint::sigma::SigmaMazeRenderer;
 use super::shape::sigma::SigmaMaze;
@@ -17,7 +17,7 @@ const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";
 const SOLUTION: &str = "8FE080";
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub enum Shape {
     Rectilinear(usize, usize),
     Theta(usize),
@@ -62,7 +62,7 @@ impl From<Feature> for DrawingInstructions {
     }
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
 pub enum Algorithm {
     Kruskal,
     GrowingTree,
@@ -103,12 +103,12 @@ impl Configuration {
         (maze, solution)
     }
 
-    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R) -> Svg {
+    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R, metadata: &Metadata) -> Svg {
         for i in self.features.iter().sorted() {
             Into::<DrawingInstructions>::into(*i).run(&mut renderer)
         }
         renderer.paint(WebColour::from_string(&self.colour).unwrap());
-        renderer.render()
+        renderer.render(metadata)
     }
 
     fn get_location_hash(&self) -> String {
@@ -126,33 +126,33 @@ impl Configuration {
 
     fn display_maze(&self) -> Svg {
         fastrand::seed(self.seed);
+        let metadata = Metadata::new(
+            self.algorithm.clone(),
+            self.shape.clone(),
+            self.seed,
+            format!("https://aleks.bg/maze/#{}", self.get_location_hash()),
+        );
         match self.shape {
             Shape::Rectilinear(x, y) => {
                 let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
-                self.render(RectilinearRenderer::new(
-                    &maze,
-                    &solution,
-                    self.stroke_width / 2.0,
-                    40,
-                ))
+                self.render(
+                    RectilinearRenderer::new(&maze, &solution, self.stroke_width / 2.0, 40),
+                    &metadata,
+                )
             }
             Shape::Theta(size) => {
                 let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
-                self.render(RingMazeRenderer::new(
-                    &maze,
-                    &solution,
-                    self.stroke_width,
-                    40.0,
-                ))
+                self.render(
+                    RingMazeRenderer::new(&maze, &solution, self.stroke_width, 40.0),
+                    &metadata,
+                )
             }
             Shape::Sigma(size) => {
                 let (maze, solution) = self.create_maze(SigmaMaze::new(size));
-                self.render(SigmaMazeRenderer::new(
-                    &maze,
-                    &solution,
-                    self.stroke_width * 0.75,
-                    40.0,
-                ))
+                self.render(
+                    SigmaMazeRenderer::new(&maze, &solution, self.stroke_width * 0.75, 40.0),
+                    &metadata,
+                )
             }
         }
     }

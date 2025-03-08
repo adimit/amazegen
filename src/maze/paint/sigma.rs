@@ -7,7 +7,7 @@ use svg::{
 };
 
 use crate::maze::{
-    interface::{Maze, MazeRenderer, Solution},
+    interface::{Maze, MazeRenderer, Metadata, Solution},
     paint::Gradient,
     shape::sigma::{Cartesian, Direction, SigmaMaze},
 };
@@ -114,7 +114,8 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&self) -> crate::maze::feature::Svg {
+    fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
+        metadata.append_to_svg_document(&mut self.document);
         write_document(&self.document)
     }
 }
