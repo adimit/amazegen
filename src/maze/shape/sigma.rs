@@ -139,7 +139,7 @@ impl SigmaCell {
 
 #[derive(Debug)]
 pub struct SigmaMaze {
-    size: usize,
+    pub size: usize,
     pub cells: Vec<SigmaCell>,
 }
 

@@ -55,15 +55,16 @@ impl Metadata {
         }
     }
 
-    pub fn append_to_svg_document(&self, doc: &mut svg::Document, view_box: (u32, u32)) {
+    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) {
         let text_node = svg::node::element::Text::new(format!(
             "Algorithm: {:?},  Seed: {}",
             self.algorithm, self.seed
-        ));
+        ))
+        .set("x", x)
+        .set("y", y)
+        .set("font-size", 12)
+        .set("font-family", "sans-serif");
 
-        
-
-        println!("appending node {:?}", text_node);
-        println!("document {:?}", doc);
+        doc.append(text_node);
     }
 }

@@ -151,7 +151,7 @@ impl<'a> RingMazeRenderer<'a> {
     ) -> Self {
         let grid = PolarGrid::new(maze, cell_size, stroke_width);
         let pixels = (grid.centre.x + stroke_width) * 2.0;
-        let document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+        let document = Document::new().set("viewBox", (0, 0, pixels, pixels + 20.0));
 
         RingMazeRenderer {
             solution: path,
@@ -379,7 +379,13 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
     }
 
     fn render(&mut self, metadata: &Metadata) -> crate::maze::feature::Svg {
-        metadata.append_to_svg_document(&mut self.document);
+        metadata.append_to_svg_document(
+            &mut self.document,
+            (
+                10,
+                ((self.grid.centre.y + self.stroke_width) * 2.0).floor() as u32,
+            ),
+        );
         write_document(&self.document)
     }
 }
