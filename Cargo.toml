@@ -30,6 +30,7 @@ wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
 serde-wasm-bindgen = "0.6"
 svg2pdf = "0.12.0"
 clap = { version = "4.5.18", features = ["derive"] }
+qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 
 [profile.release]
 lto = true

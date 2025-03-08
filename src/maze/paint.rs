@@ -5,7 +5,7 @@ pub mod theta;
 
 use std::cmp::max;
 
-use super::interface::{Maze, MazeRenderer, Solution};
+use super::interface::{Maze, MazeRenderer, Metadata, Solution};
 
 use thiserror::Error;
 
@@ -123,5 +123,24 @@ impl<'a, M: Maze> Gradient<'a, M> {
             / self.max_distance as f64;
         let inverse = 1.0 - intensity;
         self.a.blend(intensity).add(&self.b.blend(inverse))
+    }
+}
+
+#[derive(Debug)]
+pub struct RenderedMaze {
+    document: ::svg::Document,
+}
+
+impl RenderedMaze {
+    pub fn new(document: ::svg::Document) -> Self {
+        Self { document }
+    }
+
+    pub fn append_metadata(&mut self, metadata: &Metadata) {}
+
+    pub fn to_string(&self) -> String {
+        let mut strbuf: Vec<u8> = Vec::new();
+        ::svg::write(&mut strbuf, &self.document).unwrap();
+        String::from_utf8(strbuf).unwrap()
     }
 }

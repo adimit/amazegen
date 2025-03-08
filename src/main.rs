@@ -48,6 +48,8 @@ struct Cli {
     pdf: Option<String>,
     #[arg(long)]
     svg: Option<String>,
+    #[arg(long)]
+    url: Option<String>,
 }
 
 impl Cli {
