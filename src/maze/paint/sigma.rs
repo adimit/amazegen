@@ -7,12 +7,12 @@ use svg::{
 };
 
 use crate::maze::{
-    interface::{Maze, MazeRenderer, Metadata, Solution},
+    interface::{Maze, MazeRenderer, Solution},
     paint::Gradient,
     shape::sigma::{Cartesian, Direction, SigmaMaze},
 };
 
-use super::{svg::write_document, RenderedMaze, WebColour};
+use super::{RenderedMaze, WebColour};
 
 pub struct SigmaMazeRenderer<'a> {
     maze: &'a SigmaMaze,
@@ -115,7 +115,12 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
     }
 
     fn render(&self) -> RenderedMaze {
-        RenderedMaze::new(self.document.clone())
+        let maze_size = self.maze.size() as f64;
+        let (x, y) = (
+            maze_size * (3.0 * self.dimensions.a) + self.dimensions.a + self.stroke_width,
+            maze_size * self.dimensions.cell_height + self.dimensions.b + self.stroke_width,
+        );
+        RenderedMaze::new(self.document.clone(), (x as u32, y.floor() as u32))
     }
 }
 
@@ -151,18 +156,13 @@ impl<'a> SigmaMazeRenderer<'a> {
         cell_width: f64,
     ) -> Self {
         let dim = Dimensions::new(cell_width);
-        let maze_size = maze.size() as f64;
-        let (x, y) = (
-            maze_size * (3.0 * dim.a) + dim.a + stroke_width,
-            maze_size * dim.cell_height + dim.b + stroke_width,
-        );
 
         Self {
             maze,
             solution,
             stroke_width,
             dimensions: dim,
-            document: svg::Document::new().set("viewBox", (0, 0, x, y)),
+            document: svg::Document::new(),
         }
     }
 

@@ -92,7 +92,7 @@ pub struct Svg(pub String);
 impl Configuration {
     pub fn run(&self) -> WebResponse {
         WebResponse {
-            svg: self.display_maze().0,
+            svg: self.display_maze().to_string(),
             hash: self.get_location_hash(),
         }
     }
@@ -103,12 +103,16 @@ impl Configuration {
         (maze, solution)
     }
 
-    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R, metadata: &Metadata) -> Svg {
+    fn render<M: Maze, R: MazeRenderer<M>>(
+        &self,
+        mut renderer: R,
+        metadata: &Metadata,
+    ) -> RenderedMaze {
         for i in self.features.iter().sorted() {
             Into::<DrawingInstructions>::into(*i).run(&mut renderer)
         }
         renderer.paint(WebColour::from_string(&self.colour).unwrap());
-        renderer.render(metadata)
+        renderer.render().append_metadata(metadata)
     }
 
     fn get_location_hash(&self) -> String {
@@ -124,7 +128,7 @@ impl Configuration {
         format!("{}|{}|{}", shape, algorithm, self.seed)
     }
 
-    fn display_maze(&self) -> Svg {
+    fn display_maze(&self) -> RenderedMaze {
         fastrand::seed(self.seed);
         let metadata = Metadata::new(
             self.algorithm.clone(),

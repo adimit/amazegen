@@ -129,19 +129,28 @@ impl<'a, M: Maze> Gradient<'a, M> {
 #[derive(Debug)]
 pub struct RenderedMaze {
     document: ::svg::Document,
+    dimensions: (u32, u32),
 }
 
 impl RenderedMaze {
-    pub fn new(document: ::svg::Document) -> Self {
-        Self { document }
+    pub fn new(document: ::svg::Document, dimensions: (u32, u32)) -> Self {
+        Self {
+            document,
+            dimensions,
+        }
     }
 
-    pub fn append_metadata(&mut self, metadata: &Metadata) {
-        // get view box
+    pub fn append_metadata(mut self, metadata: &Metadata) -> Self {
+        let (x, y) = (self.dimensions.0, self.dimensions.1);
+        let offset = metadata.append_to_svg_document(&mut self.document, (x, y));
+        let svg = self
+            .document
+            .set("viewBox", format!("0 0 {} {}", x, y + offset));
 
-        // append enough space for metadata
-
-        // apend metadata
+        Self {
+            document: svg,
+            ..self
+        }
     }
 
     pub fn to_string(&self) -> String {

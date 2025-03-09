@@ -55,16 +55,35 @@ impl Metadata {
         }
     }
 
-    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) {
+    // returns the y offset that the text will need in the document viewport
+    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) -> u32 {
+        let font_size = y / 50;
         let text_node = svg::node::element::Text::new(format!(
-            "Algorithm: {:?},  Seed: {}",
-            self.algorithm, self.seed
+            "Shape: {}, Algorithm: {:?}, Seed: {}",
+            shape_to_str(&self.shape),
+            self.algorithm,
+            self.seed
         ))
-        .set("x", x)
-        .set("y", y)
-        .set("font-size", 12)
+        .set("x", x / 75)
+        .set("y", y + (font_size * 2))
+        .set("font-size", font_size) // todo: make the font size proportionate to the maze size
         .set("font-family", "sans-serif");
 
         doc.append(text_node);
+
+        font_size * 3
     }
+
+    pub fn add_qr_code() {
+        // todo: qr code will also need to be proportionate to the maze size
+    }
+}
+
+fn shape_to_str(shape: &Shape) -> String {
+    match shape {
+        Shape::Rectilinear(x, y) => format!("Rectilinear {}×{}", x, y),
+        Shape::Theta(size) => format!("Theta {}", size),
+        Shape::Sigma(size) => format!("Sigma {}", size),
+    }
+    .to_string()
 }

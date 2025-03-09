@@ -87,7 +87,11 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
     }
 
     fn render(&self) -> RenderedMaze {
-        RenderedMaze::new(self.document.clone())
+        let (x, y) = (
+            (self.maze.extents.0 * self.cell_size.0) as f64 + 2.0 * self.stroke_width,
+            (self.maze.extents.1 * self.cell_size.0) as f64 + 2.0 * self.stroke_width,
+        );
+        RenderedMaze::new(self.document.clone(), (x.floor() as u32, y.floor() as u32))
     }
 }
 
@@ -98,11 +102,7 @@ impl<'a> RectilinearRenderer<'a> {
         stroke_width: f64,
         cell_width: usize,
     ) -> Self {
-        let (x, y) = (
-            (maze.extents.0 * cell_width) as f64 + 2.0 * stroke_width,
-            (maze.extents.1 * cell_width) as f64 + 2.0 * stroke_width,
-        );
-        let document = svg::Document::new().set("viewBox", (0, 0, x, y));
+        let document = svg::Document::new();
 
         Self {
             maze,

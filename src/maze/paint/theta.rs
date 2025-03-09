@@ -8,10 +8,9 @@ use svg::node::element::{
 };
 use svg::{Document, Node};
 
-use crate::maze::interface::{MazeRenderer, Metadata, Solution};
+use crate::maze::interface::{MazeRenderer, Solution};
 use crate::maze::shape::theta::{RingCell, RingMaze, RingNode};
 
-use super::svg::write_document;
 use super::{Gradient, RenderedMaze, WebColour};
 
 #[allow(non_upper_case_globals)]
@@ -150,8 +149,7 @@ impl<'a> RingMazeRenderer<'a> {
         cell_size: f64,
     ) -> Self {
         let grid = PolarGrid::new(maze, cell_size, stroke_width);
-        let pixels = (grid.centre.x + stroke_width) * 2.0;
-        let document = Document::new().set("viewBox", (0, 0, pixels, pixels));
+        let document = Document::new();
 
         RingMazeRenderer {
             solution: path,
@@ -379,6 +377,10 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
     }
 
     fn render(&self) -> RenderedMaze {
-        RenderedMaze::new(self.document.clone())
+        let pixels = (self.grid.centre.x + self.stroke_width) * 2.0;
+        RenderedMaze::new(
+            self.document.clone(),
+            (pixels.floor() as u32, pixels.floor() as u32),
+        )
     }
 }
