@@ -1,7 +1,8 @@
+use qrcode::QrCode;
 use svg::Node;
 
 use super::{
-    feature::{Algorithm, Shape, Svg},
+    feature::{Algorithm, Shape},
     paint::{RenderedMaze, WebColour},
 };
 
@@ -42,16 +43,18 @@ pub struct Metadata {
     algorithm: Algorithm,
     shape: Shape,
     seed: u64,
-    base_url: String,
+    maze_url: Option<String>,
 }
 
+const SCALE: f64 = 0.2;
+
 impl Metadata {
-    pub fn new(algorithm: Algorithm, shape: Shape, seed: u64, base_url: String) -> Self {
+    pub fn new(algorithm: Algorithm, shape: Shape, seed: u64, maze_url: Option<String>) -> Self {
         Self {
             algorithm,
             shape,
             seed,
-            base_url,
+            maze_url,
         }
     }
 
@@ -69,13 +72,63 @@ impl Metadata {
         .set("font-size", font_size) // todo: make the font size proportionate to the maze size
         .set("font-family", "sans-serif");
 
+        let offset = if let Some(url) = &self.maze_url {
+            let qrcode = QrCode::new(url.as_bytes()).expect("Failed to create QR code");
+            let qr_svg = qrcode.render::<qrcode::render::svg::Color>().build();
+            println!("QR code: {}", qr_svg);
+            let qr_tree = ::svg::read(&qr_svg).expect("Failed to parse QR code SVG");
+            let (qr_height, qr_width, qr_path) = {
+                let mut height: u32 = 328;
+                let mut width: u32 = 328;
+                let mut d: String = String::new();
+                for event in qr_tree {
+                    use svg::node::element::tag;
+                    use svg::parser::Event;
+                    match event {
+                        Event::Tag(tag::Path, _, attributes) => {
+                            d = attributes
+                                .get("d")
+                                .expect("Failed to get QR code path")
+                                .to_string();
+                        }
+                        Event::Tag(tag::Rectangle, _, attributes) => {
+                            attributes.get("height").map(|h| {
+                                height = h.parse().expect("Failed to parse QR code height")
+                            });
+                            attributes
+                                .get("width")
+                                .map(|w| width = w.parse().expect("Failed to parse QR code width"));
+                        }
+                        _ => {}
+                    }
+                }
+                (height, width, d)
+            };
+
+            let qr_node = svg::node::element::Path::new()
+                .set("d", qr_path)
+                .set("shape-rendering", "crispEdges")
+                .set("stroke", "black");
+            let mut qr_group = svg::node::element::Group::new().set(
+                "transform",
+                format!(
+                    "translate({},{}), scale({},{})",
+                    x as f64 * 0.8,
+                    y,
+                    x as f64 / qr_width as f64 * SCALE,
+                    y as f64 / qr_height as f64 * SCALE,
+                ),
+            );
+            qr_group.append(qr_node);
+            doc.append(qr_group);
+
+            y as f64 * SCALE
+        } else {
+            (font_size * 3) as f64
+        };
+
         doc.append(text_node);
-
-        font_size * 3
-    }
-
-    pub fn add_qr_code() {
-        // todo: qr code will also need to be proportionate to the maze size
+        offset.floor() as u32
     }
 }
 

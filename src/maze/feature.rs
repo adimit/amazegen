@@ -134,7 +134,10 @@ impl Configuration {
             self.algorithm.clone(),
             self.shape.clone(),
             self.seed,
-            format!("https://aleks.bg/maze/#{}", self.get_location_hash()),
+            Option::Some(format!(
+                "https://aleks.bg/maze/#{}",
+                self.get_location_hash()
+            )),
         );
         match self.shape {
             Shape::Rectilinear(x, y) => {
