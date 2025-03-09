@@ -136,7 +136,7 @@ pub struct RenderedMaze {
 impl RenderedMaze {
     pub fn new(document: ::svg::Document, dimensions: (u32, u32)) -> Self {
         Self {
-            document,
+            document: document.set("viewBox", format!("0 0 {} {}", dimensions.0, dimensions.1)),
             dimensions,
         }
     }
