@@ -143,9 +143,10 @@ impl RenderedMaze {
     pub fn append_metadata(mut self, metadata: &Metadata) -> Self {
         let (x, y) = (self.dimensions.0, self.dimensions.1);
         let offset = metadata.append_to_svg_document(&mut self.document, (x, y));
-        let svg = self
-            .document
-            .set("viewBox", format!("0 0 {} {}", x, y + offset));
+        let svg = self.document.set(
+            "viewBox",
+            format!("0 0 {} {}", x, y + offset.floor() as u32),
+        );
 
         Self {
             document: svg,

@@ -10,12 +10,12 @@ use svg::{
 };
 
 use crate::maze::{
-    interface::{Maze, MazeRenderer, Metadata, Solution},
+    interface::{Maze, MazeRenderer, Solution},
     paint::Gradient,
     shape::regular::{Direction, RectilinearMaze},
 };
 
-use super::{svg::write_document, CellSize, RenderedMaze};
+use super::{CellSize, RenderedMaze};
 
 pub struct RectilinearRenderer<'a> {
     maze: &'a RectilinearMaze,

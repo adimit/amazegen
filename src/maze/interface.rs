@@ -1,5 +1,5 @@
 use qrcode::QrCode;
-use svg::Node;
+use svg::{Node, Parser};
 
 use super::{
     feature::{Algorithm, Shape},
@@ -58,77 +58,42 @@ impl Metadata {
         }
     }
 
+    fn make_text_node(&self, font_size: u32, (x, y): (u32, u32)) -> ::svg::node::element::Group {
+        let line_spacing = font_size / 3;
+        let mut group = svg::node::element::Group::new();
+        for (i, text) in vec![
+            format!("Shape: {}", shape_to_str(&self.shape),),
+            format!("Algorithm: {:?}", self.algorithm,),
+            format!("Seed: {}", self.seed),
+        ]
+        .iter()
+        .enumerate()
+        {
+            let text_node = svg::node::element::Text::new(text)
+                .set("x", x / 75)
+                .set(
+                    "y",
+                    y + (font_size * 2) + (line_spacing * i as u32 + font_size * i as u32),
+                )
+                .set("font-size", font_size)
+                .set("font-family", "sans-serif");
+
+            group.append(text_node);
+        }
+        group
+    }
+
     // returns the y offset that the text will need in the document viewport
-    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) -> u32 {
+    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) -> f64 {
         let font_size = y / 50;
-        let text_node = svg::node::element::Text::new(format!(
-            "Shape: {}, Algorithm: {:?}, Seed: {}",
-            shape_to_str(&self.shape),
-            self.algorithm,
-            self.seed
-        ))
-        .set("x", x / 75)
-        .set("y", y + (font_size * 2))
-        .set("font-size", font_size) // todo: make the font size proportionate to the maze size
-        .set("font-family", "sans-serif");
+        doc.append(self.make_text_node(font_size, (x, y)));
 
-        let offset = if let Some(url) = &self.maze_url {
-            let qrcode = QrCode::new(url.as_bytes()).expect("Failed to create QR code");
-            let qr_svg = qrcode.render::<qrcode::render::svg::Color>().build();
-            println!("QR code: {}", qr_svg);
-            let qr_tree = ::svg::read(&qr_svg).expect("Failed to parse QR code SVG");
-            let (qr_height, qr_width, qr_path) = {
-                let mut height: u32 = 328;
-                let mut width: u32 = 328;
-                let mut d: String = String::new();
-                for event in qr_tree {
-                    use svg::node::element::tag;
-                    use svg::parser::Event;
-                    match event {
-                        Event::Tag(tag::Path, _, attributes) => {
-                            d = attributes
-                                .get("d")
-                                .expect("Failed to get QR code path")
-                                .to_string();
-                        }
-                        Event::Tag(tag::Rectangle, _, attributes) => {
-                            attributes.get("height").map(|h| {
-                                height = h.parse().expect("Failed to parse QR code height")
-                            });
-                            attributes
-                                .get("width")
-                                .map(|w| width = w.parse().expect("Failed to parse QR code width"));
-                        }
-                        _ => {}
-                    }
-                }
-                (height, width, d)
-            };
-
-            let qr_node = svg::node::element::Path::new()
-                .set("d", qr_path)
-                .set("shape-rendering", "crispEdges")
-                .set("stroke", "black");
-            let mut qr_group = svg::node::element::Group::new().set(
-                "transform",
-                format!(
-                    "translate({},{}), scale({},{})",
-                    x as f64 * 0.8,
-                    y,
-                    x as f64 / qr_width as f64 * SCALE,
-                    y as f64 / qr_height as f64 * SCALE,
-                ),
-            );
-            qr_group.append(qr_node);
-            doc.append(qr_group);
-
+        if let Some(url) = &self.maze_url {
+            doc.append(qr_svg_from_url(url, (x, y)));
             y as f64 * SCALE
         } else {
             (font_size * 3) as f64
-        };
-
-        doc.append(text_node);
-        offset.floor() as u32
+        }
     }
 }
 
@@ -139,4 +104,60 @@ fn shape_to_str(shape: &Shape) -> String {
         Shape::Sigma(size) => format!("Sigma {}", size),
     }
     .to_string()
+}
+
+fn qr_data(qr_tree: Parser) -> (u32, u32, String) {
+    let mut height: u32 = 328;
+    let mut width: u32 = 328;
+    let mut d: String = String::new();
+    for event in qr_tree {
+        use svg::node::element::tag;
+        use svg::parser::Event;
+        match event {
+            Event::Tag(tag::Path, _, attributes) => {
+                d = attributes
+                    .get("d")
+                    .expect("Failed to get QR code path")
+                    .to_string();
+            }
+            Event::Tag(tag::Rectangle, _, attributes) => {
+                attributes
+                    .get("height")
+                    .map(|h| height = h.parse().expect("Failed to parse QR code height"));
+                attributes
+                    .get("width")
+                    .map(|w| width = w.parse().expect("Failed to parse QR code width"));
+            }
+            _ => {}
+        }
+    }
+    (height, width, d)
+}
+
+fn get_qr_path(qr_tree: Parser, (x, y): (u32, u32)) -> ::svg::node::element::Group {
+    let (qr_height, qr_width, qr_path) = qr_data(qr_tree);
+    let qr_node = svg::node::element::Path::new()
+        .set("d", qr_path)
+        .set("shape-rendering", "crispEdges")
+        .set("stroke", "black");
+    let mut qr_group = svg::node::element::Group::new().set(
+        "transform",
+        format!(
+            // order matters
+            "translate({},{}), scale({},{})",
+            x as f64 * 0.8,
+            y,
+            x as f64 / qr_width as f64 * SCALE,
+            y as f64 / qr_height as f64 * SCALE,
+        ),
+    );
+    qr_group.append(qr_node);
+    qr_group
+}
+
+fn qr_svg_from_url(url: &str, (x, y): (u32, u32)) -> ::svg::node::element::Group {
+    let qrcode = QrCode::new(url.as_bytes()).expect("Failed to create QR code");
+    let qr_svg = qrcode.render::<qrcode::render::svg::Color>().build();
+    let qr_tree = ::svg::read(&qr_svg).expect("Failed to parse QR code SVG");
+    get_qr_path(qr_tree, (x, y))
 }
