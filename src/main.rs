@@ -91,21 +91,20 @@ impl Cli {
 
 fn main() -> Result<(), ()> {
     let cli = Cli::parse();
-    let maze = cli.get_configuration().run();
+    let maze = cli.get_configuration().execute_for_svg(cli.url).0;
 
     if let Some(svg_file) = cli.svg {
-        std::fs::write(svg_file, &maze.svg).expect("Failed to write SVG");
+        std::fs::write(svg_file, &maze).expect("Failed to write SVG");
     }
 
     if let Some(pdf_file) = cli.pdf {
         let mut options = svg2pdf::usvg::Options::default();
         options.fontdb_mut().load_system_fonts();
-        let tree = svg2pdf::usvg::Tree::from_str(&maze.svg, &options).expect("Failed to parse SVG");
+        let tree = svg2pdf::usvg::Tree::from_str(&maze, &options).expect("Failed to parse SVG");
         let pdf = svg2pdf::to_pdf(&tree, ConversionOptions::default(), PageOptions::default())
             .expect("Failed to convert SVG to PDF");
         std::fs::write(pdf_file, pdf).expect("Failed to write PDF");
     }
 
-    println!("{}", maze.hash);
     Ok(())
 }

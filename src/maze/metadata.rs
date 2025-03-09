@@ -1,5 +1,5 @@
-use qrcode::QrCode;
 use super::feature::{Algorithm, Shape};
+use qrcode::QrCode;
 use svg::{Node, Parser};
 
 pub struct Metadata {
@@ -21,7 +21,8 @@ impl Metadata {
         }
     }
 
-    fn make_text_node(&self, font_size: u32, (x, y): (u32, u32)) -> ::svg::node::element::Group {
+    fn make_text_node(&self, (x, y): (u32, u32)) -> (::svg::node::element::Group, u32) {
+        let font_size = y / 50;
         let line_spacing = font_size / 3;
         let mut group = svg::node::element::Group::new();
         for (i, text) in vec![
@@ -43,19 +44,19 @@ impl Metadata {
 
             group.append(text_node);
         }
-        group
+        (group, font_size * 4 + line_spacing * 3)
     }
 
     // returns the y offset that the text will need in the document viewport
     pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) -> f64 {
-        let font_size = y / 50;
-        doc.append(self.make_text_node(font_size, (x, y)));
+        let (text_node, text_height) = self.make_text_node((x, y));
+        doc.append(text_node);
 
         if let Some(url) = &self.maze_url {
             doc.append(qr_svg_from_url(url, (x, y)));
             y as f64 * SCALE
         } else {
-            (font_size * 3) as f64
+            text_height as f64
         }
     }
 }

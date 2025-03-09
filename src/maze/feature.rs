@@ -91,11 +91,17 @@ pub struct Configuration {
 pub struct Svg(pub String);
 
 impl Configuration {
-    pub fn run(&self) -> WebResponse {
+    pub fn execute_for_web(&self) -> WebResponse {
         WebResponse {
             svg: self.display_maze().to_string(),
             hash: self.get_location_hash(),
         }
+    }
+
+    pub fn execute_for_svg(&self, url: Option<String>) -> Svg {
+        let rendered = self.display_maze();
+        let with_metadata = self.append_metadata(rendered, url);
+        Svg(with_metadata.to_string())
     }
 
     fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
@@ -104,16 +110,12 @@ impl Configuration {
         (maze, solution)
     }
 
-    fn render<M: Maze, R: MazeRenderer<M>>(
-        &self,
-        mut renderer: R,
-        metadata: &Metadata,
-    ) -> RenderedMaze {
+    fn render<M: Maze, R: MazeRenderer<M>>(&self, mut renderer: R) -> RenderedMaze {
         for i in self.features.iter().sorted() {
             Into::<DrawingInstructions>::into(*i).run(&mut renderer)
         }
         renderer.paint(WebColour::from_string(&self.colour).unwrap());
-        renderer.render().append_metadata(metadata)
+        renderer.render()
     }
 
     fn get_location_hash(&self) -> String {
@@ -131,37 +133,45 @@ impl Configuration {
 
     fn display_maze(&self) -> RenderedMaze {
         fastrand::seed(self.seed);
+
+        match self.shape {
+            Shape::Rectilinear(x, y) => {
+                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
+                self.render(RectilinearRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width / 2.0,
+                    40,
+                ))
+            }
+            Shape::Theta(size) => {
+                let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
+                self.render(RingMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width,
+                    40.0,
+                ))
+            }
+            Shape::Sigma(size) => {
+                let (maze, solution) = self.create_maze(SigmaMaze::new(size));
+                self.render(SigmaMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width * 0.75,
+                    40.0,
+                ))
+            }
+        }
+    }
+
+    fn append_metadata(&self, render: RenderedMaze, url: Option<String>) -> RenderedMaze {
         let metadata = Metadata::new(
             self.algorithm.clone(),
             self.shape.clone(),
             self.seed,
-            Option::Some(format!(
-                "https://aleks.bg/maze/#{}",
-                self.get_location_hash()
-            )),
+            url.map(|u| format!("{}#{}", u, self.get_location_hash())),
         );
-        match self.shape {
-            Shape::Rectilinear(x, y) => {
-                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
-                self.render(
-                    RectilinearRenderer::new(&maze, &solution, self.stroke_width / 2.0, 40),
-                    &metadata,
-                )
-            }
-            Shape::Theta(size) => {
-                let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
-                self.render(
-                    RingMazeRenderer::new(&maze, &solution, self.stroke_width, 40.0),
-                    &metadata,
-                )
-            }
-            Shape::Sigma(size) => {
-                let (maze, solution) = self.create_maze(SigmaMaze::new(size));
-                self.render(
-                    SigmaMazeRenderer::new(&maze, &solution, self.stroke_width * 0.75, 40.0),
-                    &metadata,
-                )
-            }
-        }
+        render.append_metadata(&metadata)
     }
 }

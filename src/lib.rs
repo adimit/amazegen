@@ -15,7 +15,7 @@ extern "C" {
 #[wasm_bindgen]
 pub fn generate_maze(js: JsValue) -> String {
     let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
-    configuration.run().svg
+    configuration.execute_for_web().svg
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -42,7 +42,7 @@ pub fn run_configuration(js: JsValue) -> JsValue {
     });
 
     configuration
-        .run()
+        .execute_for_web()
         .serialize(&Serializer::new())
         .unwrap_or_else(|err| {
             log(&format!("Error while writing response: {:?}", err));
@@ -77,7 +77,7 @@ mod test {
             shape: crate::maze::feature::Shape::Rectilinear(10, 10),
             stroke_width: 8.0,
         }
-        .run()
+        .execute_for_web()
         .svg;
         assert!(svg.contains("<svg"))
     }
