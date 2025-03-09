@@ -5,7 +5,8 @@ pub mod theta;
 
 use std::cmp::max;
 
-use super::interface::{Maze, MazeRenderer, Metadata, Solution};
+use super::interface::{Maze, MazeRenderer, Solution};
+use super::metadata::Metadata;
 
 use thiserror::Error;
 

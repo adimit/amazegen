@@ -7,7 +7,8 @@ use crate::maze::shape::regular::RectilinearMaze;
 use crate::WebResponse;
 
 use super::algorithms::{jarník, kruskal};
-use super::interface::{Maze, Metadata, Solution};
+use super::interface::{Maze, Solution};
+use super::metadata::Metadata;
 use super::paint::rect::RectilinearRenderer;
 use super::paint::sigma::SigmaMazeRenderer;
 use super::shape::sigma::SigmaMaze;
