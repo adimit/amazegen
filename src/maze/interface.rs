@@ -1,4 +1,7 @@
-use super::paint::{RenderedMaze, WebColour};
+use super::{
+    arengee::Arengee,
+    paint::{RenderedMaze, WebColour},
+};
 
 #[derive(Debug)]
 pub struct Solution<T> {
@@ -15,7 +18,7 @@ pub trait Maze {
 
     fn get_paths(&self, node: Self::Idx) -> Vec<Self::Idx>;
 
-    fn get_random_node(&self) -> Self::Idx;
+    fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx;
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)>;
 
@@ -23,7 +26,7 @@ pub trait Maze {
 
     fn get_index(&self, node: Self::Idx) -> usize;
 
-    fn make_solution(&mut self) -> Solution<Self::Idx>;
+    fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx>;
 }
 
 pub trait MazeRenderer<M: Maze> {

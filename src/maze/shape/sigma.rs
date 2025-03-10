@@ -2,6 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::maze::{
     algorithms::{dijkstra, find_path},
+    arengee::Arengee,
     interface::{Maze, Solution},
 };
 
@@ -22,10 +23,10 @@ impl Cartesian {
         row_size * self.y + self.x
     }
 
-    fn get_random_contained_coordinate(&self) -> Self {
+    fn get_random_contained_coordinate(&self, rng: &mut Arengee) -> Self {
         Self {
-            x: fastrand::usize(..self.x),
-            y: fastrand::usize(..self.y),
+            x: rng.usize(0..self.x),
+            y: rng.usize(0..self.y),
         }
     }
 
@@ -152,24 +153,22 @@ impl SigmaMaze {
         Self { size, cells }
     }
 
-    fn set_exit(&mut self, x: usize) {
+    fn set_exit(&mut self, x: usize, rng: &mut Arengee) {
         let y = self.size - 1;
         let index = Cartesian { x, y }.regular_index(self.size);
         let d = if x % 2 == 0 {
             &Direction::South
         } else {
-            fastrand::choice([Direction::South, Direction::SouthEast, Direction::SouthWest].iter())
-                .unwrap()
+            rng.choice(&[Direction::South, Direction::SouthEast, Direction::SouthWest])
         };
         self.cells[index].accessible[*d] = Some((x, y + 1).into());
     }
 
-    fn set_entrance(&mut self, x: usize) {
+    fn set_entrance(&mut self, x: usize, rng: &mut Arengee) {
         let y = 0;
         let index = Cartesian { x, y }.regular_index(self.size);
         let d = if x % 2 == 0 {
-            fastrand::choice([Direction::North, Direction::NorthEast, Direction::NorthWest].iter())
-                .unwrap()
+            rng.choice(&[Direction::North, Direction::NorthEast, Direction::NorthWest])
         } else {
             &Direction::North
         };
@@ -213,12 +212,12 @@ impl Maze for SigmaMaze {
             .collect()
     }
 
-    fn get_random_node(&self) -> Self::Idx {
+    fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx {
         Cartesian {
             x: self.size,
             y: self.size,
         }
-        .get_random_contained_coordinate()
+        .get_random_contained_coordinate(rng)
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
@@ -243,15 +242,15 @@ impl Maze for SigmaMaze {
         node.regular_index(self.size)
     }
 
-    fn make_solution(&mut self) -> Solution<Self::Idx> {
-        let seed_topo = dijkstra(self, (fastrand::usize(..self.size), 0).into());
+    fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
+        let seed_topo = dijkstra(self, (rng.usize(0..self.size), 0).into());
 
         let exit: Cartesian = {
             let y = self.size - 1;
             (0..self.size)
                 .map(|x| (x, y))
                 .max_by_key(|&c| seed_topo.get(self.get_index(c.into())))
-                .unwrap_or((fastrand::usize(..self.size), y))
+                .unwrap_or((rng.usize(0..self.size), y))
         }
         .into();
 
@@ -259,12 +258,12 @@ impl Maze for SigmaMaze {
         let entrance: Cartesian = (0..self.size)
             .map(|x| (x, 0))
             .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
-            .unwrap_or((fastrand::usize(0..self.size), 0))
+            .unwrap_or((rng.usize(0..self.size), 0))
             .into();
 
         let entrance_topo = dijkstra(self, entrance);
-        self.set_entrance(entrance.x);
-        self.set_exit(exit.x);
+        self.set_entrance(entrance.x, rng);
+        self.set_exit(exit.x, rng);
         let path = find_path(self, &exit_topo, entrance, exit);
 
         Solution {

@@ -1,4 +1,4 @@
-use super::interface::Maze;
+use super::{arengee::Arengee, interface::Maze};
 
 struct Kruskal<'a, M>
 where
@@ -47,10 +47,10 @@ where
     }
 }
 
-pub fn kruskal<M: Maze>(mut maze: M) -> M {
+pub fn kruskal<M: Maze>(mut maze: M, rng: &mut Arengee) -> M {
     let mut edges = maze.get_all_edges();
     let mut state = Kruskal::<M>::new(&mut maze);
-    fastrand::shuffle(&mut edges);
+    rng.shuffle(&mut edges);
 
     for (a, b) in edges {
         if state.classes_are_distinct(a, b) {
@@ -61,8 +61,8 @@ pub fn kruskal<M: Maze>(mut maze: M) -> M {
     maze
 }
 
-pub fn jarník<M: Maze>(mut maze: M) -> M {
-    let start = maze.get_random_node();
+pub fn jarník<M: Maze>(mut maze: M, rng: &mut Arengee) -> M {
+    let start = maze.get_random_node(rng);
     let mut vertices: Vec<M::Idx> = vec![start];
     let mut visited = vec![false; maze.get_all_nodes().len()];
     visited[maze.get_index(start)] = true;
@@ -77,7 +77,7 @@ pub fn jarník<M: Maze>(mut maze: M) -> M {
             .filter(|n| !visited[maze.get_index(*n)])
             .collect::<Vec<_>>();
         if !possible_targets.is_empty() {
-            let target = possible_targets[fastrand::usize(0..possible_targets.len())];
+            let target = possible_targets[rng.usize(0..possible_targets.len())];
             maze.carve(e, target);
             visited[maze.get_index(target)] = true;
             vertices.push(target);

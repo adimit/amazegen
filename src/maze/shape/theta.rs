@@ -2,6 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::maze::{
     algorithms::dijkstra,
+    arengee::Arengee,
     interface::{Maze, Solution},
 };
 
@@ -125,8 +126,8 @@ impl Maze for RingMaze {
         self[node].get_paths()
     }
 
-    fn get_random_node(&self) -> RingNode {
-        self.cells[fastrand::usize(0..self.cells.len())].coordinates
+    fn get_random_node(&self, rng: &mut Arengee) -> RingNode {
+        self.cells[rng.usize(0..self.cells.len())].coordinates
     }
 
     fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
@@ -161,8 +162,8 @@ impl Maze for RingMaze {
         node.column + self.extents[node.row]
     }
 
-    fn make_solution(&mut self) -> Solution<RingNode> {
-        let start = self.get_random_cell_on_the_outside();
+    fn make_solution(&mut self, rng: &mut Arengee) -> Solution<RingNode> {
+        let start = self.get_random_cell_on_the_outside(rng);
         let exit = self.get_node_furthest_away_from(start);
         let entrance = self.get_node_furthest_away_from(exit);
         let (path_to_solution, distances) = self.find_shortest_path(entrance, exit);
@@ -225,9 +226,9 @@ impl RingMaze {
         self.ring_sizes[ring]
     }
 
-    fn get_random_cell_on_the_outside(&self) -> RingNode {
+    fn get_random_cell_on_the_outside(&self, rng: &mut Arengee) -> RingNode {
         let ring = self.ring_sizes.len() - 1;
-        let column = fastrand::usize(0..self.ring_sizes[ring]);
+        let column = rng.usize(0..self.ring_sizes[ring]);
         RingNode { row: ring, column }
     }
 

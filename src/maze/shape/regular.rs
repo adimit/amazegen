@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::maze::algorithms::find_path;
+use crate::maze::arengee::Arengee;
 use crate::maze::interface::Solution;
 use crate::maze::{algorithms::dijkstra, interface::Maze};
 
@@ -166,11 +167,8 @@ impl Maze for RectilinearMaze {
         self.get_walkable_edges(node).collect()
     }
 
-    fn get_random_node(&self) -> Self::Idx {
-        (
-            fastrand::usize(0..self.extents.0),
-            fastrand::usize(0..self.extents.1),
-        )
+    fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx {
+        (rng.usize(0..self.extents.0), rng.usize(0..self.extents.1))
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
@@ -195,9 +193,9 @@ impl Maze for RectilinearMaze {
         self.extents.0 * y + x
     }
 
-    fn make_solution(&mut self) -> Solution<Self::Idx> {
+    fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
         let seed_topo = {
-            let start = (fastrand::usize(0..self.get_extents().0), 0);
+            let start = (rng.usize(0..self.get_extents().0), 0);
             dijkstra(self, start)
         };
         let exit = {
@@ -205,17 +203,14 @@ impl Maze for RectilinearMaze {
             (0..self.get_extents().0)
                 .map(|x| (x, y))
                 .max_by_key(|node| seed_topo[self.get_index(*node)])
-                .unwrap_or((
-                    fastrand::usize(0..self.get_extents().0),
-                    self.get_extents().1 - 1,
-                ))
+                .unwrap_or((rng.usize(0..self.get_extents().0), self.get_extents().1 - 1))
         };
 
         let exit_topo = dijkstra(self, exit);
         let entrance = (0..self.get_extents().0)
             .map(|x| (x, 0))
             .max_by_key(|node| exit_topo[self.get_index(*node)])
-            .unwrap_or((fastrand::usize(0..self.get_extents().0), 0));
+            .unwrap_or((rng.usize(0..self.get_extents().0), 0));
         let entrance_topo = dijkstra(self, entrance);
 
         self.set_entrance(entrance.0);

@@ -7,6 +7,7 @@ use crate::maze::shape::regular::RectilinearMaze;
 use crate::WebResponse;
 
 use super::algorithms::{jarník, kruskal};
+use super::arengee::Arengee;
 use super::interface::{Maze, Solution};
 use super::metadata::Metadata;
 use super::paint::rect::RectilinearRenderer;
@@ -70,10 +71,10 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    pub fn execute<M: Maze>(&self, maze: M) -> M {
+    pub fn execute<M: Maze>(&self, maze: M, rng: &mut Arengee) -> M {
         match self {
-            Algorithm::Kruskal => kruskal(maze),
-            Algorithm::GrowingTree => jarník(maze),
+            Algorithm::Kruskal => kruskal(maze, rng),
+            Algorithm::GrowingTree => jarník(maze, rng),
         }
     }
 }
@@ -104,9 +105,9 @@ impl Configuration {
         Svg(with_metadata.to_string())
     }
 
-    fn create_maze<M: Maze>(&self, template: M) -> (M, Solution<M::Idx>) {
-        let mut maze = self.algorithm.execute(template);
-        let solution = maze.make_solution();
+    fn create_maze<M: Maze>(&self, template: M, mut rng: Arengee) -> (M, Solution<M::Idx>) {
+        let mut maze = self.algorithm.execute(template, &mut rng);
+        let solution = maze.make_solution(&mut rng);
         (maze, solution)
     }
 
@@ -132,11 +133,11 @@ impl Configuration {
     }
 
     fn display_maze(&self) -> RenderedMaze {
-        fastrand::seed(self.seed);
+        let rng = Arengee::new(self.seed);
 
         match self.shape {
             Shape::Rectilinear(x, y) => {
-                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)));
+                let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)), rng);
                 self.render(RectilinearRenderer::new(
                     &maze,
                     &solution,
@@ -145,7 +146,7 @@ impl Configuration {
                 ))
             }
             Shape::Theta(size) => {
-                let (maze, solution) = self.create_maze(RingMaze::new(size, 8));
+                let (maze, solution) = self.create_maze(RingMaze::new(size, 8), rng);
                 self.render(RingMazeRenderer::new(
                     &maze,
                     &solution,
@@ -154,7 +155,7 @@ impl Configuration {
                 ))
             }
             Shape::Sigma(size) => {
-                let (maze, solution) = self.create_maze(SigmaMaze::new(size));
+                let (maze, solution) = self.create_maze(SigmaMaze::new(size), rng);
                 self.render(SigmaMazeRenderer::new(
                     &maze,
                     &solution,
