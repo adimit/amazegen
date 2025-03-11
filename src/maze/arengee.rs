@@ -20,7 +20,12 @@ impl Arengee {
     }
 
     pub fn shuffle<T>(&mut self, slice: &mut [T]) {
-        self.rng.shuffle(slice);
+        // this is lifted straight from fastrand, but we reimplement
+        // it here without reliance on generating usize randoms for
+        // WASM portability.
+        for i in 1..slice.len() {
+            slice.swap(i, self.rng.u32(0..=i as u32) as usize);
+        }
     }
 
     pub fn choice<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
