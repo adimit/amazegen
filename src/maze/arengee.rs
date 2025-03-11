@@ -11,8 +11,8 @@ impl Arengee {
         Self { rng }
     }
 
-    pub fn usize(&mut self, range: Range<usize>) -> usize {
-        self.rng.usize(range)
+    pub fn u32(&mut self, range: Range<u32>) -> u32 {
+        self.rng.u32(range)
     }
 
     pub fn u64(&mut self, range: Range<u64>) -> u64 {

@@ -127,7 +127,7 @@ impl Maze for RingMaze {
     }
 
     fn get_random_node(&self, rng: &mut Arengee) -> RingNode {
-        self.cells[rng.usize(0..self.cells.len())].coordinates
+        self.cells[rng.u32(0..self.cells.len() as u32) as usize].coordinates
     }
 
     fn get_all_edges(&self) -> Vec<(RingNode, RingNode)> {
@@ -228,7 +228,7 @@ impl RingMaze {
 
     fn get_random_cell_on_the_outside(&self, rng: &mut Arengee) -> RingNode {
         let ring = self.ring_sizes.len() - 1;
-        let column = rng.usize(0..self.ring_sizes[ring]);
+        let column = rng.u32(0..self.ring_sizes[ring] as u32) as usize;
         RingNode { row: ring, column }
     }
 

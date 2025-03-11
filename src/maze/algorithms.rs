@@ -77,7 +77,7 @@ pub fn jarník<M: Maze>(mut maze: M, rng: &mut Arengee) -> M {
             .filter(|n| !visited[maze.get_index(*n)])
             .collect::<Vec<_>>();
         if !possible_targets.is_empty() {
-            let target = possible_targets[rng.usize(0..possible_targets.len())];
+            let target = possible_targets[rng.u32(0..possible_targets.len() as u32) as usize];
             maze.carve(e, target);
             visited[maze.get_index(target)] = true;
             vertices.push(target);

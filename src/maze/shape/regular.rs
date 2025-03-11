@@ -168,7 +168,10 @@ impl Maze for RectilinearMaze {
     }
 
     fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx {
-        (rng.usize(0..self.extents.0), rng.usize(0..self.extents.1))
+        (
+            rng.u32(0..self.extents.0 as u32) as usize,
+            rng.u32(0..self.extents.1 as u32) as usize,
+        )
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
@@ -195,7 +198,7 @@ impl Maze for RectilinearMaze {
 
     fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
         let seed_topo = {
-            let start = (rng.usize(0..self.get_extents().0), 0);
+            let start = (rng.u32(0..self.get_extents().0 as u32) as usize, 0);
             dijkstra(self, start)
         };
         let exit = {
@@ -203,14 +206,17 @@ impl Maze for RectilinearMaze {
             (0..self.get_extents().0)
                 .map(|x| (x, y))
                 .max_by_key(|node| seed_topo[self.get_index(*node)])
-                .unwrap_or((rng.usize(0..self.get_extents().0), self.get_extents().1 - 1))
+                .unwrap_or((
+                    rng.u32(0..self.get_extents().0 as u32) as usize,
+                    self.get_extents().1 - 1,
+                ))
         };
 
         let exit_topo = dijkstra(self, exit);
         let entrance = (0..self.get_extents().0)
             .map(|x| (x, 0))
             .max_by_key(|node| exit_topo[self.get_index(*node)])
-            .unwrap_or((rng.usize(0..self.get_extents().0), 0));
+            .unwrap_or((rng.u32(0..self.get_extents().0 as u32) as usize, 0));
         let entrance_topo = dijkstra(self, entrance);
 
         self.set_entrance(entrance.0);

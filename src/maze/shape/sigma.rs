@@ -25,8 +25,8 @@ impl Cartesian {
 
     fn get_random_contained_coordinate(&self, rng: &mut Arengee) -> Self {
         Self {
-            x: rng.usize(0..self.x),
-            y: rng.usize(0..self.y),
+            x: rng.u32(0..self.x as u32) as usize,
+            y: rng.u32(0..self.y as u32) as usize,
         }
     }
 
@@ -243,14 +243,14 @@ impl Maze for SigmaMaze {
     }
 
     fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
-        let seed_topo = dijkstra(self, (rng.usize(0..self.size), 0).into());
+        let seed_topo = dijkstra(self, (rng.u32(0..self.size as u32) as usize, 0).into());
 
         let exit: Cartesian = {
             let y = self.size - 1;
             (0..self.size)
                 .map(|x| (x, y))
                 .max_by_key(|&c| seed_topo.get(self.get_index(c.into())))
-                .unwrap_or((rng.usize(0..self.size), y))
+                .unwrap_or((rng.u32(0..self.size as u32) as usize, y))
         }
         .into();
 
@@ -258,7 +258,7 @@ impl Maze for SigmaMaze {
         let entrance: Cartesian = (0..self.size)
             .map(|x| (x, 0))
             .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
-            .unwrap_or((rng.usize(0..self.size), 0))
+            .unwrap_or((rng.u32(0..self.size as u32) as usize, 0))
             .into();
 
         let entrance_topo = dijkstra(self, entrance);
