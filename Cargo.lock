@@ -556,6 +556,7 @@ dependencies = [
  "hex",
  "instant",
  "itertools 0.13.0",
+ "pdf-writer",
  "qrcode",
  "serde",
  "serde-wasm-bindgen",

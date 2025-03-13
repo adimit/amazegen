@@ -89,7 +89,10 @@ pub struct Configuration {
     pub stroke_width: f64,
 }
 
-pub struct Svg(pub String);
+pub struct Svg {
+    pub content: String,
+    pub dimensions: (u32, u32),
+}
 
 impl Configuration {
     pub fn execute_for_web(&self) -> WebResponse {
@@ -102,7 +105,10 @@ impl Configuration {
     pub fn execute_for_svg(&self, url: Option<String>) -> Svg {
         let rendered = self.display_maze();
         let with_metadata = self.append_metadata(rendered, url);
-        Svg(with_metadata.to_string())
+        Svg {
+            content: with_metadata.to_string(),
+            dimensions: with_metadata.dimensions,
+        }
     }
 
     fn create_maze<M: Maze>(&self, template: M, mut rng: Arengee) -> (M, Solution<M::Idx>) {

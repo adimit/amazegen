@@ -1,6 +1,5 @@
 pub mod rect;
 pub mod sigma;
-pub mod svg;
 pub mod theta;
 
 use std::cmp::max;
@@ -130,7 +129,7 @@ impl<'a, M: Maze> Gradient<'a, M> {
 #[derive(Debug)]
 pub struct RenderedMaze {
     document: ::svg::Document,
-    dimensions: (u32, u32),
+    pub dimensions: (u32, u32),
 }
 
 impl RenderedMaze {
@@ -151,6 +150,7 @@ impl RenderedMaze {
 
         Self {
             document: svg,
+            dimensions: (x, y + offset.floor() as u32),
             ..self
         }
     }
