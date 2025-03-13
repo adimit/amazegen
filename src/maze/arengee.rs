@@ -32,4 +32,8 @@ impl Arengee {
         let i = self.rng.u32(0..slice.len() as u32 - 1);
         &slice[i as usize]
     }
+
+    pub fn get_current_seed(&self) -> u64 {
+        self.rng.get_seed()
+    }
 }
