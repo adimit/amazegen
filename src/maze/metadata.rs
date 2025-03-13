@@ -25,7 +25,7 @@ impl Metadata {
         let font_size = y / 50;
         let line_spacing = font_size / 3;
         let mut group = svg::node::element::Group::new();
-        for (i, text) in vec![
+        for (i, text) in [
             format!("Shape: {}", shape_to_str(&self.shape),),
             format!("Algorithm: {:?}", self.algorithm,),
             format!("Seed: {}", self.seed),
@@ -85,12 +85,12 @@ fn qr_data(qr_tree: Parser) -> (u32, u32, String) {
                     .to_string();
             }
             Event::Tag(tag::Rectangle, _, attributes) => {
-                attributes
-                    .get("height")
-                    .map(|h| height = h.parse().expect("Failed to parse QR code height"));
-                attributes
-                    .get("width")
-                    .map(|w| width = w.parse().expect("Failed to parse QR code width"));
+                if let Some(h) = attributes.get("height") {
+                    height = h.parse().expect("Failed to parse QR code height")
+                };
+                if let Some(w) = attributes.get("width") {
+                    width = w.parse().expect("Failed to parse QR code width")
+                };
             }
             _ => {}
         }

@@ -3,6 +3,7 @@ pub mod sigma;
 pub mod theta;
 
 use std::cmp::max;
+use std::fmt::Display;
 
 use super::interface::{Maze, MazeRenderer, Solution};
 use super::metadata::Metadata;
@@ -151,13 +152,14 @@ impl RenderedMaze {
         Self {
             document: svg,
             dimensions: (x, y + offset.floor() as u32),
-            ..self
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for RenderedMaze {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut strbuf: Vec<u8> = Vec::new();
         ::svg::write(&mut strbuf, &self.document).unwrap();
-        String::from_utf8(strbuf).unwrap()
+        write!(f, "{}", String::from_utf8(strbuf).unwrap())
     }
 }

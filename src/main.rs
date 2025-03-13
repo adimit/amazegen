@@ -79,7 +79,7 @@ impl Cli {
             colour: self
                 .colour
                 .as_ref()
-                .and_then(|s| WebColour::from_string(&s).ok())
+                .and_then(|s| WebColour::from_string(s).ok())
                 .map(|c| c.to_web_string())
                 .unwrap_or("000000".to_string()),
             features,
