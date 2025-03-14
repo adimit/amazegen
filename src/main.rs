@@ -118,7 +118,7 @@ fn write_pdf_file(filename: &str, tree: Tree, (width, height): (u32, u32)) {
     let mut page = pdf.page(page_id);
     let pdf_width = 595.0;
     let pdf_height = 842.0;
-    let x_margin = 10.0;
+    let x_margin = 20.0;
     page.media_box(Rect::new(0.0, 0.0, pdf_width, pdf_height));
     page.parent(page_tree_id);
     page.contents(content_id);
@@ -147,7 +147,7 @@ fn write_pdf_file(filename: &str, tree: Tree, (width, height): (u32, u32)) {
             0.0,
             0.0,
             svg_height,
-            10.0,
+            x_margin,
             (822.0 - svg_height) / 2.0,
         ])
         .x_object(svg_name);
