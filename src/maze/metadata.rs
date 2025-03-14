@@ -23,7 +23,7 @@ impl Metadata {
 
     fn make_text_node(
         &self,
-        (x, y): (u32, u32),
+        y: u32,
         family: &Option<String>,
     ) -> (::svg::node::element::Group, u32) {
         let font_size = y / 50;
@@ -39,7 +39,7 @@ impl Metadata {
         .enumerate()
         {
             let text_node = svg::node::element::Text::new(text)
-                .set("x", x / 75)
+                .set("x", 0)
                 .set(
                     "y",
                     y + (font_size * 2) + (line_spacing * i as u32 + font_size * i as u32),
@@ -59,7 +59,7 @@ impl Metadata {
         (x, y): (u32, u32),
         font_family: &Option<String>,
     ) -> f64 {
-        let (text_node, text_height) = self.make_text_node((x, y), font_family);
+        let (text_node, text_height) = self.make_text_node(y, font_family);
         doc.append(text_node);
 
         if let Some(url) = &self.maze_url {
