@@ -15,12 +15,14 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn generate_pdf(js: JsValue, pages: u32, baseurl: String) -> Vec<u8> {
+pub fn generate_pdf(js: JsValue, pages: u32, baseurl: String, font: Vec<u8>) -> Vec<u8> {
     let mut configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
-    let mut pdf = PdfWriter::new(Option::None);
+    let font = pdf::Font::new(font);
+    let font_name = font.as_ref().map(|f| f.name.clone());
+    let mut pdf = PdfWriter::new(font);
     let url = Some(baseurl);
     for _ in 0..pages {
-        let (maze, new_seed) = configuration.execute_for_svg(&url, &None);
+        let (maze, new_seed) = configuration.execute_for_svg(&url, &font_name);
         configuration.seed = new_seed;
         pdf.append_maze(&maze);
     }

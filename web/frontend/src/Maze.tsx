@@ -2,15 +2,24 @@ import { JSX, createSignal, createEffect } from "solid-js";
 import { Configuration, configurationHashSignal } from "./Configuration";
 import { generate_pdf } from "./pkg";
 import { saveAs } from "file-saver";
+import fontdata from "./assets/fonts/Bitter-Regular.ttf?url";
 
-const generatePdf = (config: Configuration, pages: number) => {
+const generatePdf = async (config: Configuration, pages: number) => {
   const printConfig = {
     ...config,
-    stroke_width: 4,
+    stroke_width: 2,
     colour: "000000",
     features: [],
   };
-  const binary = generate_pdf(printConfig, pages, "https://aleks.bg/maze");
+  const font = await fetch(fontdata);
+  const buffer = await font.arrayBuffer();
+  const uint8ar = new Uint8Array(buffer);
+  const binary = generate_pdf(
+    printConfig,
+    pages,
+    "https://aleks.bg/maze",
+    uint8ar,
+  );
   const blob = new Blob([binary], { type: "application/pdf" });
   saveAs(blob, "maze.pdf");
 };

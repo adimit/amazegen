@@ -18,6 +18,7 @@ pub struct PdfWriter {
 const A4_WIDTH: f32 = 595.0;
 const A4_HEIGHT: f32 = 842.0;
 
+#[derive(Debug)]
 pub struct Font {
     pub name: String,
     data: Vec<u8>,
