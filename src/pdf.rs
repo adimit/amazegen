@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use pdf_writer::{Content, Finish, Name, Pdf, Rect, Ref};
 use svg2pdf::usvg::Options;
+use ttf_parser::{name_id, Face};
 
 use crate::maze::feature::Svg;
 
@@ -17,26 +18,49 @@ pub struct PdfWriter {
 const A4_WIDTH: f32 = 595.0;
 const A4_HEIGHT: f32 = 842.0;
 
+pub struct Font {
+    pub name: String,
+    data: Vec<u8>,
+}
+
+impl Font {
+    fn get_font_name_from_data(data: Vec<u8>) -> Option<(String, Vec<u8>)> {
+        if let Ok(face) = Face::parse(&data, 0) {
+            face.names()
+                .into_iter()
+                .find(|name| {
+                    name.name_id == name_id::TYPOGRAPHIC_FAMILY || name.name_id == name_id::FAMILY
+                })
+                .and_then(|name| name.to_string())
+                .map(|name| (name, data))
+        } else {
+            None
+        }
+    }
+
+    pub fn new(data: Vec<u8>) -> Option<Self> {
+        Self::get_font_name_from_data(data).map(|(name, data)| Font { name, data })
+    }
+}
+
 impl PdfWriter {
-    pub fn new(font: Option<Vec<u8>>, font_name: &Option<String>) -> Self {
+    pub fn new(font: Option<Font>) -> Self {
         let mut options = svg2pdf::usvg::Options::default();
         let fontdb = options.fontdb_mut();
-        fontdb.load_system_fonts();
-        fontdb.faces().for_each(|face| {
-            println!("Font: {:?}", face.families);
-        });
         let mut alloc = Ref::new(1);
         let catalog_id = alloc.bump();
         let page_tree_id = alloc.bump();
         let mut pdf = Pdf::new();
         pdf.catalog(catalog_id).pages(page_tree_id);
 
-        if let Some(font) = font {
-            println!("Loading font");
+        let font_name = if let Some(font) = font {
             let font_id = alloc.bump();
-            pdf.stream(font_id, &font);
-            fontdb.load_font_data(font);
-        }
+            pdf.stream(font_id, &font.data);
+            fontdb.load_font_data(font.data);
+            font.name
+        } else {
+            "Helvetica".to_string() // One of the 14 standard PDF fonts.
+        };
 
         PdfWriter {
             alloc,
@@ -44,7 +68,7 @@ impl PdfWriter {
             options,
             pdf,
             page_tree_id,
-            font_name: font_name.clone().unwrap_or("Helvetica".to_string()),
+            font_name,
         }
     }
 

@@ -31,6 +31,7 @@ svg2pdf = "0.12.0"
 clap = { version = "4.5.18", features = ["derive"] }
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 pdf-writer = "0.12.1"
+ttf-parser = "0.25.1"
 
 [profile.release]
 lto = true

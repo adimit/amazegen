@@ -1,10 +1,13 @@
 #![allow(mixed_script_confusables)]
 
-use amazegen::maze::{
-    feature::{Algorithm, Configuration, Feature, Shape},
-    paint::WebColour,
-};
 use amazegen::pdf::PdfWriter;
+use amazegen::{
+    maze::{
+        feature::{Algorithm, Configuration, Feature, Shape},
+        paint::WebColour,
+    },
+    pdf::Font,
+};
 use clap::{Parser, ValueEnum};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -107,15 +110,9 @@ struct Cli {
     #[arg(
         long,
         help = "Font file to use for metadata",
-        long_help = "Only works in combination with --pdf. If provided, will use this font file to render metadata on the PDF. If this option is ommitted, we'll attempt to use the default font (Helvetica), which may not be available. If no metadata is visible in the PDF, try providing a font file here. If you pass a font file here, you *must* also provide --font-name in order to select the correct face."
+        long_help = "Only works in combination with --pdf. If provided, will use this font file to render metadata on the PDF. If this option is ommitted, we'll attempt to use the default font (Helvetica), which may not be available. If no metadata is visible in the PDF, try providing a font file here."
     )]
     font: Option<String>,
-    #[arg(
-        long,
-        help = "The name of the font to use for metadata",
-        long_help = "In case this font is available on the system viewing the PDF , it will suffice to simply specify the name of the font. In order to embed the font in the PDF, use together with --font."
-    )]
-    font_name: Option<String>,
 }
 
 impl Cli {
@@ -159,19 +156,23 @@ fn main() -> Result<(), ()> {
     let cli = Cli::parse();
     let mut configuration = cli.get_configuration();
 
+    let font_data = cli
+        .font
+        .map(|f| std::fs::read(&f).expect("Failed to read font"))
+        .and_then(|data| Font::new(data));
+    let font_name = font_data.as_ref().map(|f| f.name.clone());
+
     if let Some(svg_file) = cli.svg {
-        let (maze, _) = configuration.execute_for_svg(&cli.url, &cli.font_name);
+        let (maze, _) = configuration.execute_for_svg(&cli.url, &font_name);
         std::fs::write(svg_file, &maze.content).expect("Failed to write SVG");
     }
 
     if let Some(pdf_file) = cli.pdf {
-        let font_data = cli
-            .font
-            .map(|f| std::fs::read(&f).expect("Failed to read font"));
-        let mut writer = PdfWriter::new(font_data, &cli.font_name);
+        let mut writer = PdfWriter::new(font_data);
         let pages = cli.pages.unwrap_or(1);
+
         for _ in 0..pages {
-            let (maze, new_seed) = configuration.execute_for_svg(&cli.url, &cli.font_name);
+            let (maze, new_seed) = configuration.execute_for_svg(&cli.url, &font_name);
             configuration.seed = new_seed;
             writer.append_maze(&maze);
         }

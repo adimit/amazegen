@@ -2,7 +2,7 @@
 pub mod maze;
 pub mod pdf;
 
-use maze::feature::{Algorithm, Configuration, Feature, Shape};
+use maze::feature::{Algorithm, Configuration, Shape};
 use pdf::PdfWriter;
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
@@ -17,7 +17,7 @@ extern "C" {
 #[wasm_bindgen]
 pub fn generate_pdf(js: JsValue, pages: u32, baseurl: String) -> Vec<u8> {
     let mut configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
-    let mut pdf = PdfWriter::new(Option::None, &Option::None);
+    let mut pdf = PdfWriter::new(Option::None);
     let url = Some(baseurl);
     for _ in 0..pages {
         let (maze, new_seed) = configuration.execute_for_svg(&url, &None);
@@ -57,19 +57,6 @@ pub fn run_configuration(js: JsValue) -> JsValue {
             log(&format!("Error while writing response: {:?}", err));
             JsValue::NULL
         })
-}
-
-#[wasm_bindgen]
-pub fn test_config() -> JsValue {
-    let configuration = Configuration {
-        seed: 1,
-        shape: Shape::Theta(11),
-        colour: "#FF00FF".into(),
-        features: vec![Feature::Stain],
-        algorithm: Algorithm::Kruskal,
-        stroke_width: 8.0,
-    };
-    serde_wasm_bindgen::to_value(&configuration).unwrap()
 }
 
 #[cfg(test)]
