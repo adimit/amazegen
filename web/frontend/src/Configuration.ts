@@ -6,7 +6,7 @@ import {
   onCleanup,
   onMount,
 } from "solid-js";
-import { generate_maze, generate_seed, run_configuration } from "./pkg";
+import { generate_seed, run_configuration } from "./pkg";
 
 export const algorithms = ["Kruskal", "GrowingTree"] as const;
 export type Algorithm = (typeof algorithms)[number];
@@ -39,10 +39,6 @@ export interface Configuration {
 }
 
 export type SVG = string;
-
-// there's no type for the Rust import, so we make one here
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const generateMaze: (config: Configuration) => SVG = generate_maze;
 
 export const DEFAULT_MAZE_SIZE = 10;
 

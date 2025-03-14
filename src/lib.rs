@@ -15,12 +15,6 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn generate_maze(js: JsValue) -> String {
-    let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
-    configuration.execute_for_web().svg
-}
-
-#[wasm_bindgen]
 pub fn generate_pdf(js: JsValue, pages: u32, baseurl: String) -> Vec<u8> {
     let mut configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
     let mut pdf = PdfWriter::new(Option::None, &Option::None);
