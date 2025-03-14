@@ -376,10 +376,10 @@ impl MazeRenderer<RingMaze> for RingMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&self) -> RenderedMaze {
+    fn render(self) -> RenderedMaze {
         let pixels = (self.grid.centre.x + self.stroke_width) * 2.0;
         RenderedMaze::new(
-            self.document.clone(),
+            self.document,
             (pixels.floor() as u32, pixels.floor() as u32),
         )
     }

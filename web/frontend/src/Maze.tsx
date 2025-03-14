@@ -1,6 +1,19 @@
 import { JSX, createSignal, createEffect } from "solid-js";
-import { configurationHashSignal } from "./Configuration";
-import { generatePdf } from "./pdfkit";
+import { Configuration, configurationHashSignal } from "./Configuration";
+import { generate_pdf } from "./pkg";
+import { saveAs } from "file-saver";
+
+const generatePdf = (config: Configuration, pages: number) => {
+  const printConfig = {
+    ...config,
+    stroke_width: 4,
+    colour: "000000",
+    features: [],
+  };
+  const binary = generate_pdf(printConfig, pages, "https://aleks.bg/maze");
+  const blob = new Blob([binary], { type: "application/pdf" });
+  saveAs(blob, "maze.pdf");
+};
 
 export default function Maze(): JSX.Element {
   let svgRef: HTMLDivElement | undefined;
@@ -107,9 +120,7 @@ export default function Maze(): JSX.Element {
           pages
           <button
             onClick={() => {
-              generatePdf(configuration(), numberOfMazes()).catch(
-                console.error,
-              );
+              generatePdf(configuration(), numberOfMazes());
             }}
           >
             PDF

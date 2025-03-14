@@ -1,14 +1,11 @@
 #![allow(mixed_script_confusables)]
 
-use std::collections::HashMap;
-
 use amazegen::maze::{
     feature::{Algorithm, Configuration, Feature, Shape},
     paint::WebColour,
 };
+use amazegen::pdf::PdfWriter;
 use clap::{Parser, ValueEnum};
-use pdf_writer::{Content, Finish, Name, Pdf, Rect, Ref};
-use svg2pdf::usvg::Tree;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum CliAlgorithm {
@@ -30,29 +27,95 @@ enum CliFeature {
 }
 
 #[derive(Debug, Parser)]
+#[command(version, about)]
 struct Cli {
-    #[arg(short, long, default_value = "000")]
+    #[arg(
+        short,
+        long,
+        default_value = "\"000\"",
+        help = "Stroke colour for the maze in Web compatible hex."
+    )]
     colour: Option<String>,
-    #[arg(short, long, value_enum, default_value = "growing-tree")]
+    #[arg(
+        short,
+        long,
+        value_enum,
+        default_value = "growing-tree",
+        help = "Selects the algorithm to genreate the maze.",
+        long_help = "growing-tree is a backtracking algorithm that will generate long winding passages with few dead ends. The path through the maze will tend to be very long. kruskal will use Kruskal's algorithm, which tends to generate lots of dead ends but a relatively short path."
+    )]
     algorithm: Option<CliAlgorithm>,
-    #[arg(short, long, default_value = "20")]
+    #[arg(
+        short,
+        long,
+        default_value = "20",
+        help = "Size of the maze",
+        long_help = "What size means may depend on the shape of the maze. For square mazes, it's the number of cells in each row and column. Theta mazes use size to determine the number of rows from the origin."
+    )]
     size: Option<u32>,
-    #[clap(long, default_value = "4")]
+    #[clap(
+        long,
+        short = 'b',
+        default_value = "4",
+        help = "Stroke width for the maze."
+    )]
     stroke_width: Option<u32>,
-    #[arg(short = 'S', long, value_enum, default_value = "rectilinear")]
+    #[arg(
+        short = 'S',
+        long,
+        value_enum,
+        default_value = "rectilinear",
+        help = "Shape of the maze.",
+        long_help = "rectilinear will draw a square maze with square cells. theta will draw a circular maze with square-ish cells. sigma will draw a square (in cell count) maze with hexagonal cells."
+    )]
     shape: Option<CliShape>,
-    #[arg(long, default_value = "false")]
+    #[arg(long, default_value = "false", help = "Also draw a solution.")]
     solve: bool,
-    #[arg(long, default_value = "false")]
+    #[arg(
+        long,
+        default_value = "false",
+        help = "Stain cells",
+        long_help = "Stain cells according to distance from origin."
+    )]
     stain: bool,
-    #[arg(long)]
-    seed: Option<u64>,
-    #[arg(long)]
+    #[arg(
+        long,
+        short = 'i',
+        help = "Initial seed for the maze",
+        long_help = "This seed will be used to generate the first maze. If --pages is set, subsequent pages will reseed the RNG."
+    )]
+    initial_seed: Option<u64>,
+    #[arg(long, short = 'f', help = "Output the maze(s) as a PDF.")]
     pdf: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Output the maze as an SVG.")]
     svg: Option<String>,
-    #[arg(long)]
+    #[arg(
+        long,
+        short = 'u',
+        help = "Base URL for QR code",
+        long_help = "If provided, will add a QR code to reference each maze on the URL. E.g. https://aleks.bg/maze"
+    )]
     url: Option<String>,
+    #[arg(
+        long,
+        short = 'P',
+        default_value = "1",
+        help = "Number of PDF pages to fill",
+        long_help = "Only works in combination with --pdf"
+    )]
+    pages: Option<u32>,
+    #[arg(
+        long,
+        help = "Font file to use for metadata",
+        long_help = "Only works in combination with --pdf. If provided, will use this font file to render metadata on the PDF. If this option is ommitted, we'll attempt to use the default font (Helvetica), which may not be available. If no metadata is visible in the PDF, try providing a font file here. If you pass a font file here, you *must* also provide --font-name in order to select the correct face."
+    )]
+    font: Option<String>,
+    #[arg(
+        long,
+        help = "The name of the font to use for metadata",
+        long_help = "In case this font is available on the system viewing the PDF , it will suffice to simply specify the name of the font. In order to embed the font in the PDF, use together with --font."
+    )]
+    font_name: Option<String>,
 }
 
 impl Cli {
@@ -70,7 +133,7 @@ impl Cli {
         };
 
         Configuration {
-            seed: self.seed.unwrap_or(fastrand::u64(..)),
+            seed: self.initial_seed.unwrap_or(fastrand::u64(..)),
             shape: match self.shape {
                 Some(CliShape::Sigma) => Shape::Sigma(size),
                 Some(CliShape::Theta) => Shape::Theta(size),
@@ -92,89 +155,27 @@ impl Cli {
     }
 }
 
-fn write_pdf_file(filename: &str, tree: Tree, (width, height): (u32, u32)) {
-    let mut alloc = Ref::new(1);
-    let catalog_id = alloc.bump();
-    let page_tree_id = alloc.bump();
-    let page_id = alloc.bump();
-    let font_id = alloc.bump();
-    let content_id = alloc.bump();
-    let font_name = Name(b"F1");
-    let svg_name = Name(b"S1");
-
-    let (svg_chunk, svg_id) = svg2pdf::to_chunk(&tree, svg2pdf::ConversionOptions::default())
-        .expect("Failed to convert SVG to PDF chunk");
-    let mut map = HashMap::new();
-    let svg_chunk = svg_chunk.renumber(|old| *map.entry(old).or_insert_with(|| alloc.bump()));
-    let svg_id = map
-        .get(&svg_id)
-        .expect("Failure while embedding SVG in PDF.");
-
-    let mut pdf = Pdf::new();
-    pdf.catalog(catalog_id).pages(page_tree_id);
-    pdf.pages(page_tree_id).kids([page_id]).count(1);
-
-    // Set up a simple A4 page.
-    let mut page = pdf.page(page_id);
-    let pdf_width = 595.0;
-    let pdf_height = 842.0;
-    let x_margin = 20.0;
-    page.media_box(Rect::new(0.0, 0.0, pdf_width, pdf_height));
-    page.parent(page_tree_id);
-    page.contents(content_id);
-
-    // compute width and height of the svg in the maze. The width is 595 - 20 = 575, the height is computed to keep the aspect ratio.
-    let factor = (pdf_width - 2.0 * x_margin) / width as f32;
-    let svg_width = width as f32 * factor;
-    let svg_height = height as f32 * factor;
-
-    // Add the font and, more importantly, the SVG to the resource dictionary
-    // so that it can be referenced in the content stream.
-    let mut resources = page.resources();
-    resources.x_objects().pair(svg_name, svg_id);
-    resources.fonts().pair(font_name, font_id);
-    resources.finish();
-    page.finish();
-
-    // Set a predefined font, so we do not have to load anything extra.
-    pdf.type1_font(font_id).base_font(Name(b"Helvetica"));
-
-    // Add our graphic.
-    let mut content = Content::new();
-    content
-        .transform([
-            svg_width,
-            0.0,
-            0.0,
-            svg_height,
-            x_margin,
-            (822.0 - svg_height) / 2.0,
-        ])
-        .x_object(svg_name);
-
-    pdf.stream(content_id, &content.finish());
-    // Write the SVG chunk into the PDF page.
-    pdf.extend(&svg_chunk);
-
-    // Write the file to the disk.
-    std::fs::write(filename, pdf.finish()).expect("Failed to write PDF file");
-}
-
 fn main() -> Result<(), ()> {
     let cli = Cli::parse();
-    let maze = cli.get_configuration().execute_for_svg(cli.url);
+    let mut configuration = cli.get_configuration();
 
     if let Some(svg_file) = cli.svg {
+        let (maze, _) = configuration.execute_for_svg(&cli.url, &cli.font_name);
         std::fs::write(svg_file, &maze.content).expect("Failed to write SVG");
     }
 
     if let Some(pdf_file) = cli.pdf {
-        let mut options = svg2pdf::usvg::Options::default();
-        let fontdb = options.fontdb_mut();
-        fontdb.load_system_fonts();
-        let tree =
-            svg2pdf::usvg::Tree::from_str(&maze.content, &options).expect("Failed to parse SVG");
-        write_pdf_file(&pdf_file, tree, maze.dimensions);
+        let font_data = cli
+            .font
+            .map(|f| std::fs::read(&f).expect("Failed to read font"));
+        let mut writer = PdfWriter::new(font_data, &cli.font_name);
+        let pages = cli.pages.unwrap_or(1);
+        for _ in 0..pages {
+            let (maze, new_seed) = configuration.execute_for_svg(&cli.url, &cli.font_name);
+            configuration.seed = new_seed;
+            writer.append_maze(&maze);
+        }
+        writer.write_to_file(&pdf_file);
     }
 
     Ok(())

@@ -33,5 +33,5 @@ pub trait MazeRenderer<M: Maze> {
     fn stain(&mut self, gradient: (WebColour, WebColour));
     fn solve(&mut self, stroke_colour: WebColour);
     fn paint(&mut self, border: WebColour);
-    fn render(&self) -> RenderedMaze;
+    fn render(self) -> RenderedMaze;
 }

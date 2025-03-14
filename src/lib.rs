@@ -1,7 +1,9 @@
 #![allow(mixed_script_confusables)]
 pub mod maze;
+pub mod pdf;
 
 use maze::feature::{Algorithm, Configuration, Feature, Shape};
+use pdf::PdfWriter;
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::prelude::*;
@@ -16,6 +18,19 @@ extern "C" {
 pub fn generate_maze(js: JsValue) -> String {
     let configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
     configuration.execute_for_web().svg
+}
+
+#[wasm_bindgen]
+pub fn generate_pdf(js: JsValue, pages: u32, baseurl: String) -> Vec<u8> {
+    let mut configuration: Configuration = serde_wasm_bindgen::from_value(js).unwrap();
+    let mut pdf = PdfWriter::new(Option::None, &Option::None);
+    let url = Some(baseurl);
+    for _ in 0..pages {
+        let (maze, new_seed) = configuration.execute_for_svg(&url, &None);
+        configuration.seed = new_seed;
+        pdf.append_maze(&maze);
+    }
+    pdf.write_to_memory()
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]

@@ -114,13 +114,13 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&self) -> RenderedMaze {
+    fn render(self) -> RenderedMaze {
         let maze_size = self.maze.size() as f64;
         let (x, y) = (
             maze_size * (3.0 * self.dimensions.a) + self.dimensions.a + self.stroke_width,
             maze_size * self.dimensions.cell_height + self.dimensions.b + self.stroke_width,
         );
-        RenderedMaze::new(self.document.clone(), (x as u32, y.floor() as u32))
+        RenderedMaze::new(self.document, (x as u32, y.floor() as u32))
     }
 }
 

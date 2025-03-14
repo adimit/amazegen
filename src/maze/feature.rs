@@ -19,7 +19,7 @@ const STAIN_A: &str = "FFDC80";
 const STAIN_B: &str = "B9327D";
 const SOLUTION: &str = "8FE080";
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub enum Shape {
     Rectilinear(usize, usize),
     Theta(usize),
@@ -79,7 +79,7 @@ impl Algorithm {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Configuration {
     pub seed: u64,
     pub shape: Shape,
@@ -96,24 +96,33 @@ pub struct Svg {
 
 impl Configuration {
     pub fn execute_for_web(&self) -> WebResponse {
+        let mut rng = Arengee::new(self.seed);
         WebResponse {
-            svg: self.display_maze().to_string(),
+            svg: self.display_maze(&mut rng).to_string(),
             hash: self.get_location_hash(),
         }
     }
 
-    pub fn execute_for_svg(&self, url: Option<String>) -> Svg {
-        let rendered = self.display_maze();
-        let with_metadata = self.append_metadata(rendered, url);
-        Svg {
-            content: with_metadata.to_string(),
-            dimensions: with_metadata.dimensions,
-        }
+    pub fn execute_for_svg(
+        &self,
+        url: &Option<String>,
+        font_family: &Option<String>,
+    ) -> (Svg, u64) {
+        let mut rng = Arengee::new(self.seed);
+        let rendered = self.display_maze(&mut rng);
+        let with_metadata = self.append_metadata(rendered, url, font_family);
+        (
+            Svg {
+                content: with_metadata.to_string(),
+                dimensions: with_metadata.dimensions,
+            },
+            rng.get_current_seed(),
+        )
     }
 
-    fn create_maze<M: Maze>(&self, template: M, mut rng: Arengee) -> (M, Solution<M::Idx>) {
-        let mut maze = self.algorithm.execute(template, &mut rng);
-        let solution = maze.make_solution(&mut rng);
+    fn create_maze<M: Maze>(&self, template: M, rng: &mut Arengee) -> (M, Solution<M::Idx>) {
+        let mut maze = self.algorithm.execute(template, rng);
+        let solution = maze.make_solution(rng);
         (maze, solution)
     }
 
@@ -138,9 +147,7 @@ impl Configuration {
         format!("{}|{}|{}", shape, algorithm, self.seed)
     }
 
-    fn display_maze(&self) -> RenderedMaze {
-        let rng = Arengee::new(self.seed);
-
+    fn display_maze(&self, rng: &mut Arengee) -> RenderedMaze {
         match self.shape {
             Shape::Rectilinear(x, y) => {
                 let (maze, solution) = self.create_maze(RectilinearMaze::new((x, y)), rng);
@@ -172,13 +179,19 @@ impl Configuration {
         }
     }
 
-    fn append_metadata(&self, render: RenderedMaze, url: Option<String>) -> RenderedMaze {
+    fn append_metadata(
+        &self,
+        render: RenderedMaze,
+        url: &Option<String>,
+        font_family: &Option<String>,
+    ) -> RenderedMaze {
         let metadata = Metadata::new(
             self.algorithm.clone(),
             self.shape.clone(),
             self.seed,
-            url.map(|u| format!("{}#{}", u, self.get_location_hash())),
+            url.as_ref()
+                .map(|u| format!("{}#{}", u, self.get_location_hash())),
         );
-        render.append_metadata(&metadata)
+        render.append_metadata(&metadata, font_family)
     }
 }

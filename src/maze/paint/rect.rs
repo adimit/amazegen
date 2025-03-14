@@ -30,12 +30,13 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
         let gradient = Gradient::new(gradient, self.maze, self.solution);
         let s = self.cell_size.0;
         let b = self.stroke_width.floor() as usize;
+        let fudge = b.min(3);
         for (x, y) in self.maze.get_all_nodes() {
             let rect = svg::node::element::Rectangle::new()
-                .set("x", x * s + b)
-                .set("y", y * s + b)
-                .set("width", s)
-                .set("height", s)
+                .set("x", x * s + b - fudge)
+                .set("y", y * s + b - fudge)
+                .set("width", s + fudge)
+                .set("height", s + fudge)
                 .set("fill", gradient.compute(&(x, y)).to_web_string());
             self.document.append(rect);
         }
@@ -86,12 +87,12 @@ impl MazeRenderer<RectilinearMaze> for RectilinearRenderer<'_> {
         self.document.append(path);
     }
 
-    fn render(&self) -> RenderedMaze {
+    fn render(self) -> RenderedMaze {
         let (x, y) = (
             (self.maze.extents.0 * self.cell_size.0) as f64 + 2.0 * self.stroke_width,
             (self.maze.extents.1 * self.cell_size.0) as f64 + 2.0 * self.stroke_width,
         );
-        RenderedMaze::new(self.document.clone(), (x.floor() as u32, y.floor() as u32))
+        RenderedMaze::new(self.document, (x.floor() as u32, y.floor() as u32))
     }
 }
 

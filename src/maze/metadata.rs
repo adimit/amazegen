@@ -21,10 +21,15 @@ impl Metadata {
         }
     }
 
-    fn make_text_node(&self, (x, y): (u32, u32)) -> (::svg::node::element::Group, u32) {
+    fn make_text_node(
+        &self,
+        (x, y): (u32, u32),
+        family: &Option<String>,
+    ) -> (::svg::node::element::Group, u32) {
         let font_size = y / 50;
         let line_spacing = font_size / 3;
         let mut group = svg::node::element::Group::new();
+        let font_family = family.as_deref().unwrap_or("sans-serif");
         for (i, text) in [
             format!("Shape: {}", shape_to_str(&self.shape),),
             format!("Algorithm: {:?}", self.algorithm,),
@@ -40,7 +45,7 @@ impl Metadata {
                     y + (font_size * 2) + (line_spacing * i as u32 + font_size * i as u32),
                 )
                 .set("font-size", font_size)
-                .set("font-family", "sans-serif");
+                .set("font-family", font_family);
 
             group.append(text_node);
         }
@@ -48,8 +53,13 @@ impl Metadata {
     }
 
     // returns the y offset that the text will need in the document viewport
-    pub fn append_to_svg_document(&self, doc: &mut svg::Document, (x, y): (u32, u32)) -> f64 {
-        let (text_node, text_height) = self.make_text_node((x, y));
+    pub fn append_to_svg_document(
+        &self,
+        doc: &mut svg::Document,
+        (x, y): (u32, u32),
+        font_family: &Option<String>,
+    ) -> f64 {
+        let (text_node, text_height) = self.make_text_node((x, y), font_family);
         doc.append(text_node);
 
         if let Some(url) = &self.maze_url {
