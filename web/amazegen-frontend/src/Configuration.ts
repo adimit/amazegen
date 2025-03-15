@@ -6,7 +6,7 @@ import {
   onCleanup,
   onMount,
 } from 'solid-js';
-import { generate_seed, run_configuration } from './amazegen/amazegen';
+import { generate_seed, run_configuration } from 'amazegen';
 
 export const algorithms = ['Kruskal', 'GrowingTree'] as const;
 export type Algorithm = (typeof algorithms)[number];

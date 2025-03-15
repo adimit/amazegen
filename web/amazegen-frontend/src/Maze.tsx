@@ -1,6 +1,6 @@
 import { JSX, createSignal, createEffect } from 'solid-js';
 import { Configuration, configurationHashSignal } from './Configuration';
-import { generate_pdf } from './amazegen/amazegen';
+import { generate_pdf } from 'amazegen';
 import { saveAs } from 'file-saver';
 import { fetchFont } from './font';
 
