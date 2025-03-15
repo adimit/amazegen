@@ -29,8 +29,12 @@
 body {
   background: black;
   color: white;
-  display: grid;
   font-family: "Bitter";
+}
+
+#root {
+  width: 100%;
+  display: grid;
   @media only screen and (min-width: 810px) {
     grid-template-columns: 1fr 800px 1fr;
   }
@@ -56,10 +60,6 @@ svg {
   height: auto;
 }
 
-main {
-  
-}
-
 h2 {
   display: inline;
   margin-right: 15px;
@@ -68,5 +68,4 @@ h2 {
 section {
   padding-bottom: 10px;
   padding-left: 10px;
-
 }

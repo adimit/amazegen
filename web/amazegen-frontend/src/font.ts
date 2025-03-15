@@ -1,4 +1,4 @@
-import fontdata from "./assets/fonts/Bitter-Regular.ttf?url";
+import fontdata from './assets/fonts/Bitter-Regular.ttf';
 
 export const fetchFont = async (): Promise<Uint8Array> => {
   const font = await fetch(fontdata);

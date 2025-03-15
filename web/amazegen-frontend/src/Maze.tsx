@@ -1,8 +1,8 @@
-import { JSX, createSignal, createEffect } from "solid-js";
-import { Configuration, configurationHashSignal } from "./Configuration";
-import { generate_pdf } from "./pkg";
-import { saveAs } from "file-saver";
-import { fetchFont } from "./font";
+import { JSX, createSignal, createEffect } from 'solid-js';
+import { Configuration, configurationHashSignal } from './Configuration';
+import { generate_pdf } from './amazegen/amazegen';
+import { saveAs } from 'file-saver';
+import { fetchFont } from './font';
 
 const getUrl = () => {
   return `${document.location.origin}${document.location.pathname}`;
@@ -12,12 +12,12 @@ const generatePdf = async (config: Configuration, pages: number) => {
   const printConfig: Configuration = {
     ...config,
     stroke_width: 2,
-    colour: "000000",
+    colour: '000000',
     features: [],
   };
   const binary = generate_pdf(printConfig, pages, getUrl(), await fetchFont());
-  const blob = new Blob([binary], { type: "application/pdf" });
-  saveAs(blob, "maze.pdf");
+  const blob = new Blob([binary], { type: 'application/pdf' });
+  saveAs(blob, 'maze.pdf');
 };
 
 export default function Maze(): JSX.Element {
@@ -68,24 +68,24 @@ export default function Maze(): JSX.Element {
         <label>
           <input
             type="radio"
-            onInput={() => setShape("Rectilinear")}
-            checked={"Rectilinear" in configuration().shape}
+            onInput={() => setShape('Rectilinear')}
+            checked={'Rectilinear' in configuration().shape}
           />
           Square
         </label>
         <label>
           <input
             type="radio"
-            onInput={() => setShape("Theta")}
-            checked={"Theta" in configuration().shape}
+            onInput={() => setShape('Theta')}
+            checked={'Theta' in configuration().shape}
           />
           Circle
         </label>
         <label>
           <input
             type="radio"
-            onInput={() => setShape("Sigma")}
-            checked={"Sigma" in configuration().shape}
+            onInput={() => setShape('Sigma')}
+            checked={'Sigma' in configuration().shape}
           />
           Hexagon
         </label>
@@ -95,16 +95,16 @@ export default function Maze(): JSX.Element {
         <label>
           <input
             type="radio"
-            onInput={() => setAlgorithm("GrowingTree")}
-            checked={configuration().algorithm === "GrowingTree"}
+            onInput={() => setAlgorithm('GrowingTree')}
+            checked={configuration().algorithm === 'GrowingTree'}
           />
           Growing Tree
         </label>
         <label>
           <input
-            onInput={() => setAlgorithm("Kruskal")}
+            onInput={() => setAlgorithm('Kruskal')}
             type="radio"
-            checked={configuration().algorithm === "Kruskal"}
+            checked={configuration().algorithm === 'Kruskal'}
           />
           Kruskal's
         </label>
@@ -138,9 +138,9 @@ export default function Maze(): JSX.Element {
         <input
           type="checkbox"
           onInput={() => {
-            toggleFeature("Stain");
+            toggleFeature('Stain');
           }}
-          checked={configuration().features.includes("Stain")}
+          checked={configuration().features.includes('Stain')}
         />
         Stain Maze
       </label>
@@ -148,9 +148,9 @@ export default function Maze(): JSX.Element {
         <input
           type="checkbox"
           onInput={() => {
-            toggleFeature("Solve");
+            toggleFeature('Solve');
           }}
-          checked={configuration().features.includes("Solve")}
+          checked={configuration().features.includes('Solve')}
         />
         Show Solution
       </label>

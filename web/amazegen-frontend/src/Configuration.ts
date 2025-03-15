@@ -5,12 +5,12 @@ import {
   createSignal,
   onCleanup,
   onMount,
-} from "solid-js";
-import { generate_seed, run_configuration } from "./pkg";
+} from 'solid-js';
+import { generate_seed, run_configuration } from './amazegen/amazegen';
 
-export const algorithms = ["Kruskal", "GrowingTree"] as const;
+export const algorithms = ['Kruskal', 'GrowingTree'] as const;
 export type Algorithm = (typeof algorithms)[number];
-export const features = ["Stain", "Solve"] as const;
+export const features = ['Stain', 'Solve'] as const;
 export type Feature = (typeof features)[number];
 
 export interface ShapeRectilinear {
@@ -45,15 +45,15 @@ export const DEFAULT_MAZE_SIZE = 10;
 const readFromHash = (): Configuration => {
   const getDefaultConfiguration = (): Configuration => ({
     seed: generate_seed(),
-    algorithm: "GrowingTree",
+    algorithm: 'GrowingTree',
     shape: { Rectilinear: [DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE] },
     features: [],
-    colour: "EEEEEE",
+    colour: 'EEEEEE',
     stroke_width: 8,
   });
 
   const parseSize = (str: string | undefined): number | undefined => {
-    if (str === undefined || str === "") return undefined;
+    if (str === undefined || str === '') return undefined;
     const n = Number(str);
     return !isNaN(n) ? n : undefined;
   };
@@ -61,13 +61,13 @@ const readFromHash = (): Configuration => {
   const parseShape = (str: string | undefined): Shape | undefined => {
     if (str === undefined) return undefined;
     const size = parseSize(str.substring(1));
-    if (size !== undefined && str.startsWith("R")) {
+    if (size !== undefined && str.startsWith('R')) {
       return rect(size);
     }
-    if (size !== undefined && str.startsWith("T")) {
+    if (size !== undefined && str.startsWith('T')) {
       return theta(size);
     }
-    if (size !== undefined && str.startsWith("S")) {
+    if (size !== undefined && str.startsWith('S')) {
       return sigma(size);
     }
     const legacy = parseSize(str);
@@ -97,7 +97,7 @@ const readFromHash = (): Configuration => {
   const [shape, algorithm, seed] =
     (document?.location.hash
       .substring(1)
-      .split("|")
+      .split('|')
       .map((str, index) => parse[index](str)) as [
       Shape | undefined,
       Algorithm | undefined,
@@ -113,10 +113,10 @@ const readFromHash = (): Configuration => {
 };
 
 const hashShape = (shape: Shape): string => {
-  if ("Rectilinear" in shape) {
+  if ('Rectilinear' in shape) {
     return `R${shape.Rectilinear[0]}`;
   }
-  if ("Sigma" in shape) {
+  if ('Sigma' in shape) {
     return `S${shape.Sigma}`;
   }
   return `T${shape.Theta}`;
@@ -144,8 +144,9 @@ export const configurationHashSignal = (): {
 } => {
   const [configuration, setConfiguration] = createSignal(readFromHash());
   const result = createMemo(() => {
-    const r: { svg: string; hash: string } | null =
-      run_configuration(configuration());
+    const r: { svg: string; hash: string } | null = run_configuration(
+      configuration(),
+    );
     if (r !== null) {
       return r;
     }
@@ -153,18 +154,18 @@ export const configurationHashSignal = (): {
 
   createEffect(() => {
     if (document.location !== undefined) {
-      document.location.hash = result()?.hash ?? "";
+      document.location.hash = result()?.hash ?? '';
     }
   });
 
   const shapeEquals = (a: Shape, b: Shape): boolean => {
-    if ("Rectilinear" in a && "Rectilinear" in b) {
+    if ('Rectilinear' in a && 'Rectilinear' in b) {
       return a.Rectilinear[0] === b.Rectilinear[0];
     }
-    if ("Theta" in a && "Theta" in b) {
+    if ('Theta' in a && 'Theta' in b) {
       return a.Theta === b.Theta;
     }
-    if ("Sigma" in a && "Sigma" in b) {
+    if ('Sigma' in a && 'Sigma' in b) {
       return a.Sigma === b.Sigma;
     }
     return false;
@@ -183,10 +184,10 @@ export const configurationHashSignal = (): {
   };
 
   onMount(() => {
-    window.addEventListener("hashchange", onHashChange);
+    window.addEventListener('hashchange', onHashChange);
   });
   onCleanup(() => {
-    window.removeEventListener("hashchange", onHashChange);
+    window.removeEventListener('hashchange', onHashChange);
   });
 
   const removeFeature = (f: Feature): Configuration =>
@@ -202,12 +203,12 @@ export const configurationHashSignal = (): {
 
   const adjustSize = (by: (old: number) => number): Configuration => {
     const { shape } = configuration();
-    if ("Rectilinear" in shape) {
+    if ('Rectilinear' in shape) {
       return setConfiguration({
         ...configuration(),
         shape: rect(by(shape.Rectilinear[0])),
       });
-    } else if ("Theta" in shape) {
+    } else if ('Theta' in shape) {
       return setConfiguration({
         ...configuration(),
         shape: theta(by(shape.Theta)),
@@ -222,9 +223,9 @@ export const configurationHashSignal = (): {
 
   const getSize = (): number => {
     const { shape } = configuration();
-    if ("Rectilinear" in shape) {
+    if ('Rectilinear' in shape) {
       return shape.Rectilinear[0];
-    } else if ("Theta" in shape) {
+    } else if ('Theta' in shape) {
       return shape.Theta;
     } else {
       return shape.Sigma;
@@ -233,10 +234,10 @@ export const configurationHashSignal = (): {
 
   const adjustSizeToNewShape = (newShape: ShapeKeys) => {
     const currentShape = configuration().shape;
-    if ("Theta" in currentShape && newShape !== "Theta") {
+    if ('Theta' in currentShape && newShape !== 'Theta') {
       return getSize() * 2;
     }
-    if (newShape === "Theta") {
+    if (newShape === 'Theta') {
       return Math.floor(getSize() / 2);
     }
     return getSize();
@@ -245,11 +246,11 @@ export const configurationHashSignal = (): {
   const setShape = (shape: ShapeKeys): Shape => {
     const size = adjustSizeToNewShape(shape);
     switch (shape) {
-      case "Rectilinear":
+      case 'Rectilinear':
         return rect(size);
-      case "Theta":
+      case 'Theta':
         return theta(size);
-      case "Sigma":
+      case 'Sigma':
         return sigma(size);
     }
   };
@@ -273,7 +274,7 @@ export const configurationHashSignal = (): {
     removeFeature,
     toggleFeature: (f): Configuration =>
       configuration().features.includes(f) ? removeFeature(f) : addFeature(f),
-    svg: () => result()?.svg ?? "",
+    svg: () => result()?.svg ?? '',
   };
 };
 

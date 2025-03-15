@@ -1,0 +1,5 @@
+((typescript-ts-mode . ((apheleia-formatter . (biome))))
+ (tsx-ts-mode . ((apheleia-formatter . (biome))))
+ (json-mode . ((apheleia-formatter . (biome))))
+ (scss-mode . ((apheleia-formatter . (biome))))
+ (css-mode . ((apheleia-formatter . (biome)))))
