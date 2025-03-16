@@ -1,4 +1,7 @@
-use super::feature::{Algorithm, Shape};
+use amazegen::maze::{
+    feature::{Algorithm, Shape},
+    paint::RenderedMaze,
+};
 use qrcode::QrCode;
 use svg::{Node, Parser};
 
@@ -67,6 +70,37 @@ impl Metadata {
             y as f64 * SCALE
         } else {
             text_height as f64
+        }
+    }
+
+    pub fn from_configuration(
+        config: &amazegen::maze::feature::Configuration,
+        url: Option<String>,
+    ) -> Self {
+        Self::new(
+            config.algorithm.clone(),
+            config.shape.clone(),
+            config.seed,
+            url,
+        )
+    }
+
+    pub fn metadata_to_render(
+        &self,
+        mut render: RenderedMaze,
+        font_family: &Option<String>,
+    ) -> RenderedMaze {
+        let offset =
+            self.append_to_svg_document(&mut render.document, render.dimensions, font_family);
+        let (x, y) = render.dimensions;
+        let svg = render.document.set(
+            "viewBox",
+            format!("0 0 {} {}", x, y + offset.floor() as u32),
+        );
+
+        RenderedMaze {
+            document: svg,
+            dimensions: (x, y + offset.floor() as u32),
         }
     }
 }

@@ -6,7 +6,6 @@ use std::cmp::max;
 use std::fmt::Display;
 
 use super::interface::{Maze, MazeRenderer, Solution};
-use super::metadata::Metadata;
 
 use thiserror::Error;
 
@@ -129,7 +128,7 @@ impl<'a, M: Maze> Gradient<'a, M> {
 
 #[derive(Debug)]
 pub struct RenderedMaze {
-    document: ::svg::Document,
+    pub document: ::svg::Document,
     pub dimensions: (u32, u32),
 }
 
@@ -138,21 +137,6 @@ impl RenderedMaze {
         Self {
             document: document.set("viewBox", format!("0 0 {} {}", dimensions.0, dimensions.1)),
             dimensions,
-        }
-    }
-
-    pub fn append_metadata(mut self, metadata: &Metadata, font_family: &Option<String>) -> Self {
-        let offset =
-            metadata.append_to_svg_document(&mut self.document, self.dimensions, font_family);
-        let (x, y) = self.dimensions;
-        let svg = self.document.set(
-            "viewBox",
-            format!("0 0 {} {}", x, y + offset.floor() as u32),
-        );
-
-        Self {
-            document: svg,
-            dimensions: (x, y + offset.floor() as u32),
         }
     }
 }

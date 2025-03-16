@@ -1,12 +1,12 @@
 #![allow(mixed_script_confusables)]
 
-use amazegen::pdf::PdfWriter;
-use amazegen::{
-    maze::{
-        feature::{Algorithm, Configuration, Feature, Shape},
-        paint::WebColour,
-    },
-    pdf::Font,
+use amazegen::maze::{
+    feature::{Algorithm, Configuration, Feature, Shape, Svg},
+    paint::WebColour,
+};
+use amazegen_printer::{
+    metadata::Metadata,
+    pdf::{Font, PdfWriter},
 };
 use clap::{Parser, ValueEnum};
 
@@ -163,8 +163,8 @@ fn main() -> Result<(), ()> {
     let font_name = font_data.as_ref().map(|f| f.name.clone());
 
     if let Some(svg_file) = cli.svg {
-        let (maze, _) = configuration.execute_for_svg(&cli.url, &font_name);
-        std::fs::write(svg_file, &maze.content).expect("Failed to write SVG");
+        let (maze, _) = configuration.execute_for_svg();
+        std::fs::write(svg_file, &maze.document.to_string()).expect("Failed to write SVG");
     }
 
     if let Some(pdf_file) = cli.pdf {
@@ -172,9 +172,15 @@ fn main() -> Result<(), ()> {
         let pages = cli.pages.unwrap_or(1);
 
         for _ in 0..pages {
-            let (maze, new_seed) = configuration.execute_for_svg(&cli.url, &font_name);
+            let (maze, new_seed) = configuration.execute_for_svg();
+            let metadata = Metadata::from_configuration(&configuration, cli.url.clone());
+            let maze_with_metadata = metadata.metadata_to_render(maze, &font_name.clone());
+            let svg = Svg {
+                content: maze_with_metadata.document.to_string(),
+                dimensions: maze_with_metadata.dimensions,
+            };
             configuration.seed = new_seed;
-            writer.append_maze(&maze);
+            writer.append_maze(&svg);
         }
         writer.write_to_file(&pdf_file);
     }

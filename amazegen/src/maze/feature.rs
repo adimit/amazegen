@@ -9,7 +9,6 @@ use crate::WebResponse;
 use super::algorithms::{jarník, kruskal};
 use super::arengee::Arengee;
 use super::interface::{Maze, Solution};
-use super::metadata::Metadata;
 use super::paint::rect::RectilinearRenderer;
 use super::paint::sigma::SigmaMazeRenderer;
 use super::shape::sigma::SigmaMaze;
@@ -103,21 +102,10 @@ impl Configuration {
         }
     }
 
-    pub fn execute_for_svg(
-        &self,
-        url: &Option<String>,
-        font_family: &Option<String>,
-    ) -> (Svg, u64) {
+    pub fn execute_for_svg(&self) -> (RenderedMaze, u64) {
         let mut rng = Arengee::new(self.seed);
         let rendered = self.display_maze(&mut rng);
-        let with_metadata = self.append_metadata(rendered, url, font_family);
-        (
-            Svg {
-                content: with_metadata.to_string(),
-                dimensions: with_metadata.dimensions,
-            },
-            rng.get_current_seed(),
-        )
+        (rendered, rng.get_current_seed())
     }
 
     fn create_maze<M: Maze>(&self, template: M, rng: &mut Arengee) -> (M, Solution<M::Idx>) {
@@ -134,7 +122,7 @@ impl Configuration {
         renderer.render()
     }
 
-    fn get_location_hash(&self) -> String {
+    pub fn get_location_hash(&self) -> String {
         let shape = match self.shape {
             Shape::Rectilinear(width, _) => format!("R{}", width),
             Shape::Sigma(size) => format!("S{}", size),
@@ -177,21 +165,5 @@ impl Configuration {
                 ))
             }
         }
-    }
-
-    fn append_metadata(
-        &self,
-        render: RenderedMaze,
-        url: &Option<String>,
-        font_family: &Option<String>,
-    ) -> RenderedMaze {
-        let metadata = Metadata::new(
-            self.algorithm.clone(),
-            self.shape.clone(),
-            self.seed,
-            url.as_ref()
-                .map(|u| format!("{}#{}", u, self.get_location_hash())),
-        );
-        render.append_metadata(&metadata, font_family)
     }
 }

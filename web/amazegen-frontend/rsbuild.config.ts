@@ -14,7 +14,11 @@ export default defineConfig({
     pluginWasmPack({
       crates: [
         {
-          path: '../../',
+          path: '../../amazegen',
+          target: 'bundler',
+        },
+        {
+          path: '../../amazegen_printer',
           target: 'bundler',
         },
       ],

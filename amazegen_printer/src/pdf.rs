@@ -4,7 +4,7 @@ use pdf_writer::{Content, Finish, Name, Pdf, Rect, Ref};
 use svg2pdf::usvg::Options;
 use ttf_parser::{name_id, Face};
 
-use crate::maze::feature::Svg;
+use amazegen::maze::feature::Svg;
 
 pub struct PdfWriter {
     alloc: Ref,

@@ -1,6 +1,5 @@
 import { JSX, createSignal, createEffect } from 'solid-js';
 import { Configuration, configurationHashSignal } from './Configuration';
-import { generate_pdf } from 'amazegen';
 import { saveAs } from 'file-saver';
 import { fetchFont } from './font';
 
@@ -9,6 +8,7 @@ const getUrl = () => {
 };
 
 const generatePdf = async (config: Configuration, pages: number) => {
+  const { generate_pdf } = await import('amazegen_printer');
   const printConfig: Configuration = {
     ...config,
     stroke_width: 2,
