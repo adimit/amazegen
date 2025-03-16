@@ -50,7 +50,6 @@ name = "amazegen_printer"
 version = "0.1.0"
 dependencies = [
  "amazegen",
- "clap",
  "pdf-writer",
  "qrcode",
  "serde",
