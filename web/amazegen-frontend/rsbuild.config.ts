@@ -5,6 +5,9 @@ import { pluginBabel } from '@rsbuild/plugin-babel';
 import { pluginWasmPack } from 'rsbuild-plugin-wasmpack';
 
 export default defineConfig({
+  html: {
+    template: './index.html',
+  },
   plugins: [
     pluginSolid(),
     pluginSass(),
