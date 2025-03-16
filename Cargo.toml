@@ -5,4 +5,8 @@ members = ["amazegen", "amazegen_printer", "amazegen_cli"]
 [profile.release]
 lto = true
 opt-level = "z"
+# strip = true # doesn't work
+codegen-units = 1 # Actually shaves off ~100kb off the printer artifact
+panic = "abort" # doesn't save much
+# Build with: RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none"
 
