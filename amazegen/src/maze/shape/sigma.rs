@@ -6,38 +6,7 @@ use crate::maze::{
     interface::{Maze, Solution},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Cartesian {
-    x: usize,
-    y: usize,
-}
-
-impl From<(usize, usize)> for Cartesian {
-    fn from(val: (usize, usize)) -> Self {
-        Cartesian { x: val.0, y: val.1 }
-    }
-}
-
-impl Cartesian {
-    fn regular_index(&self, row_size: usize) -> usize {
-        row_size * self.y + self.x
-    }
-
-    fn get_random_contained_coordinate(&self, rng: &mut Arengee) -> Self {
-        Self {
-            x: rng.u32(0..self.x as u32) as usize,
-            y: rng.u32(0..self.y as u32) as usize,
-        }
-    }
-
-    pub fn x(&self) -> usize {
-        self.x
-    }
-
-    pub fn y(&self) -> usize {
-        self.y
-    }
-}
+use super::coordinates::Cartesian;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Direction {
@@ -82,7 +51,7 @@ pub struct SigmaCell {
 impl SigmaCell {
     fn new<C: Into<Cartesian>>(coordinates: C, size: usize) -> Self {
         let coordinates = coordinates.into();
-        let Cartesian { x, y } = coordinates;
+        let (x, y) = coordinates.get();
         let mut inaccessible = Neighbours::new();
         if y > 0 {
             inaccessible[Direction::North] = Some((x, y - 1).into());
@@ -155,7 +124,7 @@ impl SigmaMaze {
 
     fn set_exit(&mut self, x: usize, rng: &mut Arengee) {
         let y = self.size - 1;
-        let index = Cartesian { x, y }.regular_index(self.size);
+        let index = Cartesian::new(x, y).regular_index(self.size);
         let d = if x % 2 == 0 {
             &Direction::South
         } else {
@@ -166,7 +135,7 @@ impl SigmaMaze {
 
     fn set_entrance(&mut self, x: usize, rng: &mut Arengee) {
         let y = 0;
-        let index = Cartesian { x, y }.regular_index(self.size);
+        let index = Cartesian::new(x, y).regular_index(self.size);
         let d = if x % 2 == 0 {
             rng.choice(&[Direction::North, Direction::NorthEast, Direction::NorthWest])
         } else {
@@ -213,11 +182,7 @@ impl Maze for SigmaMaze {
     }
 
     fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx {
-        Cartesian {
-            x: self.size,
-            y: self.size,
-        }
-        .get_random_contained_coordinate(rng)
+        Cartesian::new(self.size, self.size).get_random_contained_coordinate(rng)
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
@@ -262,8 +227,8 @@ impl Maze for SigmaMaze {
             .into();
 
         let entrance_topo = dijkstra(self, entrance);
-        self.set_entrance(entrance.x, rng);
-        self.set_exit(exit.x, rng);
+        self.set_entrance(entrance.x(), rng);
+        self.set_exit(exit.x(), rng);
         let path = find_path(self, &exit_topo, entrance, exit);
 
         Solution {

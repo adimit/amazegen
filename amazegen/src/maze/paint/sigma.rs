@@ -9,7 +9,10 @@ use svg::{
 use crate::maze::{
     interface::{Maze, MazeRenderer, Solution},
     paint::Gradient,
-    shape::sigma::{Cartesian, Direction, SigmaMaze},
+    shape::{
+        coordinates::Cartesian,
+        sigma::{Direction, SigmaMaze},
+    },
 };
 
 use super::{RenderedMaze, WebColour};
