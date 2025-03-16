@@ -19,7 +19,7 @@ pub enum Direction {
 }
 
 impl Index<Direction> for Neighbours {
-    type Output = Option<Cartesian>;
+    type Output = Option<Cartesian<usize>>;
 
     fn index(&self, index: Direction) -> &Self::Output {
         &self.0[index as usize]
@@ -33,7 +33,7 @@ impl IndexMut<Direction> for Neighbours {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Neighbours(Vec<Option<Cartesian>>);
+pub struct Neighbours(Vec<Option<Cartesian<usize>>>);
 
 impl Neighbours {
     fn new() -> Self {
@@ -43,13 +43,13 @@ impl Neighbours {
 
 #[derive(Debug)]
 pub struct SigmaCell {
-    coordinates: Cartesian,
+    coordinates: Cartesian<usize>,
     pub accessible: Neighbours,
     inaccessible: Neighbours,
 }
 
 impl SigmaCell {
-    fn new<C: Into<Cartesian>>(coordinates: C, size: usize) -> Self {
+    fn new<C: Into<Cartesian<usize>>>(coordinates: C, size: usize) -> Self {
         let coordinates = coordinates.into();
         let (x, y) = coordinates.get();
         let mut inaccessible = Neighbours::new();
@@ -94,7 +94,7 @@ impl SigmaCell {
         }
     }
 
-    fn carve(&mut self, neighbour: Cartesian) {
+    fn carve(&mut self, neighbour: Cartesian<usize>) {
         if let Some(index) = self
             .inaccessible
             .0
@@ -144,7 +144,7 @@ impl SigmaMaze {
         self.cells[index].accessible[*d] = Some((x, y).into());
     }
 
-    pub fn has_path(&self, a: &Cartesian, d: Direction) -> bool {
+    pub fn has_path(&self, a: &Cartesian<usize>, d: Direction) -> bool {
         self.cells[self.get_index(*a)].accessible[d].is_some()
     }
 
@@ -154,7 +154,7 @@ impl SigmaMaze {
 }
 
 impl Maze for SigmaMaze {
-    type Idx = Cartesian;
+    type Idx = Cartesian<usize>;
 
     fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx) {
         let a = self.get_index(node);
@@ -210,7 +210,7 @@ impl Maze for SigmaMaze {
     fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
         let seed_topo = dijkstra(self, (rng.u32(0..self.size as u32) as usize, 0).into());
 
-        let exit: Cartesian = {
+        let exit: Cartesian<usize> = {
             let y = self.size - 1;
             (0..self.size)
                 .map(|x| (x, y))
@@ -220,7 +220,7 @@ impl Maze for SigmaMaze {
         .into();
 
         let exit_topo = dijkstra(self, exit);
-        let entrance: Cartesian = (0..self.size)
+        let entrance: Cartesian<usize> = (0..self.size)
             .map(|x| (x, 0))
             .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
             .unwrap_or((rng.u32(0..self.size as u32) as usize, 0))

@@ -19,7 +19,7 @@ use super::{RenderedMaze, WebColour};
 
 pub struct SigmaMazeRenderer<'a> {
     maze: &'a SigmaMaze,
-    solution: &'a Solution<Cartesian>,
+    solution: &'a Solution<Cartesian<usize>>,
     stroke_width: f64,
     dimensions: Dimensions,
     document: svg::Document,
@@ -154,7 +154,7 @@ impl Dimensions {
 impl<'a> SigmaMazeRenderer<'a> {
     pub fn new(
         maze: &'a SigmaMaze,
-        solution: &'a Solution<Cartesian>,
+        solution: &'a Solution<Cartesian<usize>>,
         stroke_width: f64,
         cell_width: f64,
     ) -> Self {
@@ -169,7 +169,7 @@ impl<'a> SigmaMazeRenderer<'a> {
         }
     }
 
-    fn compute_centre(&self, cell: &Cartesian) -> (f64, f64) {
+    fn compute_centre(&self, cell: &Cartesian<usize>) -> (f64, f64) {
         let Dimensions {
             a, b, cell_height, ..
         } = self.dimensions;
@@ -182,7 +182,7 @@ impl<'a> SigmaMazeRenderer<'a> {
         (x, y)
     }
 
-    fn render_cell(&self, data: &mut Data, cell: Cartesian) {
+    fn render_cell(&self, data: &mut Data, cell: Cartesian<usize>) {
         let Dimensions { a, b, .. } = self.dimensions;
         let (x, y) = self.compute_centre(&cell);
 
