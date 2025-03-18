@@ -31,8 +31,14 @@ where
 }
 
 impl From<(usize, usize)> for Cartesian<usize> {
-    fn from(val: (usize, usize)) -> Self {
-        Cartesian { x: val.0, y: val.1 }
+    fn from((x, y): (usize, usize)) -> Self {
+        Cartesian { x, y }
+    }
+}
+
+impl From<(u32, u32)> for Cartesian<u32> {
+    fn from((x, y): (u32, u32)) -> Self {
+        Cartesian { x, y }
     }
 }
 

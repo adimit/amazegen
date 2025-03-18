@@ -1,6 +1,9 @@
-use std::ops::Index;
+use std::{ops::Index, path};
+
+use itertools::Itertools;
 
 use crate::maze::{
+    algorithms::{dijkstra, find_path},
     arengee::Arengee,
     interface::{Maze, Solution},
 };
@@ -156,6 +159,12 @@ impl DeltaMaze {
         }
         Self { size, cells }
     }
+
+    fn set_entrance(&mut self, x: u32, rng: &mut Arengee) {
+        let y = 0;
+        let index = Cartesian::new(x, y).regular_index(self.size);
+    }
+    fn set_exit(&mut self, x: u32, rng: &mut Arengee) {}
 }
 
 impl Maze for DeltaMaze {
@@ -168,32 +177,98 @@ impl Maze for DeltaMaze {
 
     fn get_walls(&self, node: Self::Idx) -> Vec<Self::Idx> {
         let cell = &self.cells[node.regular_index(self.size) as usize];
-        let mut walls = Vec::with_capacity(3);
-        let neighbours = &cell.inaccessible;
-        walls
+        [
+            cell.inaccessible.west,
+            cell.inaccessible.east,
+            cell.inaccessible.alpha,
+        ]
+        .iter()
+        .filter_map(|x| *x)
+        .collect()
     }
 
     fn get_paths(&self, node: Self::Idx) -> Vec<Self::Idx> {
-        todo!()
+        let cell = &self.cells[node.regular_index(self.size) as usize];
+        [
+            cell.accessible.west,
+            cell.accessible.east,
+            cell.accessible.alpha,
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
     }
 
     fn get_random_node(&self, rng: &mut Arengee) -> Self::Idx {
-        todo!()
+        self.cells[rng.get_portable_usize(0..self.cells.len())].coordinates
     }
 
     fn get_all_edges(&self) -> Vec<(Self::Idx, Self::Idx)> {
-        todo!()
+        self.cells
+            .iter()
+            .flat_map(|c| {
+                let mut edges = Vec::with_capacity(3);
+                if !is_top(c.coordinates) {
+                    c.inaccessible
+                        .alpha
+                        .map(|alpha| edges.push((c.coordinates, alpha)));
+                }
+                c.inaccessible
+                    .west
+                    .map(|west| edges.push((c.coordinates, west)));
+                c.inaccessible
+                    .east
+                    .map(|east| edges.push((c.coordinates, east)));
+                edges
+            })
+            .collect()
     }
 
     fn get_all_nodes(&self) -> Vec<Self::Idx> {
-        todo!()
+        self.cells.iter().map(|c| c.coordinates).collect()
     }
 
     fn get_index(&self, node: Self::Idx) -> usize {
-        todo!()
+        node.regular_index(self.size) as usize
     }
 
     fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
-        todo!()
+        let possible_entrances = (0..self.size)
+            .map(|x| Cartesian::new(x, 0))
+            .filter(|c| is_top(*c))
+            .collect_vec();
+
+        let possible_exits = (0..self.size)
+            .map(|x| Cartesian::new(x, self.size - 1))
+            .filter(|c| !is_top(*c))
+            .collect_vec();
+
+        let seed_topo = dijkstra(self, *rng.choice(&possible_entrances));
+        let exit: Cartesian<u32> = {
+            let y = self.size - 1;
+            (0..self.size)
+                .map(|x| (x, y))
+                .filter(|c| !is_top(c.clone))
+                .max_by_key(|&c| seed_topo.get(self.get_index(c.into())))
+                .unwrap_or((rng.u32(0..self.size as u32), y))
+        }
+        .into();
+
+        let exit_topo = dijkstra(self, exit);
+        let entrance: Cartesian<u32> = (0..self.size)
+            .map(|x| (x, 0))
+            .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
+            .unwrap_or((rng.u32(0..self.size as u32), 0))
+            .into();
+
+        let entrance_topo = dijkstra(self, entrance);
+        self.set_entrance(entrance.x(), rng);
+        self.set_exit(exit.x(), rng);
+        let path = find_path(self, &exit_topo, entrance, exit);
+
+        Solution {
+            path,
+            distances: entrance_topo,
+        }
     }
 }
