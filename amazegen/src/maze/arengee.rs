@@ -28,6 +28,16 @@ impl Arengee {
         }
     }
 
+    /// "portable" here means that it'll generate the same result on x86, aarch & WASM,
+    /// as that's all I care about. If you want to generate a usize on a system with usize = u16
+    /// I don't think this library is going to work. If you want to generate a usize on a system
+    /// where usize = u64 and you expect the entire range to be covered, use the u64 and a cast
+    /// to usize. This is strictly a convenience method to generate u32 that can be used as array
+    /// indices.
+    pub fn get_portable_usize(&mut self, range: Range<usize>) -> usize {
+        self.u32(range.start as u32..range.end as u32) as usize
+    }
+
     pub fn choice<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
         let i = self.rng.u32(0..slice.len() as u32 - 1);
         &slice[i as usize]
