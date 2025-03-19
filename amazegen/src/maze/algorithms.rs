@@ -120,7 +120,7 @@ pub fn find_path<M: Maze>(maze: &M, topo: &[usize], entrance: M::Idx, exit: M::I
             .get_paths(cursor)
             .iter()
             .min_by_key(|n| topo[maze.get_index(**n)])
-            .unwrap();
+            .expect("Couldn't find where to move next while tracing path from entrance to exit.");
         path.push(cursor);
         if topo[maze.get_index(cursor)] == 1 {
             break;
