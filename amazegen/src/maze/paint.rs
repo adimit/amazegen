@@ -1,3 +1,4 @@
+pub mod delta;
 pub mod rect;
 pub mod sigma;
 pub mod theta;

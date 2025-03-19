@@ -21,6 +21,7 @@ enum CliShape {
     Rectilinear,
     Theta,
     Sigma,
+    Delta,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -69,7 +70,7 @@ struct Cli {
         value_enum,
         default_value = "rectilinear",
         help = "Shape of the maze.",
-        long_help = "rectilinear will draw a square maze with square cells. theta will draw a circular maze with square-ish cells. sigma will draw a square (in cell count) maze with hexagonal cells."
+        long_help = "rectilinear will draw a square maze with square cells. theta will draw a circular maze with square-ish cells. sigma will draw a square (in cell count) maze with hexagonal cells. delta will draw a circular maze with equilateral triangular cells."
     )]
     shape: Option<CliShape>,
     #[arg(long, default_value = "false", help = "Also draw a solution.")]
@@ -134,6 +135,7 @@ impl Cli {
             shape: match self.shape {
                 Some(CliShape::Sigma) => Shape::Sigma(size),
                 Some(CliShape::Theta) => Shape::Theta(size),
+                Some(CliShape::Delta) => Shape::Delta(size),
                 _ => Shape::Rectilinear(size, size),
             },
             colour: self

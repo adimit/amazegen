@@ -39,6 +39,12 @@ impl Arengee {
     }
 
     pub fn choice<'a, T>(&mut self, slice: &'a [T]) -> &'a T {
+        if slice.is_empty() {
+            panic!("Cannot choose from an empty slice");
+        }
+        if slice.len() == 1 {
+            return &slice[0];
+        }
         let i = self.rng.u32(0..slice.len() as u32 - 1);
         &slice[i as usize]
     }

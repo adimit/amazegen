@@ -9,8 +9,10 @@ use crate::WebResponse;
 use super::algorithms::{jarník, kruskal};
 use super::arengee::Arengee;
 use super::interface::{Maze, Solution};
+use super::paint::delta::DeltaMazeRenderer;
 use super::paint::rect::RectilinearRenderer;
 use super::paint::sigma::SigmaMazeRenderer;
+use super::shape::delta::DeltaMaze;
 use super::shape::sigma::SigmaMaze;
 use super::shape::theta::RingMaze;
 
@@ -23,6 +25,7 @@ pub enum Shape {
     Rectilinear(usize, usize),
     Theta(usize),
     Sigma(usize),
+    Delta(usize),
 }
 
 #[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -127,6 +130,7 @@ impl Configuration {
             Shape::Rectilinear(width, _) => format!("R{}", width),
             Shape::Sigma(size) => format!("S{}", size),
             Shape::Theta(size) => format!("T{}", size),
+            Shape::Delta(size) => format!("D{}", size),
         };
         let algorithm = match self.algorithm {
             Algorithm::Kruskal => "Kruskal",
@@ -161,6 +165,15 @@ impl Configuration {
                     &maze,
                     &solution,
                     self.stroke_width * 0.75,
+                    40.0,
+                ))
+            }
+            Shape::Delta(size) => {
+                let (maze, solution) = self.create_maze(DeltaMaze::new(size as u32), rng);
+                self.render(DeltaMazeRenderer::new(
+                    &maze,
+                    &solution,
+                    self.stroke_width,
                     40.0,
                 ))
             }

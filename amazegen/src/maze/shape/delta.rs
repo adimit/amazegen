@@ -83,7 +83,7 @@ struct DeltaCell {
     accessible: Neighbours,
 }
 
-fn is_top<C: Into<Cartesian<u32>>>(coordinates: C) -> bool {
+pub fn is_top<C: Into<Cartesian<u32>>>(coordinates: C) -> bool {
     let (x, y) = coordinates.into().get();
     (x + y) % 2 == 0
 }
@@ -163,12 +163,20 @@ impl DeltaMaze {
     /// May only be called on a top cell
     fn set_entrance(&mut self, coords: Cartesian<u32>) {
         let index = coords.regular_index(self.size) as usize;
-        self.cells[index].inaccessible.alpha = Some(coords);
+        self.cells[index].accessible.alpha = Some(coords);
     }
     /// May only be called on a bottom cell
     fn set_exit(&mut self, coords: Cartesian<u32>) {
         let index = coords.regular_index(self.size) as usize;
-        self.cells[index].inaccessible.alpha = Some(coords);
+        self.cells[index].accessible.alpha = Some(coords);
+    }
+
+    pub fn has_path(&self, a: &Cartesian<u32>, direction: Direction) -> bool {
+        let cell = &self.cells[a.regular_index(self.size) as usize];
+        cell.accessible[direction].is_some()
+    }
+    pub fn size(&self) -> u32 {
+        self.size
     }
 }
 

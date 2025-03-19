@@ -110,6 +110,7 @@ fn shape_to_str(shape: &Shape) -> String {
         Shape::Rectilinear(x, y) => format!("Rectilinear {}×{}", x, y),
         Shape::Theta(size) => format!("Theta {}", size),
         Shape::Sigma(size) => format!("Sigma {}", size),
+        Shape::Delta(size) => format!("Delta {}", size),
     }
     .to_string()
 }
