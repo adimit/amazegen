@@ -1,4 +1,4 @@
-use std::{ops::Index, path};
+use std::ops::Index;
 
 use itertools::Itertools;
 
@@ -85,7 +85,7 @@ struct DeltaCell {
 
 fn is_top<C: Into<Cartesian<u32>>>(coordinates: C) -> bool {
     let (x, y) = coordinates.into().get();
-    x + y % 2 == 0
+    (x + y) % 2 == 0
 }
 
 impl DeltaCell {
@@ -152,27 +152,34 @@ pub struct DeltaMaze {
 impl DeltaMaze {
     pub fn new(size: u32) -> Self {
         let mut cells = Vec::with_capacity((size * size) as usize);
-        for x in 0..size {
-            for y in 0..size {
+        for y in 0..size {
+            for x in 0..size {
                 cells.push(DeltaCell::new(Cartesian::new(x, y), size));
             }
         }
         Self { size, cells }
     }
 
-    fn set_entrance(&mut self, x: u32, rng: &mut Arengee) {
-        let y = 0;
-        let index = Cartesian::new(x, y).regular_index(self.size);
+    /// May only be called on a top cell
+    fn set_entrance(&mut self, coords: Cartesian<u32>) {
+        let index = coords.regular_index(self.size) as usize;
+        self.cells[index].inaccessible.alpha = Some(coords);
     }
-    fn set_exit(&mut self, x: u32, rng: &mut Arengee) {}
+    /// May only be called on a bottom cell
+    fn set_exit(&mut self, coords: Cartesian<u32>) {
+        let index = coords.regular_index(self.size) as usize;
+        self.cells[index].inaccessible.alpha = Some(coords);
+    }
 }
 
 impl Maze for DeltaMaze {
     type Idx = Cartesian<u32>;
 
     fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx) {
-        let index = node.regular_index(self.size);
-        self.cells[index as usize].carve(neighbour);
+        let a = node.regular_index(self.size);
+        let b = neighbour.regular_index(self.size);
+        self.cells[a as usize].carve(neighbour);
+        self.cells[b as usize].carve(node);
     }
 
     fn get_walls(&self, node: Self::Idx) -> Vec<Self::Idx> {
@@ -244,31 +251,97 @@ impl Maze for DeltaMaze {
             .collect_vec();
 
         let seed_topo = dijkstra(self, *rng.choice(&possible_entrances));
-        let exit: Cartesian<u32> = {
-            let y = self.size - 1;
-            (0..self.size)
-                .map(|x| (x, y))
-                .filter(|c| !is_top(c.clone))
-                .max_by_key(|&c| seed_topo.get(self.get_index(c.into())))
-                .unwrap_or((rng.u32(0..self.size as u32), y))
-        }
-        .into();
+        let exit: Cartesian<u32> = *possible_exits
+            .iter()
+            .max_by_key(|c| seed_topo.get(self.get_index(**c)))
+            .unwrap_or_else(|| rng.choice(&possible_exits));
 
         let exit_topo = dijkstra(self, exit);
-        let entrance: Cartesian<u32> = (0..self.size)
-            .map(|x| (x, 0))
-            .max_by_key(|&c| exit_topo.get(self.get_index(c.into())))
-            .unwrap_or((rng.u32(0..self.size as u32), 0))
-            .into();
+        let entrance: Cartesian<u32> = *possible_entrances
+            .iter()
+            .max_by_key(|c| exit_topo.get(self.get_index(**c)))
+            .unwrap_or_else(|| rng.choice(&possible_entrances));
 
         let entrance_topo = dijkstra(self, entrance);
-        self.set_entrance(entrance.x(), rng);
-        self.set_exit(exit.x(), rng);
+        self.set_entrance(entrance);
+        self.set_exit(exit);
         let path = find_path(self, &exit_topo, entrance, exit);
 
         Solution {
             path,
             distances: entrance_topo,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::DeltaMaze;
+    use crate::maze::{algorithms::jarník, arengee::Arengee, interface::Maze};
+
+    #[test]
+    fn maze_template_creation_is_correct() {
+        let maze = DeltaMaze::new(3);
+        assert_eq!(maze.get_all_nodes().len(), 9);
+        [0, 1, 2].iter().for_each(|y| {
+            let westest_cell = &maze.cells[maze.get_index((0, *y).into()) as usize];
+            assert_eq!(
+                westest_cell.inaccessible.west, None,
+                "{:?} shouldn't have a western neighbour",
+                westest_cell
+            );
+            assert_eq!(
+                westest_cell.inaccessible.east,
+                Some((1, *y).into()),
+                "{:?} should have an eastern neighbour",
+                westest_cell
+            );
+            let eastest_cell = &maze.cells[maze.get_index((2, *y).into()) as usize];
+            assert_eq!(
+                eastest_cell.inaccessible.east,
+                None,
+                "{:?}{:?}{:?} shouldn't have an eastern neighbour",
+                (2, *y),
+                maze.get_index((2, *y).into()),
+                eastest_cell
+            );
+            assert_eq!(
+                eastest_cell.inaccessible.west,
+                Some((1, *y).into()),
+                "{:?} should have a western neighbour",
+                eastest_cell
+            );
+        });
+        [(0, 0), (2, 0), (1, 2)].iter().for_each(|&(x, y)| {
+            let cell = &maze.cells[maze.get_index((x, y).into()) as usize];
+            assert_eq!(
+                cell.inaccessible.alpha, None,
+                "{:?} shouldn't have alpha neighbour",
+                cell
+            );
+        });
+        [(1, 0), (0, 1), (1, 1), (2, 1), (0, 2), (2, 2)]
+            .iter()
+            .for_each(|&(x, y)| {
+                let cell = &maze.cells[maze.get_index((x, y).into()) as usize];
+                assert!(
+                    cell.inaccessible.alpha.is_some(),
+                    "{:?} should have alpha neighbour",
+                    cell
+                );
+            });
+    }
+
+    #[test]
+    fn generate_maze_with_jarník() {
+        let mut rng = Arengee::new(1);
+        let maze_template = DeltaMaze::new(10);
+        println!("{:?}", maze_template);
+        let mut maze = jarník(maze_template, &mut rng);
+        let solution = maze.make_solution(&mut rng);
+        let entrance = solution.path[0];
+        assert_eq!(entrance.y(), 0);
+        let exit = solution.path.last().unwrap();
+        assert_eq!(exit.y(), 9);
     }
 }
