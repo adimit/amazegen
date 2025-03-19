@@ -59,3 +59,20 @@ impl Cartesian<u32> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Cartesian;
+    #[test]
+    fn indexing_is_correct() {
+        assert_eq!(Cartesian::new(0, 0).regular_index(3), 0);
+        assert_eq!(Cartesian::new(1, 0).regular_index(3), 1);
+        assert_eq!(Cartesian::new(2, 0).regular_index(3), 2);
+        assert_eq!(Cartesian::new(0, 1).regular_index(3), 3);
+        assert_eq!(Cartesian::new(1, 1).regular_index(3), 4);
+        assert_eq!(Cartesian::new(2, 1).regular_index(3), 5);
+        assert_eq!(Cartesian::new(0, 2).regular_index(3), 6);
+        assert_eq!(Cartesian::new(1, 2).regular_index(3), 7);
+        assert_eq!(Cartesian::new(2, 2).regular_index(3), 8);
+    }
+}
