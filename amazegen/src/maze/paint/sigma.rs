@@ -94,7 +94,7 @@ impl MazeRenderer<SigmaMaze> for SigmaMazeRenderer<'_> {
         let path = Path::new()
             .set("fill", "none")
             .set("stroke", stroke_colour.to_web_string())
-            .set("stroke-width", self.stroke_width * 2.0)
+            .set("stroke-width", self.stroke_width)
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round")
             .set("d", data);
