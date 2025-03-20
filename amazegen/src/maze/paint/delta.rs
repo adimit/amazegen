@@ -1,6 +1,6 @@
 use svg::{
     node::element::{
-        path::{Command, Data, Position},
+        path::{Command, Data, Parameters, Position},
         Path,
     },
     Document, Node,
@@ -8,6 +8,7 @@ use svg::{
 
 use crate::maze::{
     interface::{Maze, MazeRenderer, Solution},
+    paint::Gradient,
     shape::{
         coordinates::Cartesian,
         delta::{is_top, DeltaMaze, Direction},
@@ -27,7 +28,33 @@ pub struct DeltaMazeRenderer<'a> {
 
 impl MazeRenderer<DeltaMaze> for DeltaMazeRenderer<'_> {
     fn stain(&mut self, gradient: (super::WebColour, super::WebColour)) {
-        todo!()
+        let gradient = Gradient::new(gradient, self.maze, self.solution);
+        self.maze.get_all_nodes().iter().for_each(|cell| {
+            let Geometry { start, movements } = self.get_geometry(cell);
+            let is_top_factor = if is_top(*cell) { 1.0 } else { -1.0 };
+            let fudge = 2.0;
+            let fudged_start = (start.0 - fudge, start.1 - (fudge * is_top_factor));
+            let fudged_movements = vec![
+                (
+                    movements[0].1 + fudge,
+                    movements[0].2 - (fudge * is_top_factor),
+                ),
+                (movements[1].1, movements[1].2 + (fudge * is_top_factor)),
+                (
+                    movements[2].1 - fudge,
+                    movements[2].2 - (fudge * is_top_factor),
+                ),
+            ];
+            let mut data = Data::new().move_to(Into::<Parameters>::into(fudged_start));
+            for coords in fudged_movements.into_iter() {
+                data = data.line_to(Into::<Parameters>::into(coords));
+            }
+            let path = Path::new()
+                .set("fill", gradient.compute(cell).to_web_string())
+                .set("stroke", "none")
+                .set("d", data);
+            self.document.append(path);
+        });
     }
 
     fn solve(&mut self, stroke_colour: super::WebColour) {
@@ -77,7 +104,7 @@ impl MazeRenderer<DeltaMaze> for DeltaMazeRenderer<'_> {
         let size = self.maze.size();
         let x =
             (size as f64 / 2.0) * (self.edge_length) + self.stroke_width + (self.edge_length / 2.0);
-        let y = size as f64 * self.cell_height + self.stroke_width * 1.18; // ?? Why 1.18?
+        let y = size as f64 * self.cell_height + self.stroke_width;
         RenderedMaze::new(self.document, (x as u32, y.floor() as u32))
     }
 }
@@ -100,61 +127,40 @@ impl<'a> DeltaMazeRenderer<'a> {
     }
 
     fn render_cell(&self, data: &mut Data, cell: Cartesian<u32>) {
-        if is_top(cell) {
-            self.render_top_cell(data, cell);
-        } else {
-            self.render_bottom_cell(data, cell);
+        let Geometry { start, movements } = self.get_geometry(&cell);
+        data.append(Command::Move(Position::Absolute, start.into()));
+        movements.iter().for_each(|(d, x, y)| {
+            if self.maze.has_path(&cell, *d) {
+                data.append(Command::Move(Position::Absolute, (*x, *y).into()));
+            } else {
+                data.append(Command::Line(Position::Absolute, (*x, *y).into()));
+            }
+        });
+    }
+
+    fn get_geometry(&self, cell: &Cartesian<u32>) -> Geometry<Direction> {
+        let (x, y) = cell.get();
+        let x_start = ((x as f64 / 2.0) * self.edge_length) + (self.stroke_width / 2.0);
+        let y_start = if is_top(*cell) { y } else { y + 1 } as f64 * self.cell_height
+            + (self.stroke_width / 2.0);
+        let movements = vec![
+            (Direction::ALPHA, x_start + self.edge_length, y_start),
+            (
+                Direction::EAST,
+                x_start + (self.edge_length / 2.0),
+                if is_top(*cell) {
+                    y_start + self.cell_height
+                } else {
+                    y_start - self.cell_height
+                },
+            ),
+            (Direction::WEST, x_start, y_start),
+        ];
+
+        Geometry {
+            start: (x_start, y_start),
+            movements,
         }
-    }
-
-    fn render_top_cell(&self, data: &mut Data, cell: Cartesian<u32>) {
-        let (x, y) = cell.get();
-        let xpos = ((x as f64 / 2.0) * self.edge_length) + (self.stroke_width / 2.0);
-        let ypos = y as f64 * self.cell_height + (self.stroke_width / 2.0);
-
-        let c = |d: Direction| {
-            if self.maze.has_path(&cell, d) {
-                Command::Move
-            } else {
-                Command::Line
-            }
-        };
-
-        data.append(Command::Move(Position::Absolute, (xpos, ypos).into()));
-        data.append(c(Direction::ALPHA)(
-            Position::Relative,
-            (self.edge_length, 0).into(),
-        ));
-        data.append(c(Direction::EAST)(
-            Position::Relative,
-            (-(self.edge_length / 2.0), self.cell_height).into(),
-        ));
-        data.append(c(Direction::WEST)(Position::Absolute, (xpos, ypos).into()));
-    }
-
-    fn render_bottom_cell(&self, data: &mut Data, cell: Cartesian<u32>) {
-        let (x, y) = cell.get();
-        let xpos = ((x as f64 / 2.0) * self.edge_length) + (self.stroke_width / 2.0);
-        let ypos = (1 + y) as f64 * self.cell_height + (self.stroke_width / 2.0);
-
-        let c = |d: Direction| {
-            if self.maze.has_path(&cell, d) {
-                Command::Move
-            } else {
-                Command::Line
-            }
-        };
-
-        data.append(Command::Move(Position::Absolute, (xpos, ypos).into()));
-        data.append(c(Direction::ALPHA)(
-            Position::Relative,
-            (self.edge_length, 0).into(),
-        ));
-        data.append(c(Direction::EAST)(
-            Position::Relative,
-            (-(self.edge_length / 2.0), -self.cell_height).into(),
-        ));
-        data.append(c(Direction::WEST)(Position::Absolute, (xpos, ypos).into()));
     }
 
     fn compute_centre(&self, cell: &Cartesian<u32>) -> (f64, f64) {
@@ -165,4 +171,13 @@ impl<'a> DeltaMazeRenderer<'a> {
         (xpos, ypos)
     }
 }
+
+struct Geometry<Direction>
+where
+    Direction: Copy,
+{
+    start: (f64, f64),
+    movements: Vec<(Direction, f64, f64)>,
+}
+
 const q: f64 = 1.61803398875 - 1.0;

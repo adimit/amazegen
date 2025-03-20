@@ -10,6 +10,7 @@ use crate::maze::{
 
 use super::coordinates::Cartesian;
 
+#[derive(Debug, Copy, Clone)]
 pub enum Direction {
     ALPHA,
     WEST,
