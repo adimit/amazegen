@@ -68,11 +68,16 @@ impl MazeRenderer<DeltaMaze> for DeltaMazeRenderer<'_> {
             (x, y + (self.cell_height / 2.0))
         };
         data.append(Command::Move(Position::Absolute, entrance.into()));
-        self.solution
-            .path
-            .iter()
-            .map(|cell| self.compute_centre(cell))
-            .for_each(|coords| data.append(Command::Line(Position::Absolute, coords.into())));
+        for i in 1..self.solution.path.len() - 2 {
+            let prev = self.solution.path[i - 1];
+            let cur = self.solution.path[i];
+            let next = self.solution.path[i + 1];
+
+            let inbound = midpoint(self.compute_centre(&prev), self.compute_centre(&cur));
+            let outbound = midpoint(self.compute_centre(&cur), self.compute_centre(&next));
+            data.append(Command::Line(Position::Absolute, inbound.into()));
+            data.append(Command::Line(Position::Absolute, outbound.into()));
+        }
         data.append(Command::Line(Position::Absolute, exit.into()));
         let path = Path::new()
             .set("fill", "none")
@@ -180,4 +185,8 @@ where
     movements: Vec<(Direction, f64, f64)>,
 }
 
-const q: f64 = 1.61803398875 - 1.0;
+const q: f64 = 0.5;
+
+fn midpoint(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
+    ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
+}
