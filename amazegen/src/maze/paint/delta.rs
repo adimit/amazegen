@@ -106,10 +106,11 @@ impl MazeRenderer<DeltaMaze> for DeltaMazeRenderer<'_> {
     }
 
     fn render(self) -> super::RenderedMaze {
-        let size = self.maze.size();
-        let x =
-            (size as f64 / 2.0) * (self.edge_length) + self.stroke_width + (self.edge_length / 2.0);
-        let y = size as f64 * self.cell_height + self.stroke_width;
+        let (width, height) = self.maze.get_size();
+        let x = (width as f64 / 2.0) * (self.edge_length)
+            + self.stroke_width
+            + (self.edge_length / 2.0);
+        let y = height as f64 * self.cell_height + self.stroke_width;
         RenderedMaze::new(self.document, (x as u32, y.floor() as u32))
     }
 }

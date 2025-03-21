@@ -89,7 +89,10 @@ pub fn jarník<M: Maze>(mut maze: M, rng: &mut Arengee) -> M {
     maze
 }
 
-pub fn dijkstra<M: Maze>(maze: &M, origin: M::Idx) -> Vec<usize> {
+pub fn dijkstra<M: Maze>(maze: &M, origin: M::Idx) -> Vec<usize>
+where
+    M::Idx: std::fmt::Debug, // handy for when things go sideways
+{
     let mut distances = maze.get_all_nodes().iter().map(|_| 0).collect::<Vec<_>>();
     let mut frontier: Vec<M::Idx> = vec![origin];
     distances[maze.get_index(origin)] = 1;

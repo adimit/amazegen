@@ -55,20 +55,20 @@ impl Cartesian<u32> {
         let (x, y) = self.get();
         x.checked_sub(1).map(|x| Cartesian::new(x, y))
     }
-    fn checked_east(&self, size: u32) -> Option<Self> {
+    fn checked_east(&self, width: u32) -> Option<Self> {
         let (x, y) = self.get();
         x.checked_add(1).and_then(|x| {
-            if x < size {
+            if x < width {
                 Some(Cartesian::new(x, y))
             } else {
                 None
             }
         })
     }
-    fn checked_south(&self, size: u32) -> Option<Self> {
+    fn checked_south(&self, height: u32) -> Option<Self> {
         let (x, y) = self.get();
         y.checked_add(1).and_then(|y| {
-            if y < size {
+            if y < height {
                 Some(Cartesian::new(x, y))
             } else {
                 None
@@ -90,33 +90,33 @@ pub fn is_top<C: Into<Cartesian<u32>>>(coordinates: C) -> bool {
 }
 
 impl DeltaCell {
-    fn new<C: Into<Cartesian<u32>> + Copy>(coordinates: C, size: u32) -> Self {
+    fn new<C: Into<Cartesian<u32>> + Copy>(coordinates: C, width: u32, height: u32) -> Self {
         if is_top(coordinates) {
-            Self::new_top(coordinates.into(), size)
+            Self::new_top(coordinates.into(), width)
         } else {
-            Self::new_bottom(coordinates.into(), size)
+            Self::new_bottom(coordinates.into(), width, height)
         }
     }
 
-    fn new_top(coordinates: Cartesian<u32>, size: u32) -> Self {
+    fn new_top(coordinates: Cartesian<u32>, width: u32) -> Self {
         Self {
             coordinates,
             inaccessible: Neighbours {
                 alpha: coordinates.checked_north(),
                 west: coordinates.checked_west(),
-                east: coordinates.checked_east(size),
+                east: coordinates.checked_east(width),
             },
             accessible: Neighbours::new(),
         }
     }
 
-    fn new_bottom(coordinates: Cartesian<u32>, size: u32) -> Self {
+    fn new_bottom(coordinates: Cartesian<u32>, width: u32, height: u32) -> Self {
         Self {
             coordinates,
             inaccessible: Neighbours {
-                alpha: coordinates.checked_south(size),
+                alpha: coordinates.checked_south(height),
                 west: coordinates.checked_west(),
-                east: coordinates.checked_east(size),
+                east: coordinates.checked_east(width),
             },
             accessible: Neighbours::new(),
         }
@@ -146,38 +146,47 @@ impl DeltaCell {
 
 #[derive(Debug)]
 pub struct DeltaMaze {
-    size: u32,
+    width: u32,
+    height: u32,
     cells: Vec<DeltaCell>,
 }
 
 impl DeltaMaze {
     pub fn new(size: u32) -> Self {
-        let mut cells = Vec::with_capacity((size * size) as usize);
-        for y in 0..size {
-            for x in 0..size {
-                cells.push(DeltaCell::new(Cartesian::new(x, y), size));
+        let width = size + size / 2;
+        let height = size;
+        println!("{}×{}", width, height);
+        let mut cells = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                cells.push(DeltaCell::new(Cartesian::new(x, y), width, height));
             }
         }
-        Self { size, cells }
+        Self {
+            width,
+            height,
+            cells,
+        }
     }
 
     /// May only be called on a top cell
     fn set_entrance(&mut self, coords: Cartesian<u32>) {
-        let index = coords.regular_index(self.size) as usize;
+        let index = coords.regular_index(self.width) as usize;
         self.cells[index].accessible.alpha = Some(coords);
     }
     /// May only be called on a bottom cell
     fn set_exit(&mut self, coords: Cartesian<u32>) {
-        let index = coords.regular_index(self.size) as usize;
+        let index = coords.regular_index(self.width) as usize;
         self.cells[index].accessible.alpha = Some(coords);
     }
 
     pub fn has_path(&self, a: &Cartesian<u32>, direction: Direction) -> bool {
-        let cell = &self.cells[a.regular_index(self.size) as usize];
+        let cell = &self.cells[a.regular_index(self.width) as usize];
         cell.accessible[direction].is_some()
     }
-    pub fn size(&self) -> u32 {
-        self.size
+
+    pub fn get_size(&self) -> (u32, u32) {
+        (self.width, self.height)
     }
 }
 
@@ -185,14 +194,14 @@ impl Maze for DeltaMaze {
     type Idx = Cartesian<u32>;
 
     fn carve(&mut self, node: Self::Idx, neighbour: Self::Idx) {
-        let a = node.regular_index(self.size);
-        let b = neighbour.regular_index(self.size);
+        let a = node.regular_index(self.width);
+        let b = neighbour.regular_index(self.width);
         self.cells[a as usize].carve(neighbour);
         self.cells[b as usize].carve(node);
     }
 
     fn get_walls(&self, node: Self::Idx) -> Vec<Self::Idx> {
-        let cell = &self.cells[node.regular_index(self.size) as usize];
+        let cell = &self.cells[node.regular_index(self.width) as usize];
         [
             cell.inaccessible.west,
             cell.inaccessible.east,
@@ -204,7 +213,7 @@ impl Maze for DeltaMaze {
     }
 
     fn get_paths(&self, node: Self::Idx) -> Vec<Self::Idx> {
-        let cell = &self.cells[node.regular_index(self.size) as usize];
+        let cell = &self.cells[node.regular_index(self.width) as usize];
         [
             cell.accessible.west,
             cell.accessible.east,
@@ -245,17 +254,17 @@ impl Maze for DeltaMaze {
     }
 
     fn get_index(&self, node: Self::Idx) -> usize {
-        node.regular_index(self.size) as usize
+        node.regular_index(self.width) as usize
     }
 
     fn make_solution(&mut self, rng: &mut Arengee) -> Solution<Self::Idx> {
-        let possible_entrances = (0..self.size)
+        let possible_entrances = (0..self.width)
             .map(|x| Cartesian::new(x, 0))
             .filter(|c| is_top(*c))
             .collect_vec();
 
-        let possible_exits = (0..self.size)
-            .map(|x| Cartesian::new(x, self.size - 1))
+        let possible_exits = (0..self.width)
+            .map(|x| Cartesian::new(x, self.height - 1))
             .filter(|c| !is_top(*c))
             .collect_vec();
 

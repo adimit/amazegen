@@ -8,7 +8,7 @@ pub struct Cartesian<N> {
 
 impl<N> Cartesian<N>
 where
-    N: Copy + std::ops::Add<Output = N> + std::ops::Mul<Output = N>,
+    N: Copy + std::ops::Add<Output = N> + std::ops::Mul<Output = N> + std::fmt::Debug,
 {
     pub fn new(x: N, y: N) -> Self {
         Cartesian { x, y }
