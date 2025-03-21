@@ -15,7 +15,7 @@ pub struct Metadata {
 const SCALE: f64 = 0.2;
 
 impl Metadata {
-    pub fn new(algorithm: Algorithm, shape: Shape, seed: u64, maze_url: Option<String>) -> Self {
+    fn new(algorithm: Algorithm, shape: Shape, seed: u64, maze_url: Option<String>) -> Self {
         Self {
             algorithm,
             shape,
@@ -81,7 +81,7 @@ impl Metadata {
             config.algorithm.clone(),
             config.shape.clone(),
             config.seed,
-            url,
+            config.get_complete_url(url),
         )
     }
 
