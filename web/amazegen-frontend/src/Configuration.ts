@@ -25,9 +25,13 @@ export interface ShapeSigma {
   Sigma: number;
 }
 
+export interface ShapeDelta {
+  Delta: number;
+}
+
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type ShapeKeys = KeysOfUnion<Shape>;
-export type Shape = ShapeRectilinear | ShapeTheta | ShapeSigma;
+export type Shape = ShapeRectilinear | ShapeTheta | ShapeSigma | ShapeDelta;
 
 export interface Configuration {
   algorithm: Algorithm;
@@ -70,6 +74,10 @@ const readFromHash = (): Configuration => {
     if (size !== undefined && str.startsWith('S')) {
       return sigma(size);
     }
+    if (size !== undefined && str.startsWith('D')) {
+      return delta(size);
+    }
+
     const legacy = parseSize(str);
     if (legacy !== undefined) {
       return rect(legacy);
@@ -118,6 +126,9 @@ const hashShape = (shape: Shape): string => {
   }
   if ('Sigma' in shape) {
     return `S${shape.Sigma}`;
+  }
+  if ('Delta' in shape) {
+    return `D${shape.Delta}`;
   }
   return `T${shape.Theta}`;
 };
@@ -168,6 +179,9 @@ export const configurationHashSignal = (): {
     if ('Sigma' in a && 'Sigma' in b) {
       return a.Sigma === b.Sigma;
     }
+    if ('Delta' in a && 'Delta' in b) {
+      return a.Delta === b.Delta;
+    }
     return false;
   };
 
@@ -213,6 +227,11 @@ export const configurationHashSignal = (): {
         ...configuration(),
         shape: theta(by(shape.Theta)),
       });
+    } else if ('Delta' in shape) {
+      return setConfiguration({
+        ...configuration(),
+        shape: { Delta: by(shape.Delta) },
+      });
     } else {
       return setConfiguration({
         ...configuration(),
@@ -227,6 +246,8 @@ export const configurationHashSignal = (): {
       return shape.Rectilinear[0];
     } else if ('Theta' in shape) {
       return shape.Theta;
+    } else if ('Delta' in shape) {
+      return shape.Delta;
     } else {
       return shape.Sigma;
     }
@@ -250,6 +271,8 @@ export const configurationHashSignal = (): {
         return rect(size);
       case 'Theta':
         return theta(size);
+      case 'Delta':
+        return delta(size);
       case 'Sigma':
         return sigma(size);
     }
@@ -285,3 +308,4 @@ const rect = (size: number): Shape => ({
 });
 const theta = (size: number): Shape => ({ Theta: clamp(size, 50) });
 const sigma = (size: number): Shape => ({ Sigma: clamp(size, 100) });
+const delta = (size: number): Shape => ({ Delta: clamp(size, 100) });

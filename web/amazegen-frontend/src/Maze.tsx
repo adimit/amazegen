@@ -89,6 +89,14 @@ export default function Maze(): JSX.Element {
           />
           Hexagon
         </label>
+        <label>
+          <input
+            type="radio"
+            onInput={() => setShape('Delta')}
+            checked={'Delta' in configuration().shape}
+          />
+          Triangle
+        </label>
       </section>
       <section>
         <h2>Algorithm</h2>
