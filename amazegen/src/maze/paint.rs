@@ -149,3 +149,7 @@ impl Display for RenderedMaze {
         write!(f, "{}", String::from_utf8(strbuf).unwrap())
     }
 }
+
+pub fn midpoint(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
+    ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
+}

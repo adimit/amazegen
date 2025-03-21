@@ -15,7 +15,7 @@ use crate::maze::{
     },
 };
 
-use super::RenderedMaze;
+use super::{midpoint, RenderedMaze};
 
 pub struct DeltaMazeRenderer<'a> {
     maze: &'a DeltaMaze,
@@ -171,8 +171,7 @@ impl<'a> DeltaMazeRenderer<'a> {
     fn compute_centre(&self, cell: &Cartesian<u32>) -> (f64, f64) {
         let (x, y) = cell.get();
         let xpos = (((x as f64 / 2.0) + 0.5) * self.edge_length) + (self.stroke_width / 2.0);
-        let ypos = (y as f64 + if is_top(*cell) { 1.0 - q } else { q }) * self.cell_height
-            + (self.stroke_width / 2.0);
+        let ypos = (y as f64 + 0.5) * self.cell_height + (self.stroke_width / 2.0);
         (xpos, ypos)
     }
 }
@@ -183,10 +182,4 @@ where
 {
     start: (f64, f64),
     movements: Vec<(Direction, f64, f64)>,
-}
-
-const q: f64 = 0.5;
-
-fn midpoint(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
-    ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
