@@ -126,7 +126,7 @@ impl Configuration {
     }
 
     pub fn get_complete_url(&self, url: Option<String>) -> Option<String> {
-        url.map(|url| format!("{}{}", url, self.get_location_hash()))
+        url.map(|url| format!("{}#{}", url, self.get_location_hash()))
     }
 
     fn get_location_hash(&self) -> String {
