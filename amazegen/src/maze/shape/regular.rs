@@ -59,11 +59,12 @@ const DOWN: u8 = 16u8;
 
 impl RectilinearMaze {
     pub fn new(extents: (usize, usize)) -> Self {
+        let min_extents = (extents.0.max(2), extents.1.max(2));
         RectilinearMaze {
-            extents,
+            extents: min_extents,
             entrance: 0,
             exit: 0,
-            fields: vec![vec![0u8; extents.1]; extents.0],
+            fields: vec![vec![0u8; min_extents.1]; min_extents.0],
         }
     }
     pub fn set_entrance(&mut self, entrance: usize) {

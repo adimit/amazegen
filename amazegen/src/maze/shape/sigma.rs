@@ -115,11 +115,15 @@ pub struct SigmaMaze {
 
 impl SigmaMaze {
     pub fn new(size: usize) -> Self {
-        let cells = (0..size)
-            .flat_map(|y| (0..size).map(move |x| (x, y)))
-            .map(|coordinates| SigmaCell::new(coordinates, size))
+        let min_size = size.max(2);
+        let cells = (0..min_size)
+            .flat_map(|y| (0..min_size).map(move |x| (x, y)))
+            .map(|coordinates| SigmaCell::new(coordinates, min_size))
             .collect();
-        Self { size, cells }
+        Self {
+            size: min_size,
+            cells,
+        }
     }
 
     fn set_exit(&mut self, x: usize, rng: &mut Arengee) {

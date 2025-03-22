@@ -208,12 +208,13 @@ impl RingMaze {
 
     pub fn new(max_rings: usize, column_factor: usize) -> RingMaze {
         let mut rings = vec![1];
-        rings.extend((1..max_rings).map(|row| Self::compute_no_of_columns(row, column_factor)));
-        let extents = (0..max_rings)
+        let min_rings = max_rings.max(2);
+        rings.extend((1..min_rings).map(|row| Self::compute_no_of_columns(row, column_factor)));
+        let extents = (0..min_rings)
             .map(|x| rings[0..x].iter().sum::<usize>())
             .collect::<Vec<_>>();
 
-        let cells = Self::compute_cells(max_rings, &rings, column_factor);
+        let cells = Self::compute_cells(min_rings, &rings, column_factor);
         RingMaze {
             ring_sizes: rings,
             extents,

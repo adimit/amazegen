@@ -153,9 +153,9 @@ pub struct DeltaMaze {
 
 impl DeltaMaze {
     pub fn new(size: u32) -> Self {
-        let width = size + size / 2;
-        let height = size;
-        println!("{}×{}", width, height);
+        let min_size = size.max(2);
+        let width = min_size + min_size / 2;
+        let height = min_size;
         let mut cells = Vec::with_capacity((width * height) as usize);
         for y in 0..height {
             for x in 0..width {
