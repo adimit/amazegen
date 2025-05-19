@@ -17,6 +17,6 @@ wasm-bindgen = { version = "0.2.100", features = ["msrv"] }
 serde-wasm-bindgen = "0.6"
 svg2pdf = "0.13.0"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
-pdf-writer = "0.12"
-ttf-parser = "0.25"
+pdf-writer = "0.12.1" # can't upgrade until svg2pdf doesn't upgrade
+ttf-parser = "0.25.1"
 amazegen = { path = "../amazegen" }
